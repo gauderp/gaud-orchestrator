@@ -2,7 +2,7 @@
 
 ## Resumo
 
-Plataforma web para orquestrar equipes de agentes de IA com backlog management, Kanban customizavel, Spec Driven Development, e execucao automatica. Inspirado no Paperclip, adaptado para o ecossistema Gaud ERP.
+Plataforma web para orquestrar equipes de agentes de IA com backlog management, Kanban customizavel, Spec Driven Development, conversas colaborativas entre agentes, memoria de longo prazo, e aprendizado com erros. LLM-agnostic e token-efficient. Inspirado no Paperclip, adaptado para o ecossistema Gaud ERP.
 
 GitHub: `gauderp/gaud-orchestrator`
 
@@ -14,6 +14,9 @@ GitHub: `gauderp/gaud-orchestrator`
 - Suportar multiplos LLM providers (Claude, Gemini, OpenAI, DeepSeek, Cursor)
 - Controlar custos por agente
 - Fluxo SDD: agente analisa codebase → gera spec → aprovacao → tasks no Kanban
+- Agentes colaboram em conversas para elaborar specs, plans, e codigo
+- Memoria de longo prazo: agentes lembram contexto entre sessoes via vector DB
+- Aprendizado com erros: agentes registram e consultam experiencias passadas
 
 ## Stack
 
@@ -21,7 +24,9 @@ GitHub: `gauderp/gaud-orchestrator`
 |--------|-----------|
 | Frontend | React 19 + Vite + Tailwind CSS |
 | Backend | Fastify + WebSocket (via @fastify/websocket) |
-| Banco | SQLite (better-sqlite3) |
+| Banco | SQLite (better-sqlite3) + sqlite-vec (vector search) |
+| Vector memory | @claude-flow/memory (HNSW + hierarchical + graph) |
+| Embeddings | Provider LLM embeddings (OpenAI, Gemini) + fallback ONNX local |
 | Monorepo | pnpm workspaces |
 | Deploy | Docker Compose |
 | Linguagem | TypeScript |
@@ -48,6 +53,10 @@ gaud-orchestrator/
 │   │   ├── src/
 │   │   │   ├── routes/        # Fastify route modules (1 file per domain)
 │   │   │   ├── services/      # Business logic
+│   │   │   │   ├── memory.ts      # AgentMemory fachada (@claude-flow/memory)
+│   │   │   │   ├── conversation.ts # Conversation Engine (turn-based loop)
+│   │   │   │   ├── learning.ts    # Error Learning (detect + store + inject)
+│   │   │   │   └── embeddings.ts  # EmbeddingProvider registry (LLM-agnostic)
 │   │   │   ├── db/            # SQLite setup, migrations, queries
 │   │   │   ├── ws/            # WebSocket broadcast
 │   │   │   └── index.ts       # Fastify server entry
@@ -97,7 +106,9 @@ gaud-orchestrator/
 | Monorepo | pnpm workspaces | Types compartilhados, deploy unico, DX |
 | Frontend | React 19 + Vite + Tailwind | Moderno, rapido, utility-first CSS (light/dark) |
 | Backend | Fastify | Mais performatico que Express, schema validation nativo |
-| Banco | SQLite (better-sqlite3) | Sincrono, zero infra, suficiente para um time |
+| Banco | SQLite (better-sqlite3) + sqlite-vec | Sincrono, zero infra, vector search nativo |
+| Long memory | @claude-flow/memory (fachada) | Hierarchical memory, graph queries, sessions — ja pronto |
+| Embeddings | Provider LLM + fallback ONNX | Cada provider gera seus embeddings; custo desprezivel |
 | State mgmt | Zustand (por dominio) | Leve, sem boilerplate, ja validado no RuFloUI |
 | Realtime | WebSocket (@fastify/websocket) | Logs ao vivo, updates de status |
 | LLM | Interface plugavel | Suporta qualquer provider sem mudar core |
@@ -272,6 +283,260 @@ Done             → sem acao
 
 ---
 
+## Modulo 5: Conversation Engine
+
+Agentes colaboram em conversas para produzir artefatos (specs, plans, codigo, pesquisas). Cada card/task pode ter uma conversa onde multiplos agentes especialistas interagem entre si e com o usuario.
+
+### Conceito
+
+Uma conversa e um "chat room" por task onde:
+- Multiplos agentes participam, cada um com sua especialidade
+- Agentes podem mencionar outros agentes (@agent-name)
+- Gaps que nenhum agente resolve escalam para o usuario
+- A conversa produz um artefato final (spec, plan, codigo)
+
+### Turn-based Loop
+
+```
+1. Orchestrator cria conversa e convida agentes relevantes
+2. Loop:
+   a. Monta prompt para o proximo agente:
+      - Knowledge do agente (instructions + skills)
+      - Resumo da conversa (long memory)
+      - Ultimas N mensagens (short-term context)
+      - Memorias relevantes do vector DB (RAG)
+   b. Agente responde com:
+      - Conteudo (contribuicao normal)
+      - @agent-name pergunta → proximo turno e daquele agente
+      - [QUESTION_FOR_USER] → pausa, notifica usuario via WebSocket
+      - [ARTIFACT] → conversa produz resultado final
+   c. Se pergunta para usuario → pausa, espera resposta
+   d. Se artifact → conversa completa, resultado linkado ao card
+   e. Max turns sem progresso → orchestrator pede conclusao
+```
+
+### Token Efficiency
+
+Cada turno de agente recebe contexto otimizado:
+
+| Camada | Conteudo | Tokens |
+|--------|---------|--------|
+| Agent knowledge | Instructions + skills | ~1-3k (fixo) |
+| Conversation summary | Resumo comprimido do historico | ~500-1k |
+| Recent messages | Ultimas 5-10 mensagens raw | ~1-2k |
+| RAG memories | Memorias relevantes do vector DB | ~500-1k |
+| **Total por turno** | | **~3-7k tokens de contexto** |
+
+Mesmo conversas longas (100+ mensagens) consomem contexto fixo gracas ao resumo + RAG.
+
+### Quem decide o proximo agente?
+
+O orchestrator decide baseado em:
+1. Se agente mencionou outro (@fiscal → proximo e fiscal)
+2. Round-robin entre agentes convidados
+3. Se nenhum agente mencionado, o mais relevante para o ultimo topico (via similarity no vector DB)
+
+### Telas
+
+- **Conversation View** (aba no CardDetail): chat ao vivo com mensagens de agentes e usuario
+- Cada mensagem mostra: avatar do agente, nome, role, timestamp
+- Perguntas para usuario destacadas com banner amarelo
+- Artifacts linkados ao final
+- Botao "Add Agent" para convidar mais agentes na conversa
+
+---
+
+## Modulo 6: Agent Memory (Long-term)
+
+Memoria persistente entre sessoes usando @claude-flow/memory como backend, acessada via fachada propria.
+
+### Arquitetura de Memoria
+
+```
+Context Window (short-term)     Vector DB (long-term)      SQLite (audit)
+  Resumo + ultimas N msgs         Toda conversa embedada     Historico raw
+  ~3-7k tokens                    Busca semantica            Nunca vai pro prompt
+         |                               |
+         └──── Agente pergunta ──────────┘
+               "O que ja discutimos       
+                sobre certificado?"       
+               → chunks relevantes        
+```
+
+### Tipos de Memoria
+
+| Tipo | O que armazena | Quando consulta |
+|------|---------------|-----------------|
+| **Conversation** | Mensagens de conversas | Ao iniciar nova conversa sobre mesmo topico |
+| **Error correction** | Erro + contexto + fix | Ao enfrentar task similar |
+| **Pattern success** | Abordagem que funcionou | Ao enfrentar task similar |
+| **Code knowledge** | Como algo funciona no codebase | Ao tocar no mesmo codigo |
+| **User preferences** | Correcoes/preferencias do usuario | Sempre (injeta no prompt base) |
+
+### Fachada AgentMemory
+
+```typescript
+// packages/api/src/services/memory.ts
+
+interface EmbeddingProvider {
+  generateEmbedding(text: string): Promise<number[]>
+  dimensions: number
+}
+
+class AgentMemory {
+  constructor(
+    private backend: CloudFlowMemoryBackend,  // @claude-flow/memory
+    private embeddings: EmbeddingProvider,
+  ) {}
+
+  // Store
+  store(opts: {
+    agentId: string
+    type: 'conversation' | 'error_correction' | 'pattern_success' | 'code_knowledge' | 'user_preference'
+    content: string
+    metadata: Record<string, unknown>
+    tags: string[]
+  }): Promise<void>
+
+  // Search (semantic)
+  search(query: string, opts?: {
+    agentId?: string
+    type?: string
+    limit?: number
+  }): Promise<MemoryEntry[]>
+
+  // Session lifecycle
+  startSession(agentId: string, conversationId: string): Promise<string>
+  endSession(sessionId: string): Promise<void>  // triggers consolidation
+
+  // Summarize conversation for context injection
+  summarize(conversationId: string): Promise<string>
+
+  // Consolidate: compress old memories, promote patterns
+  consolidate(): Promise<void>
+}
+```
+
+### Embedding Providers (LLM-agnostic)
+
+```typescript
+// Usa o mesmo provider do agente para gerar embeddings
+const embeddingProviders: Record<string, EmbeddingProvider> = {
+  'openai': {
+    dimensions: 1536,
+    generateEmbedding: (text) => openai.embeddings.create({ model: 'text-embedding-3-small', input: text })
+  },
+  'gemini': {
+    dimensions: 768,
+    generateEmbedding: (text) => genai.embedContent({ model: 'text-embedding-004', content: text })
+  },
+  'local': {
+    dimensions: 384,
+    generateEmbedding: (text) => transformers.pipeline('feature-extraction', text)  // ONNX fallback
+  }
+}
+```
+
+Custo de embeddings e desprezivel (~$0.02/1M tokens OpenAI, gratuito Gemini).
+
+### Telas
+
+- **Agent Detail**: aba "Memory" mostrando memorias armazenadas, filtro por tipo, busca
+- **Dashboard**: widget "Learnings this month" (quantas memorias de erro/sucesso)
+
+---
+
+## Modulo 7: Error Learning
+
+Sistema para agentes aprenderem com erros e acertos. Integrado ao AgentMemory.
+
+### Fluxo de Aprendizado
+
+```
+1. Agente comete erro
+   - Test falha
+   - PR rejeitado
+   - Usuario corrige na conversa
+   - Spec review rejeita
+
+2. Sistema detecta e registra experiencia
+   memory.store({
+     agentId: 'gaud-nfse-catalao',
+     type: 'error_correction',
+     content: 'versaoDados 2.04 rejeitado, Catalao usa 2.01',
+     metadata: {
+       task: 'NFS-e Catalao XML',
+       error: 'SEFAZ rejeicao codigo 123',
+       fix: 'Configurar versaoDados=2.01 por municipio',
+     },
+     tags: ['nfse', 'catalao', 'abrasf', 'versao']
+   })
+
+3. Proxima task similar
+   - Vector search retorna experiencia passada
+   - Prompt inclui: "APRENDIZADO ANTERIOR: Catalao usa versaoDados 2.01"
+   - Agente acerta de primeira
+```
+
+### Tipos de Eventos que Geram Aprendizado
+
+| Evento | Tipo de memoria | Deteccao |
+|--------|----------------|----------|
+| Test falha → fix aplicado | error_correction | exit code + commit subsequente |
+| PR rejeitado com comentarios | error_correction | GitHub webhook / review comment |
+| Usuario corrige agente na conversa | error_correction + user_preference | Mensagem do usuario apos erro |
+| Spec review rejeita | error_correction | spec_reviews.verdict = 'reject' |
+| Task concluida com sucesso | pattern_success | execution_task.status = 'done' |
+| Agente descobre padrao no codebase | code_knowledge | Agente armazena via tool |
+
+### Injecao no Prompt
+
+Antes de cada turno do agente, o sistema:
+
+```typescript
+// 1. Busca memorias relevantes
+const memories = await agentMemory.search(taskContext, {
+  agentId: agent.id,
+  limit: 5,
+})
+
+// 2. Formata como secao do prompt
+const learnings = memories
+  .filter(m => m.type === 'error_correction' || m.type === 'pattern_success')
+  .map(m => `- ${m.content}`)
+  .join('\n')
+
+// 3. Injeta no prompt
+const prompt = `
+## Previous Learnings
+${learnings || 'No previous learnings for this context.'}
+
+## Your Task
+...
+`
+```
+
+### Consolidacao (NightlyLearner equivalent)
+
+Periodicamente (diario ou sob demanda):
+1. Agrupa memorias similares (vector similarity > 0.9)
+2. Merge duplicatas em uma memoria consolidada
+3. Promove patterns frequentes (3+ ocorrencias) para "core knowledge"
+4. Descarta memorias de erro corrigidas ha muito tempo (TTL configurable)
+
+### Metricas
+
+- **Error repeat rate**: quantas vezes o mesmo tipo de erro ocorre (deve diminuir)
+- **Learning effectiveness**: % de tasks onde memoria foi consultada E task teve sucesso
+- **Memory growth**: total de memorias por tipo por agente
+
+### Telas
+
+- **Agent Detail > Memory tab**: lista de memorias com tipo, conteudo, data, relevancia
+- **Dashboard**: widget "Error Learning" com metricas do mes
+
+---
+
 ## Modelo de Dados (SQLite)
 
 ```sql
@@ -419,6 +684,62 @@ CREATE TABLE spec_reviews (
 );
 
 -- ==========================================
+-- Conversations
+-- ==========================================
+CREATE TABLE conversations (
+  id TEXT PRIMARY KEY,
+  card_id TEXT REFERENCES cards(id),
+  type TEXT NOT NULL CHECK (type IN ('spec', 'plan', 'code', 'research', 'review')),
+  status TEXT NOT NULL CHECK (status IN ('active', 'paused_for_user', 'completed')) DEFAULT 'active',
+  summary TEXT,  -- compressed summary for token efficiency
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE conversation_participants (
+  conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (conversation_id, agent_id)
+);
+
+CREATE TABLE messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_type TEXT NOT NULL CHECK (sender_type IN ('agent', 'user', 'system')),
+  sender_id TEXT,  -- agent_id, 'user', or 'system'
+  content TEXT NOT NULL,
+  message_type TEXT NOT NULL CHECK (message_type IN ('content', 'question_for_agent', 'question_for_user', 'artifact')) DEFAULT 'content',
+  mentions TEXT,  -- JSON array of agent_ids mentioned
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ==========================================
+-- Agent Memory (long-term)
+-- ==========================================
+CREATE TABLE agent_memories (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  type TEXT NOT NULL CHECK (type IN ('conversation', 'error_correction', 'pattern_success', 'code_knowledge', 'user_preference')),
+  content TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  tags TEXT,  -- JSON array of tags
+  embedding BLOB,  -- vector embedding for similarity search
+  relevance_score REAL DEFAULT 0,  -- increases with successful recalls
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE memory_sessions (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  conversation_id TEXT REFERENCES conversations(id),
+  started_at TEXT NOT NULL DEFAULT (datetime('now')),
+  ended_at TEXT,
+  consolidated INTEGER NOT NULL DEFAULT 0  -- boolean: has NightlyLearner run?
+);
+
+-- ==========================================
 -- Executions
 -- ==========================================
 CREATE TABLE executions (
@@ -471,6 +792,12 @@ CREATE INDEX idx_agent_cost_created ON agent_cost_log(created_at);
 CREATE INDEX idx_execution_tasks_exec ON execution_tasks(execution_id);
 CREATE INDEX idx_execution_logs_task ON execution_logs(execution_task_id);
 CREATE INDEX idx_specs_status ON specs(status);
+CREATE INDEX idx_conversations_card ON conversations(card_id);
+CREATE INDEX idx_messages_conversation ON messages(conversation_id);
+CREATE INDEX idx_messages_sender ON messages(sender_type, sender_id);
+CREATE INDEX idx_agent_memories_agent ON agent_memories(agent_id);
+CREATE INDEX idx_agent_memories_type ON agent_memories(type);
+CREATE INDEX idx_memory_sessions_agent ON memory_sessions(agent_id);
 ```
 
 ## API Routes (Fastify)
@@ -548,6 +875,29 @@ CREATE INDEX idx_specs_status ON specs(status);
 | POST | /api/executions/:id/cancel | Cancelar |
 | POST | /api/executions/:id/gaps/:gapId/resolve | Resolver gap |
 
+### Conversations
+| Method | Path | Descricao |
+|--------|------|-----------|
+| GET | /api/cards/:cardId/conversations | Listar conversas do card |
+| POST | /api/conversations | Criar conversa (com card_id, type, agent_ids[]) |
+| GET | /api/conversations/:id | Detalhe com mensagens |
+| GET | /api/conversations/:id/messages | Mensagens paginadas |
+| POST | /api/conversations/:id/messages | Enviar mensagem (usuario) |
+| POST | /api/conversations/:id/add-agent | Convidar agente para conversa |
+| POST | /api/conversations/:id/next-turn | Trigger proximo turno de agente |
+| POST | /api/conversations/:id/pause | Pausar conversa |
+| POST | /api/conversations/:id/resume | Retomar conversa (apos resposta usuario) |
+
+### Memory
+| Method | Path | Descricao |
+|--------|------|-----------|
+| GET | /api/agents/:id/memories | Listar memorias do agente (filtro por type) |
+| POST | /api/agents/:id/memories | Criar memoria manual |
+| GET | /api/agents/:id/memories/search | Busca semantica nas memorias |
+| DELETE | /api/memories/:id | Deletar memoria |
+| POST | /api/memory/consolidate | Trigger consolidacao manual |
+| GET | /api/memory/stats | Metricas de memoria (total por tipo, por agente) |
+
 ### Providers
 | Method | Path | Descricao |
 |--------|------|-----------|
@@ -569,6 +919,12 @@ CREATE INDEX idx_specs_status ON specs(status);
 | execution:updated | server→client | Execucao mudou de status |
 | execution:task:log | server→client | Log de task em tempo real |
 | spec:updated | server→client | Spec criado/atualizado |
+| conversation:message | server→client | Nova mensagem na conversa (agente ou usuario) |
+| conversation:status | server→client | Status da conversa mudou (active/paused/completed) |
+| conversation:question | server→client | Agente tem pergunta para usuario (highlight) |
+| conversation:artifact | server→client | Conversa produziu artefato |
+| memory:stored | server→client | Nova memoria armazenada |
+| memory:learning | server→client | Agente aprendeu com erro (notificacao) |
 
 ## Telas do Frontend
 
@@ -596,6 +952,8 @@ CREATE INDEX idx_specs_status ON specs(status);
 | | /specs/:id | SpecDetailPage | Conteudo, versoes, reviews |
 | Executions | /executions | ExecutionListPage | Lista de execucoes |
 | | /executions/:id | ExecutionDetailPage | Tasks, logs ao vivo, PRs |
+| Conversations | /conversations/:id | ConversationPage | Chat ao vivo, mensagens, perguntas pendentes |
+| Memory | /agents/:id/memory | AgentMemoryPage | Memorias do agente, busca, filtros por tipo |
 | Settings | /settings | SettingsPage | Tema, preferencias |
 
 ## Docker Compose
@@ -650,26 +1008,39 @@ O Fastify serve o build do frontend como static files + API na mesma porta (3001
    → type: task, repos: [gaud-erp-api], description breve
 
 2. Card movido para coluna "Spec"
-   → Agente analisa codebase via Graphify + grep
-   → Gera spec draft, salva como comentario + cria Spec
+   → Conversa inicia com agentes relevantes:
+     - gaud-fiscal (regras tributarias)
+     - gaud-nfse-catalao (integracao especifica)
+     - coder (implementacao)
+   → Agentes colaboram, analisam codebase, discutem abordagem
+   → Se gap: [QUESTION_FOR_USER] → pausa, usuario responde
+   → Agentes consultam memorias de projetos anteriores
+   → Conversa produz artifact: spec draft
    → Auto-move para "Review"
 
 3. Gerente de projetos revisa spec
+   → Pode pedir para agente reviewer avaliar tambem (conversa)
    → Aprova ou pede mudancas
    → Spec status: approved
 
 4. Card movido para coluna "Approved"
    → Orchestrator decompoe spec em execution tasks
-   → Atribui agentes especializados (gaud-nfse-catalao-go)
+   → Atribui agentes especializados com base no knowledge
+   → Cada task pode ter sua propria conversa (agentes discutem implementacao)
    → Executa em paralelo via provider configurado
    → PRs gerados automaticamente
 
 5. Card auto-move para "Executing"
    → Dashboard mostra progresso ao vivo
+   → Conversas dos agentes visiveis em tempo real
 
 6. Ao completar, auto-move para "Done"
    → PRs linkados no card
    → Custo total registrado
+   → Memorias armazenadas:
+     - pattern_success: abordagens que funcionaram
+     - code_knowledge: como funciona o codigo tocado
+     - error_correction: erros encontrados e como foram resolvidos
 ```
 
 ## Modulos reutilizados do RuFloUI
@@ -691,15 +1062,17 @@ O `execution-store.ts` sera substituido pelo SQLite (tabelas executions, executi
 ### Fase 1 — Scaffold + Infra
 - Criar repo gauderp/gaud-orchestrator
 - Scaffold monorepo (pnpm, tsconfig, packages)
-- Setup Fastify + SQLite + migrations
+- Setup Fastify + SQLite + migrations (schema completo incluindo conversations e memories)
 - Setup React + Vite + Tailwind + Zustand
 - Docker Compose
 - Layout base (sidebar, header, theme toggle)
+- **Plano ja criado:** `docs/superpowers/plans/2026-06-04-phase1-scaffold-infra.md`
 
 ### Fase 2 — Agents + Providers + Skills
 - Provider interface + implementacao claude-cli
+- EmbeddingProvider interface (LLM-agnostic)
 - CRUD de agents com hierarquia
-- Cost tracking
+- Cost tracking + hard-stop
 - CRUD de skills
 - Agent-skill assignment
 - Telas: AgentList, AgentDetail, ProviderConfig, SkillsList, SkillEditor
@@ -714,31 +1087,52 @@ O `execution-store.ts` sera substituido pelo SQLite (tabelas executions, executi
 - Estimativa de custo
 - Telas: BoardView, BoardSettings, CardDetail
 
-### Fase 4 — SDD
-- Spec generation via agente (Graphify + codebase analysis)
+### Fase 4 — Conversation Engine
+- Conversation CRUD (criar, pausar, retomar, completar)
+- Turn-based loop (orchestrator modera agentes)
+- Message routing (@mentions, question_for_user, artifacts)
+- Token efficiency: summary checkpoints + context window management
+- WebSocket streaming de mensagens ao vivo
+- Telas: ConversationView (aba no CardDetail), perguntas pendentes
+
+### Fase 5 — Agent Memory + Error Learning
+- Fachada AgentMemory sobre @claude-flow/memory
+- EmbeddingProvider integrado com providers LLM
+- Store/search/recall de memorias por tipo
+- Session lifecycle (start/end/consolidate)
+- Error detection (test failures, PR rejects, user corrections)
+- Learning injection no prompt (memorias relevantes)
+- Consolidacao periodica (merge duplicatas, promote patterns)
+- Telas: AgentMemoryPage, Dashboard widgets
+
+### Fase 6 — SDD
+- Spec generation via conversa de agentes (nao mais single-agent)
 - Spec review workflow (draft → review → approved)
 - Versioning de specs
 - Decomposicao: spec → cards no Kanban
 - Telas: SpecStudio, SpecReview, SpecDetail
 
-### Fase 5 — Executions
+### Fase 7 — Executions
 - Migrar orchestrator/session-manager para novo backend
-- Integracao com cards (card → execution)
+- Integracao com cards (card → execution) e conversations
 - Logs ao vivo via WebSocket
 - PR creation
+- Error learning integrado (registra erros durante execucao)
 - Telas: ExecutionList, ExecutionDetail
 
-### Fase 6 — Providers adicionais
-- claude-api provider
-- openai provider
-- gemini provider
-- deepseek provider
-- cursor provider
+### Fase 8 — Providers adicionais
+- claude-api provider (Anthropic SDK)
+- openai provider (OpenAI SDK)
+- gemini provider (Google AI SDK)
+- deepseek provider (OpenAI-compatible)
+- cursor provider (Cursor CLI)
+- Embedding providers para cada um
 - Provider test connection
 
-### Fase 7 — Polish + Deploy
-- Dashboard com metricas
+### Fase 9 — Polish + Deploy
+- Dashboard com metricas (custos, learnings, error rate, conversations)
 - Responsividade
 - Error handling robusto
 - Docker production build
 - Documentacao
+- Metricas de learning effectiveness
