@@ -11,6 +11,7 @@ import { providerRoutes } from './routes/providers.js'
 import { agentRoutes } from './routes/agents.js'
 import { boardRoutes } from './routes/boards.js'
 import { cardRoutes } from './routes/cards.js'
+import { conversationRoutes } from './routes/conversations.js'
 
 const dbPath = process.env['DATABASE_PATH'] ?? 'data/orchestrator.db'
 mkdirSync(dirname(dbPath), { recursive: true })
@@ -42,6 +43,7 @@ await server.register(providerRoutes)
 await server.register(agentRoutes)
 await server.register(boardRoutes)
 await server.register(cardRoutes)
+await server.register(conversationRoutes)
 
 const PORT = Number(process.env['PORT'] ?? 3001)
 await server.listen({ port: PORT, host: '0.0.0.0' })
