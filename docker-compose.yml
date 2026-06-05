@@ -1,0 +1,16 @@
+services:
+  gaud-orchestrator:
+    build: .
+    ports:
+      - "3001:3001"
+    volumes:
+      - gaud-data:/app/data
+      - ./agents:/app/agents
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/orchestrator.db
+      - AGENTS_DIR=/app/agents
+      - LOG_LEVEL=info
+
+volumes:
+  gaud-data:
