@@ -9,6 +9,8 @@
 **Tech Stack:** React 19, Vite, Tailwind CSS v4, Fastify 5, better-sqlite3, @fastify/websocket, Zustand 5, pnpm 9, TypeScript 5, vitest, Docker.
 
 **Spec:** `docs/superpowers/specs/2026-06-04-gaud-orchestrator-design.md`
+**Design System:** `DESIGN.md` (The Mission Control Console)
+**Product Context:** `PRODUCT.md`
 
 ---
 
@@ -1364,6 +1366,7 @@ Create `packages/web/package.json`:
     "@gaud/shared": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "lucide-react": "^0.470.0",
     "react-router-dom": "^7.1.0",
     "zustand": "^5.0.0"
   },
@@ -1453,34 +1456,72 @@ Create `packages/web/index.html`:
 
 - [ ] **Step 5: Create Tailwind CSS with dark mode**
 
-Create `packages/web/src/styles/globals.css`:
+Create `packages/web/src/styles/globals.css` (tokens from DESIGN.md):
 ```css
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Typography — DESIGN.md: Inter + JetBrains Mono */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
-  --color-brand-50:  #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
+  /* Colors — DESIGN.md: The Mission Control Console palette */
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-on-primary: #FFFFFF;
+
+  --color-accent: #059669;
+  --color-accent-hover: #047857;
+  --color-on-accent: #FFFFFF;
+
+  --color-destructive: #DC2626;
+  --color-destructive-hover: #B91C1C;
+  --color-on-destructive: #FFFFFF;
+
+  --color-warning: #D97706;
+
+  --color-surface: #F8FAFC;
+  --color-surface-elevated: #F1F5F9;
+  --color-ink: #0F172A;
+  --color-muted: #64748B;
+  --color-border: #E2E8F0;
+  --color-ring: #2563EB;
+
+  /* Dark mode colors */
+  --color-surface-dark: #18181B;
+  --color-surface-elevated-dark: #27272A;
+  --color-ink-dark: #FAFAFA;
+  --color-muted-dark: #A1A1AA;
+  --color-border-dark: #27272A;
+
+  /* Spacing — DESIGN.md: 4/8 system */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+
+  /* Radii — DESIGN.md */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
 }
 
 @layer base {
   html {
-    @apply bg-white text-neutral-900 antialiased;
+    @apply bg-white text-[--color-ink] antialiased;
+    font-family: var(--font-sans);
+    font-size: 14px; /* DESIGN.md: 14px body default */
+    line-height: 1.6;
   }
   html.dark {
-    @apply bg-neutral-950 text-neutral-50;
+    @apply bg-[#09090B] text-[--color-ink-dark];
   }
 }
 ```
@@ -1540,40 +1581,53 @@ export const api = {
 
 - [ ] **Step 8: Create UI components**
 
-Create `packages/web/src/components/ui/Button.tsx`:
+Create `packages/web/src/components/ui/Button.tsx` (per DESIGN.md Components > Buttons):
 ```tsx
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive'
   size?: 'sm' | 'md' | 'lg'
+  loading?: boolean
   children: ReactNode
 }
 
-export function Button({ variant = 'primary', size = 'md', className = '', children, ...props }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50'
+export function Button({ variant = 'primary', size = 'md', loading, className = '', children, disabled, ...props }: ButtonProps) {
+  const base = 'inline-flex items-center justify-center rounded-[--radius-md] font-medium transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[--color-ring] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
   const variants = {
-    primary: 'bg-brand-600 text-white hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-600',
-    secondary: 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700',
-    ghost: 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800',
+    primary: 'bg-[--color-primary] text-[--color-on-primary] hover:bg-[--color-primary-hover]',
+    secondary: 'bg-transparent text-[--color-ink] border border-[--color-border] hover:bg-[--color-surface] dark:text-[--color-ink-dark] dark:border-[--color-border-dark] dark:hover:bg-[--color-surface-dark]',
+    ghost: 'text-[--color-muted] hover:bg-[--color-surface] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark]',
+    destructive: 'bg-[--color-destructive] text-[--color-on-destructive] hover:bg-[--color-destructive-hover]',
   }
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
+    sm: 'h-7 px-3 text-xs',
+    md: 'h-9 px-4 text-sm',
+    lg: 'h-11 px-6 text-sm',
   }
 
   return (
-    <button className={`${base} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>
+    <button
+      className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
+      disabled={disabled || loading}
+      {...props}
+    >
+      {loading ? (
+        <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      ) : null}
       {children}
     </button>
   )
 }
 ```
 
-Create `packages/web/src/components/ui/ThemeToggle.tsx`:
+Create `packages/web/src/components/ui/ThemeToggle.tsx` (Lucide icons per DESIGN.md):
 ```tsx
 import { useAppStore } from '@/store/app'
+import { Moon, Sun } from 'lucide-react'
 
 export function ThemeToggle() {
   const { theme, setTheme } = useAppStore()
@@ -1581,14 +1635,10 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-      className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+      className="rounded-[--radius-md] p-2 text-[--color-muted] hover:bg-[--color-surface] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark] cursor-pointer transition-colors duration-150"
       aria-label="Toggle theme"
     >
-      {theme === 'light' ? (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-      )}
+      {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
     </button>
   )
 }
@@ -1596,15 +1646,21 @@ export function ThemeToggle() {
 
 - [ ] **Step 9: Create layout components**
 
-Create `packages/web/src/components/layout/Sidebar.tsx`:
+Create `packages/web/src/components/layout/Sidebar.tsx` (per DESIGN.md: Lucide icons, 224px width, navigation specs):
 ```tsx
 import { NavLink } from 'react-router-dom'
 import { useAppStore } from '@/store/app'
+import {
+  LayoutDashboard, Bot, Zap, Plug,
+  Kanban, FileText, Play,
+  Settings, PanelLeftClose, PanelLeft,
+} from 'lucide-react'
+import type { ComponentType } from 'react'
 
 interface NavItem {
   label: string
   to: string
-  icon: string
+  icon: ComponentType<{ size?: number }>
 }
 
 interface NavGroup {
@@ -1616,29 +1672,29 @@ const navGroups: NavGroup[] = [
   {
     title: 'Overview',
     items: [
-      { label: 'Dashboard', to: '/', icon: '📊' },
+      { label: 'Dashboard', to: '/', icon: LayoutDashboard },
     ],
   },
   {
     title: 'Agents',
     items: [
-      { label: 'Agents', to: '/agents', icon: '🤖' },
-      { label: 'Skills', to: '/skills', icon: '⚡' },
-      { label: 'Providers', to: '/settings/providers', icon: '🔌' },
+      { label: 'Agents', to: '/agents', icon: Bot },
+      { label: 'Skills', to: '/skills', icon: Zap },
+      { label: 'Providers', to: '/settings/providers', icon: Plug },
     ],
   },
   {
     title: 'Work',
     items: [
-      { label: 'Boards', to: '/boards', icon: '📋' },
-      { label: 'Specs', to: '/specs', icon: '📝' },
-      { label: 'Executions', to: '/executions', icon: '▶️' },
+      { label: 'Boards', to: '/boards', icon: Kanban },
+      { label: 'Specs', to: '/specs', icon: FileText },
+      { label: 'Executions', to: '/executions', icon: Play },
     ],
   },
   {
     title: 'Settings',
     items: [
-      { label: 'Settings', to: '/settings', icon: '⚙️' },
+      { label: 'Settings', to: '/settings', icon: Settings },
     ],
   },
 ]
@@ -1647,13 +1703,16 @@ export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useAppStore()
 
   return (
-    <aside className={`flex flex-col border-r border-neutral-200 bg-white transition-all dark:border-neutral-800 dark:bg-neutral-950 ${sidebarCollapsed ? 'w-16' : 'w-56'}`}>
-      <div className="flex h-14 items-center justify-between border-b border-neutral-200 px-4 dark:border-neutral-800">
+    <aside className={`flex flex-col border-r border-[--color-border] bg-white transition-all duration-200 dark:border-[--color-border-dark] dark:bg-[#09090B] ${sidebarCollapsed ? 'w-16' : 'w-56'}`}>
+      <div className="flex h-14 items-center justify-between border-b border-[--color-border] px-4 dark:border-[--color-border-dark]">
         {!sidebarCollapsed && (
-          <span className="text-sm font-bold text-brand-600 dark:text-brand-400">Gaud</span>
+          <span className="text-sm font-bold text-[--color-primary]">Gaud</span>
         )}
-        <button onClick={toggleSidebar} className="rounded p-1 text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800">
-          {sidebarCollapsed ? '→' : '←'}
+        <button
+          onClick={toggleSidebar}
+          className="rounded-[--radius-md] p-1.5 text-[--color-muted] hover:bg-[--color-surface] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark] cursor-pointer"
+        >
+          {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
         </button>
       </div>
 
@@ -1661,7 +1720,7 @@ export function Sidebar() {
         {navGroups.map((group) => (
           <div key={group.title} className="mb-4">
             {!sidebarCollapsed && (
-              <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+              <div className="mb-1 px-3 text-[0.6875rem] font-medium uppercase tracking-wider text-[--color-muted] dark:text-[--color-muted-dark]">
                 {group.title}
               </div>
             )}
@@ -1670,14 +1729,14 @@ export function Sidebar() {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  `flex items-center gap-3 rounded-[--radius-md] px-3 h-9 text-sm transition-colors duration-150 ${
                     isActive
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-400'
-                      : 'text-neutral-600 hover:bg-neutral-50 dark:text-neutral-400 dark:hover:bg-neutral-900'
+                      ? 'bg-[--color-surface] text-[--color-primary] dark:bg-[--color-surface-dark] dark:text-[--color-primary]'
+                      : 'text-[--color-muted] hover:bg-[--color-surface] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark]'
                   }`
                 }
               >
-                <span>{item.icon}</span>
+                <item.icon size={18} />
                 {!sidebarCollapsed && <span>{item.label}</span>}
               </NavLink>
             ))}
@@ -1689,14 +1748,14 @@ export function Sidebar() {
 }
 ```
 
-Create `packages/web/src/components/layout/Header.tsx`:
+Create `packages/web/src/components/layout/Header.tsx` (per DESIGN.md layout specs):
 ```tsx
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 export function Header() {
   return (
-    <header className="flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-6 dark:border-neutral-800 dark:bg-neutral-950">
-      <div className="text-sm text-neutral-500 dark:text-neutral-400">
+    <header className="flex h-14 items-center justify-between border-b border-[--color-border] bg-white px-6 dark:border-[--color-border-dark] dark:bg-[#09090B]">
+      <div className="text-sm text-[--color-muted] dark:text-[--color-muted-dark]">
         Gaud Orchestrator
       </div>
       <div className="flex items-center gap-2">
@@ -1719,7 +1778,7 @@ export function Layout() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto bg-neutral-50 p-6 dark:bg-neutral-900">
+        <main className="flex-1 overflow-y-auto bg-[--color-surface] p-6 dark:bg-[--color-surface-dark]">
           <Outlet />
         </main>
       </div>
@@ -1747,29 +1806,29 @@ export function DashboardPage() {
       <h1 className="mb-6 text-2xl font-bold">Dashboard</h1>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
-          <div className="text-sm text-neutral-500 dark:text-neutral-400">API Status</div>
+        <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
+          <div className="text-[--color-muted] dark:text-[--color-muted-dark]">API Status</div>
           <div className="mt-2 text-2xl font-bold">
             {health ? (
-              <span className="text-green-600 dark:text-green-400">{health.status}</span>
+              <span className="text-[--color-accent]">{health.status}</span>
             ) : (
-              <span className="text-neutral-400">Loading...</span>
+              <span className="text-[--color-muted]">Loading...</span>
             )}
           </div>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
-          <div className="text-sm text-neutral-500 dark:text-neutral-400">Active Agents</div>
+        <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
+          <div className="text-[--color-muted] dark:text-[--color-muted-dark]">Active Agents</div>
           <div className="mt-2 text-2xl font-bold">0</div>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
-          <div className="text-sm text-neutral-500 dark:text-neutral-400">Pending Specs</div>
+        <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
+          <div className="text-[--color-muted] dark:text-[--color-muted-dark]">Pending Specs</div>
           <div className="mt-2 text-2xl font-bold">0</div>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-950">
-          <div className="text-sm text-neutral-500 dark:text-neutral-400">Cost This Month</div>
+        <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
+          <div className="text-[--color-muted] dark:text-[--color-muted-dark]">Cost This Month</div>
           <div className="mt-2 text-2xl font-bold">$0.00</div>
         </div>
       </div>
