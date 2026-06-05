@@ -1,26 +1,28 @@
 import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
 import { getAgentCostSummary } from '../services/cost-tracker.js'
+import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 
 export async function agentRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
 
   app.get('/api/agents', async (_req, reply) => {
     const agents = db.prepare('SELECT * FROM agents ORDER BY created_at').all()
-    return reply.send(agents)
+    return reply.send(toCamelCaseArray(agents as any[]))
   })
 
   app.get<{ Params: { id: string } }>('/api/agents/:id', async (req, reply) => {
-    const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(req.params.id) as any
-    if (!agent) return reply.status(404).send({ error: 'Agent not found' })
+    const raw = db.prepare('SELECT * FROM agents WHERE id = ?').get(req.params.id) as any
+    if (!raw) return reply.status(404).send({ error: 'Agent not found' })
 
-    const skills = db.prepare(`
+    const agent = toCamelCase<Record<string, unknown>>(raw)
+    const skills = toCamelCaseArray(db.prepare(`
       SELECT s.* FROM skills s
       JOIN agent_skills ags ON ags.skill_id = s.id
       WHERE ags.agent_id = ?
-    `).all(req.params.id)
+    `).all(req.params.id) as any[])
 
-    const children = db.prepare('SELECT * FROM agents WHERE parent_agent_id = ?').all(req.params.id)
+    const children = toCamelCaseArray(db.prepare('SELECT * FROM agents WHERE parent_agent_id = ?').all(req.params.id) as any[])
 
     return reply.send({ ...agent, skills, children })
   })
@@ -34,7 +36,7 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
     `).run(id, name, role ?? null, instructions ?? null, providerId ?? null,
       model ?? null, costLimitUsd ?? 0, parentAgentId ?? null)
     const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(id)
-    return reply.status(201).send(agent)
+    return reply.status(201).send(toCamelCase(agent as any))
   })
 
   app.put<{ Params: { id: string } }>('/api/agents/:id', async (req, reply) => {
@@ -53,7 +55,7 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
       req.params.id
     )
     const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(req.params.id)
-    return reply.send(agent)
+    return reply.send(toCamelCase(agent as any))
   })
 
   app.delete<{ Params: { id: string } }>('/api/agents/:id', async (req, reply) => {
