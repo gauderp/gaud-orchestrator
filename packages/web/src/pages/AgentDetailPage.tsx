@@ -269,7 +269,7 @@ export function AgentDetailPage() {
                 <select
                   value={providerId}
                   onChange={(e) => setProviderId(e.target.value)}
-                  className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
+                  className="h-9 w-full box-border rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
                 >
                   <option value="">None</option>
                   {providers.map((p) => (

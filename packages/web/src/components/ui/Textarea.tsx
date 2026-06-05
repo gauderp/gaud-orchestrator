@@ -18,7 +18,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           ref={ref}
           id={inputId}
-          className={`min-h-[120px] rounded-[var(--radius-md)] border px-3 py-2 text-sm font-mono transition-colors duration-150
+          className={`min-h-[120px] w-full box-border rounded-[var(--radius-md)] border px-3 py-2 text-sm font-mono transition-colors duration-150
             bg-white border-[var(--color-border)] text-[var(--color-ink)]
             focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-primary)]
             dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)] dark:text-[var(--color-ink-dark)]
