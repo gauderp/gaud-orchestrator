@@ -10,7 +10,11 @@ interface ModalProps {
   width?: 'sm' | 'md' | 'lg'
 }
 
-const maxWidths = { sm: 448, md: 512, lg: 672 }
+const widthClasses = {
+  sm: 'max-w-md',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+}
 
 export function Modal({ open, onClose, title, children, width = 'md' }: ModalProps) {
   useEffect(() => {
@@ -23,53 +27,22 @@ export function Modal({ open, onClose, title, children, width = 'md' }: ModalPro
   if (!open) return null
 
   return createPortal(
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
+        className="absolute inset-0 bg-black/50"
         onClick={onClose}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        }}
       />
       {/* Dialog */}
       <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: maxWidths[width],
-          margin: '0 16px',
-          borderRadius: 12,
-          backgroundColor: '#fff',
-          padding: 24,
-          boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
-        }}
+        className={`relative w-full ${widthClasses[width]} mx-4 rounded-xl bg-white p-6 shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] dark:bg-zinc-900`}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>{title}</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{title}</h2>
           <button
             onClick={onClose}
-            style={{
-              padding: 4,
-              borderRadius: 6,
-              cursor: 'pointer',
-              background: 'none',
-              border: 'none',
-              color: '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-            }}
+            className="flex items-center rounded-md p-1 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] dark:hover:bg-[var(--color-surface-elevated-dark)] dark:hover:text-[var(--color-ink-dark)] cursor-pointer"
           >
             <X size={18} />
           </button>
