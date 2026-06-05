@@ -104,7 +104,7 @@ export class ExecutionEngine {
       throw new Error(`Cannot start execution in status: ${exec.status}`)
     }
 
-    this.db.prepare('UPDATE executions SET status = ?, updated_at = datetime("now") WHERE id = ?')
+    this.db.prepare(`UPDATE executions SET status = ?, updated_at = datetime('now') WHERE id = ?`)
       .run('executing', executionId)
     broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(executionId) as any))
 
@@ -201,7 +201,7 @@ export class ExecutionEngine {
     const allDone = tasks.every(t => t.status === 'done' || t.status === 'failed')
     if (allDone && tasks.length > 0) {
       const anyFailed = tasks.some(t => t.status === 'failed')
-      this.db.prepare('UPDATE executions SET status = ?, updated_at = datetime("now") WHERE id = ?')
+      this.db.prepare(`UPDATE executions SET status = ?, updated_at = datetime('now') WHERE id = ?`)
         .run(anyFailed ? 'failed' : 'done', executionId)
       broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(executionId) as any))
 
@@ -244,7 +244,7 @@ export class ExecutionEngine {
         .run(randomUUID(), task.execution_id, question)
 
       // Update execution status
-      this.db.prepare('UPDATE executions SET status = ?, updated_at = datetime("now") WHERE id = ?')
+      this.db.prepare(`UPDATE executions SET status = ?, updated_at = datetime('now') WHERE id = ?`)
         .run('approving', task.execution_id)
 
       broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any))
@@ -346,7 +346,7 @@ export class ExecutionEngine {
   // --- Public API ---
 
   cancelExecution(executionId: string): void {
-    this.db.prepare('UPDATE executions SET status = ?, updated_at = datetime("now") WHERE id = ?')
+    this.db.prepare(`UPDATE executions SET status = ?, updated_at = datetime('now') WHERE id = ?`)
       .run('failed', executionId)
     this.sessionManager.killAll()
     broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(executionId) as any))
@@ -362,7 +362,7 @@ export class ExecutionEngine {
     ).get(executionId, 'pending') as { c: number }
 
     if (pendingGaps.c === 0) {
-      this.db.prepare('UPDATE executions SET status = ?, updated_at = datetime("now") WHERE id = ?')
+      this.db.prepare(`UPDATE executions SET status = ?, updated_at = datetime('now') WHERE id = ?`)
         .run('executing', executionId)
       broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(executionId) as any))
       await this.scheduleNextTasks(executionId)
