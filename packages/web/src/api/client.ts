@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, Conversation, ConversationWithMessages, Message } from '@gaud/shared'
 
 const API_BASE = '/api'
 
@@ -71,5 +71,17 @@ export const api = {
     removeRepo: (id: string, repoId: string) => request<void>(`/cards/${id}/repos/${repoId}`, { method: 'DELETE' }),
     addDependency: (id: string, dependsOnCardId: string) => request(`/cards/${id}/dependencies`, { method: 'POST', body: JSON.stringify({ dependsOnCardId }) }),
     removeDependency: (id: string, depId: string) => request<void>(`/cards/${id}/dependencies/${depId}`, { method: 'DELETE' }),
+  },
+
+  conversations: {
+    listForCard: (cardId: string) => request<Conversation[]>(`/cards/${cardId}/conversations`),
+    get: (id: string) => request<ConversationWithMessages>(`/conversations/${id}`),
+    create: (data: { cardId?: string; type: string; agentIds: string[] }) => request<ConversationWithMessages>('/conversations', { method: 'POST', body: JSON.stringify(data) }),
+    getMessages: (id: string) => request<Message[]>(`/conversations/${id}/messages`),
+    sendMessage: (id: string, content: string) => request<Message>(`/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ content }) }),
+    addAgent: (id: string, agentId: string) => request(`/conversations/${id}/add-agent`, { method: 'POST', body: JSON.stringify({ agentId }) }),
+    nextTurn: (id: string) => request(`/conversations/${id}/next-turn`, { method: 'POST' }),
+    pause: (id: string) => request<Conversation>(`/conversations/${id}/pause`, { method: 'POST' }),
+    resume: (id: string) => request<Conversation>(`/conversations/${id}/resume`, { method: 'POST' }),
   },
 }
