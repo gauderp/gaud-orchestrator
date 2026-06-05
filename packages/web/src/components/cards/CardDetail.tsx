@@ -1,6 +1,7 @@
 import type { CardWithDetails, Column } from '@gaud/shared'
 import { CardTypeIcon } from '@/components/kanban/CardTypeIcon'
 import { Badge } from '@/components/ui/Badge'
+import { Paperclip } from 'lucide-react'
 import { CardRepos } from './CardRepos'
 import { CardComments } from './CardComments'
 
@@ -37,6 +38,27 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
 
       {/* Comments */}
       <CardComments cardId={card.id} comments={card.comments} onUpdate={onUpdate} />
+
+      {/* Attachments */}
+      {card.attachments && card.attachments.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+            Attachments
+          </h3>
+          <div className="flex flex-col gap-2">
+            {card.attachments.map((att) => (
+              <div
+                key={att.id}
+                className="flex items-center gap-2 rounded-[--radius-md] border border-[--color-border] bg-[--color-surface] px-3 py-2 text-sm dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]"
+              >
+                <Paperclip size={14} className="text-[--color-muted] dark:text-[--color-muted-dark]" />
+                <span className="text-[--color-ink] dark:text-[--color-ink-dark]">{att.filename}</span>
+                <span className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">{att.path}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Dependencies */}
       {card.dependencies.length > 0 && (
