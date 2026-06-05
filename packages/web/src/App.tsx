@@ -6,8 +6,14 @@ import { AgentDetailPage } from '@/pages/AgentDetailPage'
 import { SkillsListPage } from '@/pages/SkillsListPage'
 import { SkillEditorPage } from '@/pages/SkillEditorPage'
 import { ProviderConfigPage } from '@/pages/ProviderConfigPage'
+import { BoardListPage } from '@/pages/BoardListPage'
+import { BoardViewPage } from '@/pages/BoardViewPage'
+import { GanttViewPage } from '@/pages/GanttViewPage'
+import { BoardSettingsPage } from '@/pages/BoardSettingsPage'
+import { CardDetailPage } from '@/pages/CardDetailPage'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/app'
+import { useBoardStore } from '@/store/boards'
 
 export function AppRoutes() {
   const theme = useAppStore((s) => s.theme)
@@ -15,6 +21,26 @@ export function AppRoutes() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
+
+  useEffect(() => {
+    const wsPort = location.port === '5173' ? '3001' : location.port
+    const ws = new WebSocket(`ws://${location.hostname}:${wsPort}/ws`)
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data)
+        const state = useBoardStore.getState()
+        switch (msg.type) {
+          case 'card:moved': state.onCardMoved(msg.payload); break
+          case 'card:created': state.onCardCreated(msg.payload); break
+          case 'card:updated': state.onCardUpdated(msg.payload); break
+          case 'card:deleted': state.onCardDeleted(msg.payload.id); break
+        }
+      } catch {
+        // ignore malformed messages
+      }
+    }
+    return () => ws.close()
+  }, [])
 
   return (
     <Routes>
@@ -26,8 +52,12 @@ export function AppRoutes() {
         <Route path="/skills/new" element={<SkillEditorPage />} />
         <Route path="/skills/:id" element={<SkillEditorPage />} />
         <Route path="/settings/providers" element={<ProviderConfigPage />} />
+        <Route path="/boards" element={<BoardListPage />} />
+        <Route path="/boards/:id" element={<BoardViewPage />} />
+        <Route path="/boards/:id/gantt" element={<GanttViewPage />} />
+        <Route path="/boards/:id/settings" element={<BoardSettingsPage />} />
+        <Route path="/cards/:id" element={<CardDetailPage />} />
         {/* Placeholder routes — pages added in later phases */}
-        <Route path="/boards" element={<Placeholder title="Boards" />} />
         <Route path="/specs" element={<Placeholder title="Specs" />} />
         <Route path="/executions" element={<Placeholder title="Executions" />} />
         <Route path="/settings" element={<Placeholder title="Settings" />} />
