@@ -21,12 +21,12 @@ export function ToastContainer() {
         return (
           <div
             key={toast.id}
-            className={`flex items-center gap-3 rounded-[var(--radius-lg)] px-4 py-3 shadow-lg transition-all duration-300 ${config.bg}`}
+            className={`flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg animate-[slideInRight_0.3s_ease-out] ${config.bg}`}
             style={{ minWidth: 280, maxWidth: 400 }}
           >
-            <Icon size={18} />
+            <Icon size={18} className="shrink-0" />
             <span className="flex-1 text-sm">{toast.message}</span>
-            <button onClick={() => removeToast(toast.id)} className="opacity-70 hover:opacity-100 cursor-pointer">
+            <button onClick={() => removeToast(toast.id)} className="shrink-0 opacity-70 hover:opacity-100 cursor-pointer">
               <X size={16} />
             </button>
           </div>
