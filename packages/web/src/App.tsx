@@ -18,6 +18,8 @@ import { SpecReviewPage } from '@/pages/SpecReviewPage'
 import { SpecDetailPage } from '@/pages/SpecDetailPage'
 import { ExecutionListPage } from '@/pages/ExecutionListPage'
 import { ExecutionDetailPage } from '@/pages/ExecutionDetailPage'
+import { ToastContainer } from '@/components/ui/Toast'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/app'
 import { useBoardStore } from '@/store/boards'
@@ -113,7 +115,10 @@ export function AppRoutes() {
 export function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <ErrorBoundary>
+        <AppRoutes />
+      </ErrorBoundary>
+      <ToastContainer />
     </BrowserRouter>
   )
 }

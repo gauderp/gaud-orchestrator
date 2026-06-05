@@ -18,6 +18,19 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
 export const api = {
   health: () => request<{ status: string; timestamp: string }>('/health'),
 
+  dashboard: () => request<{
+    health: { status: string; wsClients: number }
+    agents: { total: number; configured: number }
+    cards: { total: number; byType: Record<string, number> }
+    specs: { total: number; draft: number; review: number; approved: number; pending: number }
+    executions: { total: number; active: number; done: number; failed: number }
+    cost: { totalThisMonth: number; tokensIn: number; tokensOut: number }
+    conversations: { active: number; pausedForUser: number }
+    memories: { total: number; recentLearnings: number }
+    skills: { total: number }
+    boards: { total: number }
+  }>('/dashboard'),
+
   agents: {
     list: () => request<Agent[]>('/agents'),
     get: (id: string) => request<AgentWithChildren>(`/agents/${id}`),
