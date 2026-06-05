@@ -12,6 +12,7 @@ import { GanttViewPage } from '@/pages/GanttViewPage'
 import { BoardSettingsPage } from '@/pages/BoardSettingsPage'
 import { CardDetailPage } from '@/pages/CardDetailPage'
 import { ConversationPage } from '@/pages/ConversationPage'
+import { AgentMemoryPage } from '@/pages/AgentMemoryPage'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/app'
 import { useBoardStore } from '@/store/boards'
@@ -52,6 +53,11 @@ export function AppRoutes() {
             console.log(`[WS] Artifact produced in ${conversationId}`)
             break
           }
+          case 'memory:stored':
+          case 'memory:learning':
+            // Memory events — UI refresh handled by store when page is active
+            console.log(`[WS] Memory event: ${msg.type}`, msg.payload)
+            break
         }
       } catch {
         // ignore malformed messages
@@ -76,6 +82,7 @@ export function AppRoutes() {
         <Route path="/boards/:id/settings" element={<BoardSettingsPage />} />
         <Route path="/cards/:id" element={<CardDetailPage />} />
         <Route path="/conversations/:id" element={<ConversationPage />} />
+        <Route path="/agents/:id/memory" element={<AgentMemoryPage />} />
         {/* Placeholder routes — pages added in later phases */}
         <Route path="/specs" element={<Placeholder title="Specs" />} />
         <Route path="/executions" element={<Placeholder title="Executions" />} />

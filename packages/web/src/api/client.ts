@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, Conversation, ConversationWithMessages, Message } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats } from '@gaud/shared'
 
 const API_BASE = '/api'
 
@@ -83,5 +83,23 @@ export const api = {
     nextTurn: (id: string) => request(`/conversations/${id}/next-turn`, { method: 'POST' }),
     pause: (id: string) => request<Conversation>(`/conversations/${id}/pause`, { method: 'POST' }),
     resume: (id: string) => request<Conversation>(`/conversations/${id}/resume`, { method: 'POST' }),
+  },
+
+  memory: {
+    listForAgent: (agentId: string, opts?: { type?: string; limit?: number }) => {
+      const params = new URLSearchParams()
+      if (opts?.type) params.set('type', opts.type)
+      if (opts?.limit) params.set('limit', String(opts.limit))
+      const qs = params.toString()
+      return request<AgentMemoryEntry[]>(`/agents/${agentId}/memories${qs ? `?${qs}` : ''}`)
+    },
+    search: (agentId: string, query: string, limit = 5) =>
+      request<Array<AgentMemoryEntry & { similarity: number }>>(
+        `/agents/${agentId}/memories/search?q=${encodeURIComponent(query)}&limit=${limit}`,
+      ),
+    store: (agentId: string, data: { type: string; content: string; metadata?: Record<string, unknown>; tags?: string[] }) =>
+      request<AgentMemoryEntry>(`/agents/${agentId}/memories`, { method: 'POST', body: JSON.stringify(data) }),
+    delete: (id: string) => request<void>(`/memories/${id}`, { method: 'DELETE' }),
+    stats: () => request<MemoryStats>('/memory/stats'),
   },
 }
