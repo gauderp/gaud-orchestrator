@@ -4,6 +4,8 @@ import websocket from '@fastify/websocket'
 import { mkdirSync } from 'fs'
 import { dirname } from 'path'
 import { runMigrations } from './db/migrate.js'
+import { getDb } from './db/connection.js'
+import { createRegistryFromConfigs } from './services/provider-loader.js'
 import { addClient } from './ws/broadcast.js'
 import { healthRoutes } from './routes/health.js'
 import { skillRoutes } from './routes/skills.js'
@@ -21,11 +23,24 @@ mkdirSync(dirname(dbPath), { recursive: true })
 
 runMigrations()
 
+// Load configured providers from DB
+const providerRows = getDb().prepare('SELECT * FROM providers').all() as any[]
+const providerConfigs = providerRows.map((p: any) => ({
+  id: p.id,
+  type: p.type,
+  configJson: JSON.parse(p.config_json),
+}))
+const providerRegistry = createRegistryFromConfigs(providerConfigs)
+console.log(`Loaded ${providerRegistry.list().length} providers: ${providerRegistry.list().map(p => p.id).join(', ') || '(none)'}`)
+
 const server = Fastify({
   logger: {
     level: process.env['LOG_LEVEL'] ?? 'info',
   },
 })
+
+// Make provider registry available to all routes
+server.decorate('providerRegistry', providerRegistry)
 
 await server.register(cors, {
   origin: process.env['CORS_ORIGIN'] ?? 'http://localhost:5173',

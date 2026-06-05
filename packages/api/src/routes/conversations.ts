@@ -90,11 +90,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
   // Trigger next agent turn
   app.post<{ Params: { id: string } }>('/api/conversations/:id/next-turn', async (req, reply) => {
     const { runConversationTurn } = await import('../services/conversation-runner.js')
-    const { createProviderRegistry, createClaudeCliProvider } = await import('@gaud/providers')
-
-    // TODO: load providers from DB and register them properly
-    const registry = createProviderRegistry()
-    registry.register(createClaudeCliProvider())
+    const registry = (app as any).providerRegistry
 
     try {
       const result = await runConversationTurn(db, req.params.id, registry)

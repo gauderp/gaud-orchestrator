@@ -48,9 +48,7 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { id: string } }>('/api/executions/:id/execute', async (req, reply) => {
     try {
       const { ExecutionEngine } = await import('../services/execution-engine.js')
-      const { createProviderRegistry, createClaudeCliProvider } = await import('@gaud/providers')
-      const registry = createProviderRegistry()
-      registry.register(createClaudeCliProvider())
+      const registry = (app as any).providerRegistry
       const engine = new ExecutionEngine(db, registry)
       await engine.startExecution(req.params.id)
       const exec = toCamelCase(db.prepare('SELECT * FROM executions WHERE id = ?').get(req.params.id) as any)
