@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, children, width = 'md' }: ModalPro
       />
       {/* Dialog */}
       <div
-        className={`relative w-full ${widthClasses[width]} mx-4 rounded-xl bg-white p-6 shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] dark:bg-zinc-900`}
+        className={`relative w-full ${widthClasses[width]} mx-4 rounded-xl bg-white p-6 shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] dark:bg-[var(--color-surface-elevated-dark)]`}
       >
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">

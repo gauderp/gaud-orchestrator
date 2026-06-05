@@ -17,11 +17,11 @@ export function UserQuestionBanner({ question, onRespond }: UserQuestionBannerPr
   }
 
   return (
-    <div className="border-l-4 border-[var(--color-warning)] bg-amber-50 p-4 dark:bg-amber-950/20">
-      <div className="flex items-start gap-2 mb-3">
-        <AlertCircle size={18} className="mt-0.5 shrink-0 text-[var(--color-warning)]" />
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/[0.04] p-4 dark:bg-[var(--color-warning)]/[0.06]">
+      <div className="flex items-start gap-2.5 mb-3">
+        <AlertCircle size={16} className="mt-0.5 shrink-0 text-[var(--color-warning)]" />
         <div>
-          <p className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+          <p className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             Agent needs your input
           </p>
           <p className="mt-1 text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
