@@ -17,6 +17,20 @@ export async function executeColumnAction(
 
   broadcast('card:comment', { cardId, comment: { id: commentId, authorType: 'system', content: `Column action triggered` } })
 
+  // If column action suggests execution, create an execution from approved spec
+  if (column.agent_action_prompt.toLowerCase().includes('execute') ||
+      column.agent_action_prompt.toLowerCase().includes('decompose')) {
+    const spec = db.prepare(
+      'SELECT * FROM specs WHERE source_card_id = ? AND status = ? ORDER BY version DESC LIMIT 1'
+    ).get(cardId, 'approved') as any
+
+    if (spec) {
+      const execId = randomUUID()
+      db.prepare('INSERT INTO executions (id, card_id, spec_id) VALUES (?, ?, ?)').run(execId, cardId, spec.id)
+      broadcast('execution:updated', { id: execId, cardId, specId: spec.id, status: 'planning' })
+    }
+  }
+
   if (column.auto_move) {
     const colPos = db.prepare('SELECT position FROM columns WHERE id = ?').get(column.id) as any
     const nextCol = db.prepare(

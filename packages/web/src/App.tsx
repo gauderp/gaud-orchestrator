@@ -16,11 +16,14 @@ import { AgentMemoryPage } from '@/pages/AgentMemoryPage'
 import { SpecStudioPage } from '@/pages/SpecStudioPage'
 import { SpecReviewPage } from '@/pages/SpecReviewPage'
 import { SpecDetailPage } from '@/pages/SpecDetailPage'
+import { ExecutionListPage } from '@/pages/ExecutionListPage'
+import { ExecutionDetailPage } from '@/pages/ExecutionDetailPage'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/app'
 import { useBoardStore } from '@/store/boards'
 import { useConversationStore } from '@/store/conversations'
 import { useSpecStore } from '@/store/specs'
+import { useExecutionStore } from '@/store/executions'
 
 export function AppRoutes() {
   const theme = useAppStore((s) => s.theme)
@@ -60,6 +63,12 @@ export function AppRoutes() {
           case 'spec:updated':
             useSpecStore.getState().onSpecUpdated(msg.payload)
             break
+          case 'execution:updated':
+            useExecutionStore.getState().onExecutionUpdated(msg.payload)
+            break
+          case 'execution:task:log':
+            // Real-time log append — refreshed when execution detail is viewed
+            break
           case 'memory:stored':
           case 'memory:learning':
             // Memory events — UI refresh handled by store when page is active
@@ -93,7 +102,8 @@ export function AppRoutes() {
         <Route path="/specs/studio" element={<SpecStudioPage />} />
         <Route path="/specs" element={<SpecReviewPage />} />
         <Route path="/specs/:id" element={<SpecDetailPage />} />
-        <Route path="/executions" element={<Placeholder title="Executions" />} />
+        <Route path="/executions" element={<ExecutionListPage />} />
+        <Route path="/executions/:id" element={<ExecutionDetailPage />} />
         <Route path="/settings" element={<Placeholder title="Settings" />} />
       </Route>
     </Routes>
