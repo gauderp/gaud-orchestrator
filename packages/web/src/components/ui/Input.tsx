@@ -7,29 +7,35 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helper, className = '', id, ...props }, ref) => {
+  ({ label, error, helper, id, style, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s/g, '-')
     return (
-      <div className="flex flex-col gap-1">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {label && (
-          <label htmlFor={inputId} className="text-xs font-medium text-[--color-ink] dark:text-[--color-ink-dark]">
+          <label htmlFor={inputId} style={{ fontSize: 12, fontWeight: 500 }}>
             {label}
           </label>
         )}
         <input
           ref={ref}
           id={inputId}
-          className={`h-9 rounded-[--radius-md] border px-3 text-sm transition-colors duration-150
-            bg-white border-[--color-border] text-[--color-ink] placeholder:text-[--color-muted]
-            focus:outline-none focus:ring-2 focus:ring-[--color-ring] focus:border-[--color-primary]
-            disabled:opacity-50 disabled:cursor-not-allowed
-            dark:bg-[--color-surface-dark] dark:border-[--color-border-dark] dark:text-[--color-ink-dark] dark:placeholder:text-[--color-muted-dark]
-            ${error ? 'border-[--color-destructive] focus:ring-[--color-destructive]' : ''}
-            ${className}`}
+          style={{
+            height: 36,
+            borderRadius: 6,
+            border: `1px solid ${error ? '#DC2626' : '#E2E8F0'}`,
+            paddingLeft: 12,
+            paddingRight: 12,
+            fontSize: 14,
+            outline: 'none',
+            width: '100%',
+            boxSizing: 'border-box',
+            backgroundColor: '#fff',
+            ...style,
+          }}
           {...props}
         />
-        {error && <span className="text-xs text-[--color-destructive]">{error}</span>}
-        {helper && !error && <span className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">{helper}</span>}
+        {error && <span style={{ fontSize: 12, color: '#DC2626' }}>{error}</span>}
+        {helper && !error && <span style={{ fontSize: 12, color: '#64748B' }}>{helper}</span>}
       </div>
     )
   }
