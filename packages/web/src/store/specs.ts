@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Spec, SpecReview } from '@gaud/shared'
-import { api } from '../api/client.js'
+import { api } from '@/api/client'
 
 interface SpecState {
   specs: Spec[]

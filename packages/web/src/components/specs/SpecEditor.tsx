@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Spec } from '@gaud/shared'
-import { useSpecStore } from '../../store/specs.js'
+import { useSpecStore } from '@/store/specs'
 
 interface SpecEditorProps {
   spec: Spec

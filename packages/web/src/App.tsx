@@ -13,10 +13,14 @@ import { BoardSettingsPage } from '@/pages/BoardSettingsPage'
 import { CardDetailPage } from '@/pages/CardDetailPage'
 import { ConversationPage } from '@/pages/ConversationPage'
 import { AgentMemoryPage } from '@/pages/AgentMemoryPage'
+import { SpecStudioPage } from '@/pages/SpecStudioPage'
+import { SpecReviewPage } from '@/pages/SpecReviewPage'
+import { SpecDetailPage } from '@/pages/SpecDetailPage'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/app'
 import { useBoardStore } from '@/store/boards'
 import { useConversationStore } from '@/store/conversations'
+import { useSpecStore } from '@/store/specs'
 
 export function AppRoutes() {
   const theme = useAppStore((s) => s.theme)
@@ -53,6 +57,9 @@ export function AppRoutes() {
             console.log(`[WS] Artifact produced in ${conversationId}`)
             break
           }
+          case 'spec:updated':
+            useSpecStore.getState().onSpecUpdated(msg.payload)
+            break
           case 'memory:stored':
           case 'memory:learning':
             // Memory events — UI refresh handled by store when page is active
@@ -83,8 +90,9 @@ export function AppRoutes() {
         <Route path="/cards/:id" element={<CardDetailPage />} />
         <Route path="/conversations/:id" element={<ConversationPage />} />
         <Route path="/agents/:id/memory" element={<AgentMemoryPage />} />
-        {/* Placeholder routes — pages added in later phases */}
-        <Route path="/specs" element={<Placeholder title="Specs" />} />
+        <Route path="/specs/studio" element={<SpecStudioPage />} />
+        <Route path="/specs" element={<SpecReviewPage />} />
+        <Route path="/specs/:id" element={<SpecDetailPage />} />
         <Route path="/executions" element={<Placeholder title="Executions" />} />
         <Route path="/settings" element={<Placeholder title="Settings" />} />
       </Route>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { SpecReview } from '@gaud/shared'
-import { useSpecStore } from '../../store/specs.js'
+import { useSpecStore } from '@/store/specs'
 
 interface SpecReviewPanelProps {
   specId: string

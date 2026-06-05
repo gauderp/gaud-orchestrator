@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSpecStore } from '../../store/specs.js'
+import { useSpecStore } from '@/store/specs'
 
 interface DecomposeModalProps {
   specId: string
