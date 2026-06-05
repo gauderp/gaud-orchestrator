@@ -1,9 +1,13 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { CardWithDetails, Column } from '@gaud/shared'
 import { CardTypeIcon } from '@/components/kanban/CardTypeIcon'
 import { Badge } from '@/components/ui/Badge'
-import { Paperclip } from 'lucide-react'
+import { Paperclip, MessageSquare, Plus } from 'lucide-react'
 import { CardRepos } from './CardRepos'
 import { CardComments } from './CardComments'
+import { useConversationStore } from '@/store/conversations'
+import { ConversationStarter } from '@/components/conversation/ConversationStarter'
 
 interface CardDetailProps {
   card: CardWithDetails
@@ -12,6 +16,13 @@ interface CardDetailProps {
 }
 
 export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
+  const [showStarter, setShowStarter] = useState(false)
+  const { conversations, fetchForCard, createConversation } = useConversationStore()
+
+  useEffect(() => {
+    fetchForCard(card.id)
+  }, [card.id, fetchForCard])
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -59,6 +70,71 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
           </div>
         </div>
       )}
+
+      {/* Conversations */}
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+              Conversations
+            </h3>
+            {conversations.length > 0 && (
+              <Badge variant="neutral">{conversations.length}</Badge>
+            )}
+          </div>
+          <button
+            onClick={() => setShowStarter(!showStarter)}
+            className="flex items-center gap-1 rounded-[--radius-md] px-2 py-1 text-xs text-[--color-primary] hover:bg-[--color-surface] dark:hover:bg-[--color-surface-dark]"
+          >
+            <Plus size={12} />
+            New
+          </button>
+        </div>
+
+        {showStarter && (
+          <div className="mb-3">
+            <ConversationStarter
+              cardId={card.id}
+              onStart={async (data) => {
+                await createConversation(data)
+                setShowStarter(false)
+                fetchForCard(card.id)
+              }}
+            />
+          </div>
+        )}
+
+        {conversations.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {conversations.map((conv) => (
+              <Link
+                key={conv.id}
+                to={`/conversations/${conv.id}`}
+                className="flex items-center justify-between rounded-[--radius-md] border border-[--color-border] px-3 py-2 hover:bg-[--color-surface] dark:border-[--color-border-dark] dark:hover:bg-[--color-surface-dark]"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare size={14} className="text-[--color-muted] dark:text-[--color-muted-dark]" />
+                  <span className="text-sm text-[--color-ink] dark:text-[--color-ink-dark]">
+                    {conv.type.charAt(0).toUpperCase() + conv.type.slice(1)}
+                  </span>
+                  <Badge variant={conv.status === 'active' ? 'info' : conv.status === 'completed' ? 'success' : 'warning'}>
+                    {conv.status === 'paused_for_user' ? 'Paused' : conv.status.charAt(0).toUpperCase() + conv.status.slice(1)}
+                  </Badge>
+                </div>
+                <span className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">
+                  {new Date(conv.createdAt).toLocaleDateString()}
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          !showStarter && (
+            <p className="text-sm text-[--color-muted] dark:text-[--color-muted-dark]">
+              No conversations yet. Start one to collaborate with agents.
+            </p>
+          )
+        )}
+      </div>
 
       {/* Dependencies */}
       {card.dependencies.length > 0 && (

@@ -11,9 +11,11 @@ import { BoardViewPage } from '@/pages/BoardViewPage'
 import { GanttViewPage } from '@/pages/GanttViewPage'
 import { BoardSettingsPage } from '@/pages/BoardSettingsPage'
 import { CardDetailPage } from '@/pages/CardDetailPage'
+import { ConversationPage } from '@/pages/ConversationPage'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/app'
 import { useBoardStore } from '@/store/boards'
+import { useConversationStore } from '@/store/conversations'
 
 export function AppRoutes() {
   const theme = useAppStore((s) => s.theme)
@@ -34,6 +36,12 @@ export function AppRoutes() {
           case 'card:created': state.onCardCreated(msg.payload); break
           case 'card:updated': state.onCardUpdated(msg.payload); break
           case 'card:deleted': state.onCardDeleted(msg.payload.id); break
+          case 'conversation:message':
+            useConversationStore.getState().onMessage(msg.payload.conversationId, msg.payload.message)
+            break
+          case 'conversation:status':
+            useConversationStore.getState().onStatusChange(msg.payload.conversationId, msg.payload.status)
+            break
         }
       } catch {
         // ignore malformed messages
@@ -57,6 +65,7 @@ export function AppRoutes() {
         <Route path="/boards/:id/gantt" element={<GanttViewPage />} />
         <Route path="/boards/:id/settings" element={<BoardSettingsPage />} />
         <Route path="/cards/:id" element={<CardDetailPage />} />
+        <Route path="/conversations/:id" element={<ConversationPage />} />
         {/* Placeholder routes — pages added in later phases */}
         <Route path="/specs" element={<Placeholder title="Specs" />} />
         <Route path="/executions" element={<Placeholder title="Executions" />} />
