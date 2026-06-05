@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { CardComment } from '@gaud/shared'
 import { api } from '@/api/client'
-import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 
 interface CardCommentsProps {
@@ -10,15 +9,21 @@ interface CardCommentsProps {
   onUpdate: () => void
 }
 
-const authorVariant: Record<string, 'info' | 'success' | 'neutral'> = {
-  user: 'info',
-  agent: 'success',
-  system: 'neutral',
-}
-
 function formatTime(dateStr: string): string {
   const d = new Date(dateStr)
   return d.toLocaleString()
+}
+
+function AuthorAvatar({ type }: { type: string }) {
+  const bg = type === 'agent'
+    ? 'bg-[var(--color-accent)] text-white'
+    : 'bg-[var(--color-primary)] text-white'
+  const initial = type === 'agent' ? 'A' : 'U'
+  return (
+    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${bg}`}>
+      {initial}
+    </div>
+  )
 }
 
 export function CardComments({ cardId, comments, onUpdate }: CardCommentsProps) {
@@ -40,26 +45,27 @@ export function CardComments({ cardId, comments, onUpdate }: CardCommentsProps) 
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Comments</h3>
-
       {comments.length === 0 && (
         <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">No comments yet.</p>
       )}
 
       <div className="flex flex-col gap-3">
         {comments.map((comment) => (
-          <div key={comment.id} className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <Badge variant={authorVariant[comment.authorType] ?? 'neutral'}>
-                {comment.authorType}
-              </Badge>
-              <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-                {formatTime(comment.createdAt)}
-              </span>
+          <div key={comment.id} className={`flex gap-2.5 rounded-[var(--radius-md)] px-3 py-2 ${comment.authorType === 'agent' ? 'bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)]' : ''}`}>
+            <AuthorAvatar type={comment.authorType} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] capitalize">
+                  {comment.authorType}
+                </span>
+                <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+                  {formatTime(comment.createdAt)}
+                </span>
+              </div>
+              <p className="mt-0.5 text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] whitespace-pre-wrap">
+                {comment.content}
+              </p>
             </div>
-            <p className="text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] whitespace-pre-wrap">
-              {comment.content}
-            </p>
           </div>
         ))}
       </div>
@@ -72,7 +78,7 @@ export function CardComments({ cardId, comments, onUpdate }: CardCommentsProps) 
           className="flex-1 h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)] dark:text-[var(--color-ink-dark)]"
         />
         <Button type="submit" size="sm" loading={adding}>
-          Add Comment
+          Add
         </Button>
       </form>
     </div>
