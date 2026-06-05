@@ -1,18 +1,46 @@
+# Gaud Orchestrator — Docker Compose
+#
+# Usage:
+#   docker compose up --build
+#
+# CLI providers (Claude Code, Cursor) use the host's subscriptions.
+# Auth credentials are mounted as read-only volumes from the host.
+
 services:
   gaud-orchestrator:
     build: .
     ports:
       - "3001:3001"
     volumes:
+      # Data
       - gaud-data:/app/data
       - gaud-attachments:/app/attachments
       - ./agents:/app/agents
+      # Host CLI auth (read-only) — uses your existing subscriptions
+      - ${CLAUDE_AUTH_DIR:-~/.claude}:/home/node/.claude:ro
+      - ${CURSOR_AUTH_DIR:-~/.cursor}:/home/node/.cursor:ro
+      # Host git config (for PR creation via gh)
+      - ~/.gitconfig:/home/node/.gitconfig:ro
+      - ${GH_CONFIG_DIR:-~/.config/gh}:/home/node/.config/gh:ro
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/orchestrator.db
       - AGENTS_DIR=/app/agents
       - ATTACHMENTS_DIR=/app/attachments
       - LOG_LEVEL=info
+      - HOME=/home/node
+      # Optional: API keys for API-only providers (OpenAI, Gemini, DeepSeek)
+      # Not needed if you only use CLI providers with subscriptions
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+    user: "1000:1000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   gaud-data:
