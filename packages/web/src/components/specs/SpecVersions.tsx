@@ -9,7 +9,7 @@ export function SpecVersions({ spec }: SpecVersionsProps) {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Version History</h3>
+      <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Version History</h3>
       <div className="space-y-1">
         {versions.map((v) => {
           const isCurrent = v === spec.version
@@ -24,12 +24,12 @@ export function SpecVersions({ spec }: SpecVersionsProps) {
               key={v}
               className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
                 isCurrent
-                  ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-medium'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)] text-[var(--color-primary)] font-medium'
+                  : 'text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)]'
               }`}
             >
               <span>v{v}</span>
-              {date && <span className="text-xs text-gray-400">{date}</span>}
+              {date && <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">{date}</span>}
             </div>
           )
         })}

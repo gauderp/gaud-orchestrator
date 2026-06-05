@@ -13,7 +13,7 @@ export function ExecutionListPage() {
   }, [fetchExecutions])
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
+    <div className="mx-auto max-w-6xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Executions</h1>
         <Link to="/specs">

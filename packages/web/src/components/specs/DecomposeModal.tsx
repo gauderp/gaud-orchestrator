@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { useSpecStore } from '@/store/specs'
+import { Modal } from '@/components/ui/Modal'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 
 interface DecomposeModalProps {
   specId: string
@@ -19,8 +23,6 @@ export function DecomposeModal({ specId, open, onClose }: DecomposeModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cards, setCards] = useState<CreatedCard[] | null>(null)
-
-  if (!open) return null
 
   const handleDecompose = async () => {
     setLoading(true)
@@ -46,94 +48,60 @@ export function DecomposeModal({ specId, open, onClose }: DecomposeModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleClose}>
-      <div
-        className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Decompose to Board</h2>
+    <Modal open={open} onClose={handleClose} title="Decompose to Board" width="sm">
+      <div className="space-y-3">
+        <Input
+          label="Board ID"
+          value={boardId}
+          onChange={(e) => setBoardId(e.target.value)}
+          placeholder="Enter board ID"
+        />
 
-        <div className="mt-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Board ID
-            </label>
-            <input
-              type="text"
-              value={boardId}
-              onChange={(e) => setBoardId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter board ID"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Column ID
-            </label>
-            <input
-              type="text"
-              value={columnId}
-              onChange={(e) => setColumnId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter column ID"
-            />
-          </div>
-        </div>
-
-        {error && (
-          <div className="mt-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-300">
-            {error}
-          </div>
-        )}
-
-        {cards && (
-          <div className="mt-4 space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Created Cards</h3>
-            <div className="space-y-1">
-              {cards.map((card, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm"
-                >
-                  <span className="text-gray-700 dark:text-gray-300">{card.title}</span>
-                  <span className="inline-block rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {card.type}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            onClick={handleClose}
-            className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            Close
-          </button>
-          {!cards && (
-            <button
-              onClick={handleDecompose}
-              disabled={loading || !boardId.trim() || !columnId.trim()}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Decomposing...
-                </span>
-              ) : (
-                'Decompose'
-              )}
-            </button>
-          )}
-        </div>
+        <Input
+          label="Column ID"
+          value={columnId}
+          onChange={(e) => setColumnId(e.target.value)}
+          placeholder="Enter column ID"
+        />
       </div>
-    </div>
+
+      {error && (
+        <div className="mt-4 rounded-lg border border-[var(--color-destructive)] bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)] p-3 text-sm text-[var(--color-destructive)]">
+          {error}
+        </div>
+      )}
+
+      {cards && (
+        <div className="mt-4 space-y-2">
+          <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Created Cards</h3>
+          <div className="space-y-1">
+            {cards.map((card, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-3 py-2 text-sm"
+              >
+                <span className="text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{card.title}</span>
+                <Badge variant="neutral">{card.type}</Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6 flex justify-end gap-2">
+        <Button variant="secondary" onClick={handleClose}>
+          Close
+        </Button>
+        {!cards && (
+          <Button
+            onClick={handleDecompose}
+            disabled={loading || !boardId.trim() || !columnId.trim()}
+            loading={loading}
+          >
+            {loading ? 'Decomposing...' : 'Decompose'}
+          </Button>
+        )}
+      </div>
+    </Modal>
   )
 }

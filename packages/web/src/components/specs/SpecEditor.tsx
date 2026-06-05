@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import type { Spec } from '@gaud/shared'
 import { useSpecStore } from '@/store/specs'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Button } from '@/components/ui/Button'
 
 interface SpecEditorProps {
   spec: Spec
@@ -31,33 +34,33 @@ export function SpecEditor({ spec }: SpecEditorProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Spec title"
-        />
-        <span className="inline-block rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+        <div className="flex-1">
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Spec title"
+          />
+        </div>
+        <span className="inline-flex items-center rounded-full bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
           v{spec.version}
         </span>
       </div>
 
-      <textarea
+      <Textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className="w-full min-h-[400px] rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+        className="min-h-[400px] resize-y"
         placeholder="Write your spec in Markdown..."
       />
 
       <div className="flex justify-end">
-        <button
+        <Button
           onClick={handleSave}
           disabled={!dirty || saving}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          loading={saving}
         >
           {saving ? 'Saving...' : 'Save'}
-        </button>
+        </Button>
       </div>
     </div>
   )

@@ -66,12 +66,12 @@
 
 @layer base {
   html {
-    @apply bg-white text-[--color-ink] antialiased;
+    @apply bg-white text-[var(--color-ink)] antialiased;
     font-family: var(--font-sans);
     font-size: 14px; /* DESIGN.md: 14px body default */
     line-height: 1.6;
   }
   html.dark {
-    @apply bg-[#09090B] text-[--color-ink-dark];
+    @apply bg-[#09090B] text-[var(--color-ink-dark)];
   }
 }

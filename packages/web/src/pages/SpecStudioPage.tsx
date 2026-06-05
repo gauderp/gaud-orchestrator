@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSpecStore } from '@/store/specs'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Button } from '@/components/ui/Button'
 
 export function SpecStudioPage() {
   const navigate = useNavigate()
@@ -35,78 +38,63 @@ export function SpecStudioPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="text-2xl font-bold mb-6">Spec Studio</h1>
+    <div className="mx-auto max-w-4xl">
+      <h1 className="text-2xl font-bold mb-6 text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Spec Studio</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Title *</label>
-          <input
-            type="text"
-            required
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
-          />
-        </div>
+        <Input
+          label="Title *"
+          type="text"
+          required
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Description *</label>
-          <textarea
-            required
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
-          />
-        </div>
+        <Textarea
+          label="Description *"
+          required
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="min-h-[96px] resize-y"
+        />
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Repos (comma-separated)</label>
-          <input
-            type="text"
-            value={repoStr}
-            onChange={(e) => setRepoStr(e.target.value)}
-            placeholder="e.g. org/repo-a, org/repo-b"
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
-          />
-        </div>
+        <Input
+          label="Repos (comma-separated)"
+          type="text"
+          value={repoStr}
+          onChange={(e) => setRepoStr(e.target.value)}
+          placeholder="e.g. org/repo-a, org/repo-b"
+        />
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Agent IDs (comma-separated) *</label>
-          <input
-            type="text"
-            required
-            value={agentStr}
-            onChange={(e) => setAgentStr(e.target.value)}
-            placeholder="e.g. agent-1, agent-2"
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
-          />
-        </div>
+        <Input
+          label="Agent IDs (comma-separated) *"
+          type="text"
+          required
+          value={agentStr}
+          onChange={(e) => setAgentStr(e.target.value)}
+          placeholder="e.g. agent-1, agent-2"
+        />
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Card ID (optional)</label>
-          <input
-            type="text"
-            value={cardId}
-            onChange={(e) => setCardId(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
-          />
-        </div>
+        <Input
+          label="Card ID (optional)"
+          type="text"
+          value={cardId}
+          onChange={(e) => setCardId(e.target.value)}
+        />
 
         {error && (
-          <div className="rounded-lg bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-3 text-sm">
+          <div className="rounded-lg border border-[var(--color-destructive)] bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)] p-3 text-sm text-[var(--color-destructive)]">
             {error}
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={submitting}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+          loading={submitting}
         >
           {submitting ? 'Generating...' : 'Generate Spec'}
-        </button>
+        </Button>
       </form>
     </div>
   )

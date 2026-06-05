@@ -20,7 +20,7 @@ export function ConversationPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] flex-col">
+    <div className="flex h-full flex-col">
       <ConversationView conversation={activeConversation} />
     </div>
   )

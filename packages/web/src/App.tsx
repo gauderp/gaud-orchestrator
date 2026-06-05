@@ -127,7 +127,7 @@ function Placeholder({ title }: { title: string }) {
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold">{title}</h1>
-      <p className="text-neutral-500 dark:text-neutral-400">Coming in next phase.</p>
+      <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Coming in next phase.</p>
     </div>
   )
 }

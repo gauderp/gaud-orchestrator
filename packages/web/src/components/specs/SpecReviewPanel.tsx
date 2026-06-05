@@ -1,21 +1,23 @@
 import { useState } from 'react'
 import type { SpecReview } from '@gaud/shared'
 import { useSpecStore } from '@/store/specs'
+import { Badge } from '@/components/ui/Badge'
+import { Textarea } from '@/components/ui/Textarea'
+import { Button } from '@/components/ui/Button'
 
 interface SpecReviewPanelProps {
   specId: string
   reviews: SpecReview[]
 }
 
-const VERDICT_COLORS: Record<string, string> = {
-  approve: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  reject: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  comment: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+function verdictBadgeVariant(verdict: string): 'success' | 'error' | 'neutral' {
+  if (verdict === 'approve') return 'success'
+  if (verdict === 'reject') return 'error'
+  return 'neutral'
 }
 
-const REVIEWER_COLORS: Record<string, string> = {
-  user: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  agent: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+function reviewerBadgeVariant(reviewerType: string): 'info' | 'neutral' {
+  return reviewerType === 'user' ? 'info' : 'neutral'
 }
 
 export function SpecReviewPanel({ specId, reviews }: SpecReviewPanelProps) {
@@ -43,13 +45,11 @@ export function SpecReviewPanel({ specId, reviews }: SpecReviewPanelProps) {
     <div className="space-y-6">
       {/* Review list */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Reviews</h3>
+        <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Reviews</h3>
         {reviews.length === 0 && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No reviews yet.</p>
+          <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">No reviews yet.</p>
         )}
         {reviews.map((review) => {
-          const verdictColor = VERDICT_COLORS[review.verdict] ?? VERDICT_COLORS['comment']!
-          const reviewerColor = REVIEWER_COLORS[review.reviewerType] ?? REVIEWER_COLORS['user']!
           const date = new Date(review.createdAt).toLocaleDateString('pt-BR', {
             day: '2-digit', month: 'short', year: 'numeric',
           })
@@ -57,19 +57,19 @@ export function SpecReviewPanel({ specId, reviews }: SpecReviewPanelProps) {
           return (
             <div
               key={review.id}
-              className="rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+              className="rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] p-4"
             >
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${reviewerColor}`}>
+                <Badge variant={reviewerBadgeVariant(review.reviewerType)}>
                   {review.reviewerType}
-                </span>
-                <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${verdictColor}`}>
+                </Badge>
+                <Badge variant={verdictBadgeVariant(review.verdict)}>
                   {review.verdict}
-                </span>
-                <span className="text-xs text-gray-400">{date}</span>
+                </Badge>
+                <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">{date}</span>
               </div>
               {review.comment && (
-                <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                <p className="mt-2 text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] whitespace-pre-wrap">
                   {review.comment}
                 </p>
               )}
@@ -79,34 +79,34 @@ export function SpecReviewPanel({ specId, reviews }: SpecReviewPanelProps) {
       </div>
 
       {/* Add review form */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Add Review</h3>
+      <div className="rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Add Review</h3>
 
         <select
           value={verdict}
           onChange={(e) => setVerdict(e.target.value as 'approve' | 'reject' | 'comment')}
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full h-9 rounded-md border border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-white dark:bg-[var(--color-surface-dark)] px-3 text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] cursor-pointer"
         >
           <option value="approve">Approve</option>
           <option value="reject">Reject</option>
           <option value="comment">Comment</option>
         </select>
 
-        <textarea
+        <Textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          className="w-full min-h-[80px] rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+          className="min-h-[80px] resize-y"
           placeholder="Add a comment..."
         />
 
         <div className="flex justify-end">
-          <button
+          <Button
             onClick={handleSubmit}
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={submitting}
           >
             {submitting ? 'Submitting...' : 'Submit Review'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -24,13 +24,13 @@ export function AgentMemoryPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link to={`/agents/${id}`} className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+        <Link to={`/agents/${id}`} className="rounded p-1 hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-elevated-dark)] transition-colors">
           <ArrowLeft size={20} />
         </Link>
-        <Brain size={24} className="text-purple-600" />
+        <Brain size={24} className="text-[var(--color-primary)]" />
         <div>
-          <h1 className="text-2xl font-semibold">{selectedAgent?.name ?? 'Agent'} Memory</h1>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">Long-term learnings and knowledge</p>
+          <h1 className="text-2xl font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{selectedAgent?.name ?? 'Agent'} Memory</h1>
+          <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Long-term learnings and knowledge</p>
         </div>
       </div>
 
@@ -38,9 +38,9 @@ export function AgentMemoryPage() {
       {stats && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard label="Total Memories" value={stats.totalMemories} />
-          <StatCard label="Error Corrections" value={stats.byType.error_correction ?? 0} color="text-red-600" />
-          <StatCard label="Patterns Learned" value={stats.byType.pattern_success ?? 0} color="text-emerald-600" />
-          <StatCard label="User Preferences" value={stats.byType.user_preference ?? 0} color="text-amber-600" />
+          <StatCard label="Error Corrections" value={stats.byType.error_correction ?? 0} color="text-[var(--color-destructive)]" />
+          <StatCard label="Patterns Learned" value={stats.byType.pattern_success ?? 0} color="text-[var(--color-accent)]" />
+          <StatCard label="User Preferences" value={stats.byType.user_preference ?? 0} color="text-[var(--color-warning)]" />
         </div>
       )}
 
@@ -52,9 +52,9 @@ export function AgentMemoryPage() {
 
 function StatCard({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
-    <div className="rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-4">
-      <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${color ?? 'text-neutral-900 dark:text-neutral-100'}`}>{value}</p>
+    <div className="rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-white dark:bg-[var(--color-surface-dark)] p-4">
+      <p className="text-xs font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] uppercase tracking-wide">{label}</p>
+      <p className={`mt-1 text-2xl font-bold ${color ?? 'text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]'}`}>{value}</p>
     </div>
   )
 }
