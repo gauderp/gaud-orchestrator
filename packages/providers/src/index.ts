@@ -1,3 +1,7 @@
 export { createProviderRegistry } from './interface.js'
 export type { AgentProvider, ProviderRegistry } from './interface.js'
 export { createClaudeCliProvider } from './claude-cli.js'
+export { createClaudeApiProvider } from './claude-api.js'
+export { createOpenAICompatibleProvider } from './openai-compatible.js'
+export { createGeminiProvider } from './gemini.js'
+export { createCursorCliProvider } from './cursor-cli.js'
