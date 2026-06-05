@@ -220,6 +220,8 @@ git commit -m "chore: scaffold monorepo root"
 - Create: `packages/shared/src/types/execution.ts`
 - Create: `packages/shared/src/types/provider.ts`
 - Create: `packages/shared/src/types/skill.ts`
+- Create: `packages/shared/src/types/conversation.ts`
+- Create: `packages/shared/src/types/memory.ts`
 - Create: `packages/shared/src/types/index.ts`
 - Create: `packages/shared/src/constants.ts`
 - Create: `packages/shared/src/index.ts`
@@ -491,12 +493,85 @@ export interface ExecutionLog {
 }
 ```
 
+Create `packages/shared/src/types/conversation.ts`:
+```typescript
+export type ConversationType = 'spec' | 'plan' | 'code' | 'research' | 'review'
+export type ConversationStatus = 'active' | 'paused_for_user' | 'completed'
+export type MessageType = 'content' | 'question_for_agent' | 'question_for_user' | 'artifact'
+
+export interface Conversation {
+  id: string
+  cardId: string | null
+  type: ConversationType
+  status: ConversationStatus
+  summary: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ConversationParticipant {
+  conversationId: string
+  agentId: string
+  joinedAt: string
+}
+
+export interface Message {
+  id: string
+  conversationId: string
+  senderType: 'agent' | 'user' | 'system'
+  senderId: string | null
+  content: string
+  messageType: MessageType
+  mentions: string | null
+  createdAt: string
+}
+
+export interface ConversationWithMessages extends Conversation {
+  participants: ConversationParticipant[]
+  messages: Message[]
+}
+```
+
+Create `packages/shared/src/types/memory.ts`:
+```typescript
+export type MemoryType = 'conversation' | 'error_correction' | 'pattern_success' | 'code_knowledge' | 'user_preference'
+
+export interface AgentMemoryEntry {
+  id: string
+  agentId: string
+  type: MemoryType
+  content: string
+  metadataJson: Record<string, unknown>
+  tags: string[]
+  relevanceScore: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MemorySession {
+  id: string
+  agentId: string
+  conversationId: string | null
+  startedAt: string
+  endedAt: string | null
+  consolidated: boolean
+}
+
+export interface MemoryStats {
+  totalMemories: number
+  byType: Record<MemoryType, number>
+  byAgent: Record<string, number>
+}
+```
+
 Create `packages/shared/src/types/index.ts`:
 ```typescript
 export type * from './agent.js'
 export type * from './board.js'
 export type * from './card.js'
+export type * from './conversation.js'
 export type * from './execution.js'
+export type * from './memory.js'
 export type * from './provider.js'
 export type * from './skill.js'
 export type * from './spec.js'
@@ -507,6 +582,8 @@ Create `packages/shared/src/constants.ts`:
 export const CARD_TYPES = ['project', 'epic', 'task', 'bug'] as const
 export const SPEC_STATUSES = ['draft', 'review', 'approved', 'rejected'] as const
 export const EXECUTION_STATUSES = ['planning', 'approving', 'executing', 'done', 'failed'] as const
+export const CONVERSATION_TYPES = ['spec', 'plan', 'code', 'research', 'review'] as const
+export const MEMORY_TYPES = ['conversation', 'error_correction', 'pattern_success', 'code_knowledge', 'user_preference'] as const
 ```
 
 Create `packages/shared/src/index.ts`:
@@ -954,6 +1031,69 @@ CREATE INDEX idx_agent_cost_created ON agent_cost_log(created_at);
 CREATE INDEX idx_execution_tasks_exec ON execution_tasks(execution_id);
 CREATE INDEX idx_execution_logs_task ON execution_logs(execution_task_id);
 CREATE INDEX idx_specs_status ON specs(status);
+
+-- ==========================================
+-- Conversations
+-- ==========================================
+CREATE TABLE conversations (
+  id TEXT PRIMARY KEY,
+  card_id TEXT REFERENCES cards(id),
+  type TEXT NOT NULL CHECK (type IN ('spec', 'plan', 'code', 'research', 'review')),
+  status TEXT NOT NULL CHECK (status IN ('active', 'paused_for_user', 'completed')) DEFAULT 'active',
+  summary TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE conversation_participants (
+  conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (conversation_id, agent_id)
+);
+
+CREATE TABLE messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_type TEXT NOT NULL CHECK (sender_type IN ('agent', 'user', 'system')),
+  sender_id TEXT,
+  content TEXT NOT NULL,
+  message_type TEXT NOT NULL CHECK (message_type IN ('content', 'question_for_agent', 'question_for_user', 'artifact')) DEFAULT 'content',
+  mentions TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ==========================================
+-- Agent Memory (long-term)
+-- ==========================================
+CREATE TABLE agent_memories (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  type TEXT NOT NULL CHECK (type IN ('conversation', 'error_correction', 'pattern_success', 'code_knowledge', 'user_preference')),
+  content TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  tags TEXT,
+  embedding BLOB,
+  relevance_score REAL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE memory_sessions (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL REFERENCES agents(id),
+  conversation_id TEXT REFERENCES conversations(id),
+  started_at TEXT NOT NULL DEFAULT (datetime('now')),
+  ended_at TEXT,
+  consolidated INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_conversations_card ON conversations(card_id);
+CREATE INDEX idx_messages_conversation ON messages(conversation_id);
+CREATE INDEX idx_messages_sender ON messages(sender_type, sender_id);
+CREATE INDEX idx_agent_memories_agent ON agent_memories(agent_id);
+CREATE INDEX idx_agent_memories_type ON agent_memories(type);
+CREATE INDEX idx_memory_sessions_agent ON memory_sessions(agent_id);
 ```
 
 - [ ] **Step 7: Create WebSocket broadcast utility**
@@ -1092,6 +1232,10 @@ describe('SQLite migrations', () => {
     expect(tableNames).toContain('executions')
     expect(tableNames).toContain('execution_tasks')
     expect(tableNames).toContain('providers')
+    expect(tableNames).toContain('conversations')
+    expect(tableNames).toContain('messages')
+    expect(tableNames).toContain('agent_memories')
+    expect(tableNames).toContain('memory_sessions')
   })
 
   it('enforces foreign keys', () => {
