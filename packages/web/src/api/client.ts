@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, Execution, ExecutionTask, ExecutionGap, ExecutionLog } from '@gaud/shared'
 
 const API_BASE = '/api'
 
@@ -102,6 +102,16 @@ export const api = {
     delete: (id: string) => request<void>(`/memories/${id}`, { method: 'DELETE' }),
     stats: () => request<MemoryStats>('/memory/stats'),
   },
+  executions: {
+    list: () => request<Execution[]>('/executions'),
+    get: (id: string) => request<Execution & { tasks: (ExecutionTask & { logs: ExecutionLog[] })[]; gaps: ExecutionGap[] }>(`/executions/${id}`),
+    create: (data: { cardId?: string; specId?: string }) => request<Execution>('/executions', { method: 'POST', body: JSON.stringify(data) }),
+    execute: (id: string) => request<Execution>(`/executions/${id}/execute`, { method: 'POST' }),
+    cancel: (id: string) => request<Execution>(`/executions/${id}/cancel`, { method: 'POST' }),
+    resolveGap: (execId: string, gapId: string, response: string) =>
+      request<Execution>(`/executions/${execId}/gaps/${gapId}/resolve`, { method: 'POST', body: JSON.stringify({ response }) }),
+  },
+
   specs: {
     list: (status?: string) => request<Spec[]>(`/specs${status ? `?status=${status}` : ''}`),
     get: (id: string) => request<Spec & { reviews: SpecReview[] }>(`/specs/${id}`),
