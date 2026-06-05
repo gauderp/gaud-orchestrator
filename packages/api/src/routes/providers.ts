@@ -48,11 +48,45 @@ export async function providerRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { id: string } }>('/api/providers/:id/test', async (req, reply) => {
     const p = db.prepare('SELECT * FROM providers WHERE id = ?').get(req.params.id) as any
     if (!p) return reply.status(404).send({ error: 'Provider not found' })
+
     try {
-      JSON.parse(p.config_json)
-      return reply.send({ success: true, message: 'Config is valid' })
-    } catch {
-      return reply.send({ success: false, message: 'Invalid config JSON' })
+      const configJson = JSON.parse(p.config_json)
+      const { createRegistryFromConfigs } = await import('../services/provider-loader.js')
+      const registry = createRegistryFromConfigs([{ id: p.id, type: p.type, configJson }])
+      const provider = registry.get(p.id)
+
+      if (!provider) {
+        return reply.send({ success: false, message: `Could not create provider of type: ${p.type}` })
+      }
+
+      // For API providers, try a minimal call
+      if (['claude-api', 'openai', 'deepseek', 'gemini'].includes(p.type)) {
+        let responseReceived = false
+        const session = await provider.spawn({
+          prompt: 'Reply with exactly: OK',
+          cwd: process.cwd(),
+          model: provider.models[0],
+        })
+        await new Promise<void>((resolve) => {
+          provider.onOutput(session.id, (event) => {
+            if (event.type === 'stdout' && event.content.length > 0) responseReceived = true
+            if (event.type === 'stderr') responseReceived = false
+          })
+          setTimeout(() => {
+            provider.kill(session.id)
+            resolve()
+          }, 10_000)
+        })
+        return reply.send({
+          success: responseReceived,
+          message: responseReceived ? 'Provider responded successfully' : 'No response received within 10s',
+        })
+      }
+
+      // For CLI providers, just verify the command exists
+      return reply.send({ success: true, message: `Provider ${p.type} configured (CLI verification skipped)` })
+    } catch (err: any) {
+      return reply.send({ success: false, message: err.message })
     }
   })
 }
