@@ -19,6 +19,7 @@ import { SpecDetailPage } from '@/pages/SpecDetailPage'
 import { ExecutionListPage } from '@/pages/ExecutionListPage'
 import { ExecutionDetailPage } from '@/pages/ExecutionDetailPage'
 import { ToastContainer } from '@/components/ui/Toast'
+import { CommandPalette } from '@/components/ui/CommandPalette'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/app'
@@ -26,6 +27,7 @@ import { useBoardStore } from '@/store/boards'
 import { useConversationStore } from '@/store/conversations'
 import { useSpecStore } from '@/store/specs'
 import { useExecutionStore } from '@/store/executions'
+import { useSkillStore } from '@/store/skills'
 
 export function AppRoutes() {
   const theme = useAppStore((s) => s.theme)
@@ -118,6 +120,7 @@ export function App() {
       <ErrorBoundary>
         <AppRoutes />
       </ErrorBoundary>
+      <CommandPalette />
       <ToastContainer />
     </BrowserRouter>
   )
