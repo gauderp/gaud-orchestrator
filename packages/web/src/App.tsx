@@ -42,6 +42,16 @@ export function AppRoutes() {
           case 'conversation:status':
             useConversationStore.getState().onStatusChange(msg.payload.conversationId, msg.payload.status)
             break
+          case 'conversation:question': {
+            const { conversationId, question } = msg.payload as { conversationId: string; question: string }
+            console.log(`[WS] Agent question in ${conversationId}: ${question}`)
+            break
+          }
+          case 'conversation:artifact': {
+            const { conversationId } = msg.payload as { conversationId: string; artifact: string }
+            console.log(`[WS] Artifact produced in ${conversationId}`)
+            break
+          }
         }
       } catch {
         // ignore malformed messages

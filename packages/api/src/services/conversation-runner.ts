@@ -19,13 +19,13 @@ export function parseAgentResponse(raw: string): ParsedResponse {
   const mentionRegex = /@([\w-]+)/g
   let match: RegExpExecArray | null
   while ((match = mentionRegex.exec(raw)) !== null) {
-    mentions.push(match[1])
+    mentions.push(match[1]!)
   }
 
   // Check for [QUESTION_FOR_USER]
   const questionMatch = raw.match(/\[QUESTION_FOR_USER]\s*([\s\S]+)$/i)
   if (questionMatch) {
-    const questionText = questionMatch[1].trim()
+    const questionText = questionMatch[1]!.trim()
     const contentBefore = raw.substring(0, raw.indexOf('[QUESTION_FOR_USER]')).trim()
     return {
       type: 'question_for_user',
@@ -39,7 +39,7 @@ export function parseAgentResponse(raw: string): ParsedResponse {
   // Check for [ARTIFACT]
   const artifactMatch = raw.match(/\[ARTIFACT]\s*([\s\S]+)$/i)
   if (artifactMatch) {
-    const artifactText = artifactMatch[1].trim()
+    const artifactText = artifactMatch[1]!.trim()
     const contentBefore = raw.substring(0, raw.indexOf('[ARTIFACT]')).trim()
     return {
       type: 'artifact',
@@ -84,10 +84,10 @@ export function pickNextAgent(
   }
 
   // Priority 2: round-robin (next after last sender)
-  if (!lastSenderId) return participants[0]
+  if (!lastSenderId) return participants[0] ?? null
   const lastIndex = participants.findIndex((p) => p.agentId === lastSenderId)
   const nextIndex = (lastIndex + 1) % participants.length
-  return participants[nextIndex]
+  return participants[nextIndex] ?? null
 }
 
 // --- Conversation runner ---

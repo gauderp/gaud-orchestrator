@@ -32,7 +32,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       db.prepare('SELECT * FROM conversation_participants WHERE conversation_id = ?').all(id) as any[]
     )
 
-    const result = { ...conv, participants, messages: [] }
+    const result = { ...(conv as Record<string, unknown>), participants, messages: [] }
     broadcast('conversation:status', { conversationId: id, status: 'active' })
     return reply.status(201).send(result)
   })
@@ -48,7 +48,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
     `).all(req.params.id)
     const messages = db.prepare('SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at').all(req.params.id)
     return reply.send({
-      ...toCamelCase(conv),
+      ...(toCamelCase(conv) as Record<string, unknown>),
       participants: toCamelCaseArray(participants as any[]),
       messages: toCamelCaseArray(messages as any[]),
     })
