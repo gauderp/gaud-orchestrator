@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import Fastify from 'fastify'
 import { specRoutes } from '../routes/specs.js'
-import { createTestDb } from '../db/connection.js'
-import type Database from 'better-sqlite3'
+import Database from 'better-sqlite3'
+import { readFileSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 describe('Specs API', () => {
   const app = Fastify()
@@ -10,7 +14,9 @@ describe('Specs API', () => {
   let specId: string
 
   beforeAll(async () => {
-    db = createTestDb()
+    db = new Database(':memory:')
+    db.pragma('foreign_keys = ON')
+    db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '001_initial.sql'), 'utf-8'))
 
     // Seed board + column + card for linking
     db.prepare("INSERT INTO boards (id, name) VALUES ('b1', 'Board')").run()
@@ -85,12 +91,18 @@ describe('Specs API', () => {
     expect(JSON.parse(spec.payload).status).toBe('approved')
   })
 
-  it('POST /api/specs/:id/decompose rejects or errors without LLM', async () => {
+  it('POST /api/specs/:id/decompose rejects unapproved spec', async () => {
+    // Create a draft spec to test the guard
+    const createRes = await app.inject({
+      method: 'POST', url: '/api/specs',
+      payload: { title: 'Draft spec', content: '# Draft', createdByType: 'user' },
+    })
+    const draftId = JSON.parse(createRes.payload).id
     const res = await app.inject({
-      method: 'POST', url: `/api/specs/${specId}/decompose`,
+      method: 'POST', url: `/api/specs/${draftId}/decompose`,
       payload: { boardId: 'b1', columnId: 'col1' },
     })
-    // Without a real LLM provider in tests, expect 500 (import/provider error)
-    expect([200, 400, 500]).toContain(res.statusCode)
+    expect(res.statusCode).toBe(400)
+    expect(JSON.parse(res.payload).error).toContain('approved')
   })
 })
