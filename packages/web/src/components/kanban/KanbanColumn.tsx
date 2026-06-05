@@ -1,39 +1,53 @@
+import { useState, useRef } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Zap, Plus } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import type { Column, Card, Agent } from '@gaud/shared'
 import { KanbanCard } from './KanbanCard'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
 
 interface KanbanColumnProps {
   column: Column
   cards: Card[]
   agents: Agent[]
-  onAddCard: (columnId: string) => void
+  onAddCard: (columnId: string, title: string) => void
 }
 
 export function KanbanColumn({ column, cards, agents, onAddCard }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: column.id })
+  const [newTitle, setNewTitle] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const agentMap = new Map(agents.map((a) => [a.id, a.name]))
 
+  const handleSubmit = () => {
+    const title = newTitle.trim()
+    if (!title) return
+    onAddCard(column.id, title)
+    setNewTitle('')
+    inputRef.current?.focus()
+  }
+
   return (
-    <div className="flex min-w-[280px] flex-col rounded-lg bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
+    <div className="flex min-w-[280px] max-w-[320px] flex-col">
+      {/* Column header */}
+      <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
         <span
-          className="h-3 w-3 rounded-full shrink-0"
+          className="h-[7px] w-[7px] rounded-full shrink-0"
           style={{ backgroundColor: column.color }}
         />
         <span className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] truncate">
           {column.name}
         </span>
-        <Badge variant="neutral">{cards.length}</Badge>
+        <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] tabular-nums">
+          {cards.length}
+        </span>
         {column.agentActionPrompt && (
-          <Zap size={14} className="text-[var(--color-warning)] shrink-0" />
+          <Zap size={12} className="text-[var(--color-warning)] shrink-0" />
         )}
       </div>
-      <div ref={setNodeRef} className="flex flex-1 flex-col gap-2 p-2 overflow-y-auto">
+
+      {/* Cards */}
+      <div ref={setNodeRef} className="flex flex-1 flex-col gap-1.5 min-h-[60px]">
         <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
             <KanbanCard
@@ -43,12 +57,26 @@ export function KanbanColumn({ column, cards, agents, onAddCard }: KanbanColumnP
             />
           ))}
         </SortableContext>
+        {cards.length === 0 && (
+          <p className="py-4 text-center text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+            No cards
+          </p>
+        )}
       </div>
-      <div className="p-2 border-t border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
-        <Button variant="ghost" size="sm" className="w-full justify-start gap-1" onClick={() => onAddCard(column.id)}>
-          <Plus size={14} />
-          Add Card
-        </Button>
+
+      {/* Inline add */}
+      <div className="mt-1.5 px-0.5">
+        <input
+          ref={inputRef}
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSubmit()
+            if (e.key === 'Escape') { setNewTitle(''); inputRef.current?.blur() }
+          }}
+          placeholder="+ Add card..."
+          className="w-full rounded-[var(--radius-md)] border border-transparent bg-transparent px-2 py-1.5 text-xs text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] placeholder:text-[var(--color-muted)] dark:placeholder:text-[var(--color-muted-dark)] focus:border-[var(--color-border)] focus:bg-white focus:outline-none dark:focus:border-[var(--color-border-dark)] dark:focus:bg-[var(--color-surface-dark)]"
+        />
       </div>
     </div>
   )

@@ -41,6 +41,21 @@ export function BoardViewPage() {
     }
   }
 
+  const handleInlineAdd = async (columnId: string, title: string) => {
+    if (!id) return
+    await createCard({
+      title,
+      description: '',
+      type: 'task',
+      assignedAgentId: null,
+      startDate: null,
+      dueDate: null,
+      boardId: id,
+      columnId,
+      position: cards.filter((c) => c.columnId === columnId).length,
+    })
+  }
+
   if (!activeBoard) {
     return <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading board...</p>
   }
@@ -78,9 +93,7 @@ export function BoardViewPage() {
         cards={cards}
         agents={agents}
         onMoveCard={moveCard}
-        onAddCard={(columnId) => {
-          setShowNewCard(true)
-        }}
+        onAddCard={handleInlineAdd}
       />
 
       <Modal open={showNewCard} onClose={() => setShowNewCard(false)} title="New Card" width="lg">

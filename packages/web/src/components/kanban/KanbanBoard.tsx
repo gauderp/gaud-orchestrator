@@ -1,4 +1,5 @@
-import { DndContext, type DragEndEvent, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, type DragEndEvent, closestCorners, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
+import { useState } from 'react'
 import type { Column, Card, Agent } from '@gaud/shared'
 import { KanbanColumn } from './KanbanColumn'
 
@@ -7,7 +8,7 @@ interface KanbanBoardProps {
   cards: Card[]
   agents: Agent[]
   onMoveCard: (cardId: string, columnId: string, position: number) => void
-  onAddCard: (columnId: string) => void
+  onAddCard: (columnId: string, title: string) => void
 }
 
 export function KanbanBoard({ columns, cards, agents, onMoveCard, onAddCard }: KanbanBoardProps) {
@@ -32,7 +33,6 @@ export function KanbanBoard({ columns, cards, agents, onMoveCard, onAddCard }: K
     const cardId = active.id as string
     const overId = over.id as string
 
-    // Determine target column: if dropped on a column, use that; if on a card, use that card's column
     let targetColumnId: string
     let targetPosition: number
 
@@ -41,7 +41,6 @@ export function KanbanBoard({ columns, cards, agents, onMoveCard, onAddCard }: K
       targetColumnId = overCard.columnId
       targetPosition = overCard.position
     } else {
-      // Dropped on column directly
       targetColumnId = overId
       const colCards = cardsByColumn.get(targetColumnId)
       targetPosition = colCards ? colCards.length : 0
@@ -50,7 +49,6 @@ export function KanbanBoard({ columns, cards, agents, onMoveCard, onAddCard }: K
     const draggedCard = cards.find((c) => c.id === cardId)
     if (!draggedCard) return
 
-    // Only move if something changed
     if (draggedCard.columnId !== targetColumnId || draggedCard.position !== targetPosition) {
       onMoveCard(cardId, targetColumnId, targetPosition)
     }
@@ -58,7 +56,7 @@ export function KanbanBoard({ columns, cards, agents, onMoveCard, onAddCard }: K
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-4 overflow-x-auto pb-4 scroll-smooth">
         {columns
           .slice()
           .sort((a, b) => a.position - b.position)
