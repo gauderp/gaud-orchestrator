@@ -40,8 +40,21 @@ export function DashboardPage() {
 
   if (!data) {
     return (
-      <div className="flex items-center justify-center h-64 text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-        Loading...
+      <div className="p-6 max-w-5xl space-y-8">
+        <div className="flex items-center gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-4 w-24 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-8">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-3">
+              <div className="h-3 w-16 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              <div className="h-8 w-20 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              <div className="h-3 w-32 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

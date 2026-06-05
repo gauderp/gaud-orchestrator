@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useExecutionStore } from '@/store/executions'
 import { ExecutionStatus } from '@/components/executions/ExecutionStatus'
 import { Button } from '@/components/ui/Button'
-import { Plus } from 'lucide-react'
+import { Plus, Play as PlayIcon } from 'lucide-react'
 
 export function ExecutionListPage() {
   const { executions, loading, fetchExecutions } = useExecutionStore()
@@ -25,10 +25,28 @@ export function ExecutionListPage() {
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center justify-between rounded-[var(--radius-lg)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)] p-4">
+              <div className="flex flex-col gap-1.5">
+                <div className="h-4 w-36 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+                <div className="h-3 w-48 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="h-5 w-16 rounded-full bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+                <div className="h-3 w-20 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : executions.length === 0 ? (
-        <div className="py-12 text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-          No executions yet. Approve a spec and trigger an execution from the board.
+        <div className="flex flex-col items-center gap-3 py-16">
+          <PlayIcon size={48} className="text-[var(--color-border)] dark:text-[var(--color-border-dark)]" />
+          <p className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">No executions yet</p>
+          <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Approve a spec and trigger an execution from the board</p>
+          <Link to="/specs">
+            <Button size="sm">View Specs</Button>
+          </Link>
         </div>
       ) : (
         <div className="space-y-2">

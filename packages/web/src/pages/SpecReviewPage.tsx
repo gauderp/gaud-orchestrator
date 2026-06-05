@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { FileText } from 'lucide-react'
 import { useSpecStore } from '@/store/specs'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 import type { SpecStatus } from '@gaud/shared'
 
 const STATUS_TABS: { label: string; value: SpecStatus | null }[] = [
@@ -52,9 +54,29 @@ export function SpecReviewPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-4 w-40 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+                <div className="h-5 w-16 rounded-full bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="h-3 w-8 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+                <div className="h-3 w-20 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : specs.length === 0 ? (
-        <div className="text-center py-12 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">No specs found</div>
+        <div className="flex flex-col items-center gap-3 py-16">
+          <FileText size={48} className="text-[var(--color-border)] dark:text-[var(--color-border-dark)]" />
+          <p className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">No specs found</p>
+          <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Generate a spec from a card or create one in Spec Studio</p>
+          <Link to="/specs/studio">
+            <Button size="sm">Open Spec Studio</Button>
+          </Link>
+        </div>
       ) : (
         <div className="space-y-2">
           {specs.map((spec) => (

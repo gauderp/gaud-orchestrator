@@ -13,8 +13,25 @@ export function ConversationPage() {
 
   if (loading || !activeConversation) {
     return (
-      <div className="flex h-full items-center justify-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-        Loading conversation...
+      <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-32 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+            <div className="h-5 w-16 rounded-full bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+          </div>
+        </div>
+        <div className="flex-1 p-4 space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-3">
+              <div className="h-5 w-5 rounded-full bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse shrink-0" />
+              <div className="flex-1 space-y-1">
+                <div className="h-4 w-24 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+                <div className="h-4 w-full rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+                <div className="h-4 w-3/4 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

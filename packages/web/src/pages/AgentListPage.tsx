@@ -157,14 +157,31 @@ export function AgentListPage() {
         </button>
       </div>
 
-      {loading && <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>}
+      {loading && (
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-2 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-3 px-2 py-2">
+              <div className="h-4 w-4 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              <div className="h-4 w-4 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              <div className="h-4 flex-1 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              <div className="h-5 w-20 rounded-full bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {!loading && view === 'tree' && (
         <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-2 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
           {tree.length === 0 ? (
-            <p className="p-4 text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-              No agents yet. Create your first agent to get started.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-12">
+              <Bot size={48} className="text-[var(--color-border)] dark:text-[var(--color-border-dark)]" />
+              <p className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">No agents yet</p>
+              <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Create your first agent to start orchestrating</p>
+              <Button size="sm" onClick={() => setShowModal(true)}>
+                <Plus size={14} className="mr-1" />
+                New Agent
+              </Button>
+            </div>
           ) : (
             tree.map((node) => (
               <AgentNode key={node.agent.id} node={node} providers={providers} />
@@ -189,8 +206,10 @@ export function AgentListPage() {
             <tbody>
               {agents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-                    No agents yet.
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <Bot size={48} className="mx-auto mb-3 text-[var(--color-border)] dark:text-[var(--color-border-dark)]" />
+                    <p className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">No agents yet</p>
+                    <p className="mt-1 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Create your first agent to start orchestrating</p>
                   </td>
                 </tr>
               ) : (

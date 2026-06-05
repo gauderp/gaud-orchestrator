@@ -57,7 +57,24 @@ export function BoardViewPage() {
   }
 
   if (!activeBoard) {
-    return <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading board...</p>
+    return (
+      <div className="p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="h-6 w-40 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+          <div className="h-9 w-24 rounded-[var(--radius-md)] bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+        </div>
+        <div className="flex gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="min-w-[280px] space-y-2">
+              <div className="h-5 w-24 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse mb-2" />
+              {[1, 2].map((j) => (
+                <div key={j} className="h-16 rounded-[var(--radius-md)] bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (

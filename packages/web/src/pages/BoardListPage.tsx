@@ -39,13 +39,29 @@ export function BoardListPage() {
       </div>
 
       {loading && (
-        <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 dark:border-[var(--color-border-dark)]">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-5 w-5 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+                <div className="h-5 w-32 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              </div>
+              <div className="h-3 w-24 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+            </div>
+          ))}
+        </div>
       )}
 
       {!loading && boards.length === 0 && (
-        <p className="text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] py-12">
-          No boards yet. Create your first board to get started.
-        </p>
+        <div className="flex flex-col items-center gap-3 py-16">
+          <LayoutGrid size={48} className="text-[var(--color-border)] dark:text-[var(--color-border-dark)]" />
+          <p className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">No boards yet</p>
+          <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Create your first board to organize work</p>
+          <Button size="sm" onClick={() => setShowModal(true)}>
+            <Plus size={14} className="mr-1" />
+            New Board
+          </Button>
+        </div>
       )}
 
       {!loading && boards.length > 0 && (

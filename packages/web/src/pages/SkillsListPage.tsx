@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Trash2, Edit } from 'lucide-react'
+import { Plus, Trash2, Edit, Zap } from 'lucide-react'
 import { useSkillStore } from '@/store/skills'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -37,7 +37,19 @@ export function SkillsListPage() {
         </Link>
       </div>
 
-      {loading && <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>}
+      {loading && (
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
+          <div className="p-4 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="h-4 w-28 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+                <div className="h-4 flex-1 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+                <div className="h-4 w-20 rounded bg-[var(--color-border)] dark:bg-[var(--color-border-dark)] animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!loading && (
         <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
@@ -53,8 +65,10 @@ export function SkillsListPage() {
             <tbody>
               {skills.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-                    No skills yet. Create your first skill to get started.
+                  <td colSpan={4} className="px-4 py-12 text-center">
+                    <Zap size={48} className="mx-auto mb-3 text-[var(--color-border)] dark:text-[var(--color-border-dark)]" />
+                    <p className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">No skills yet</p>
+                    <p className="mt-1 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Create your first skill to teach agents new capabilities</p>
                   </td>
                 </tr>
               ) : (
