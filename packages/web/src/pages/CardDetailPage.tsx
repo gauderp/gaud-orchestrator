@@ -24,7 +24,7 @@ export function CardDetailPage() {
   const columnName = activeBoard?.columns.find((c) => c.id === selectedCard.columnId)?.name
 
   return (
-    <div>
+    <div className="p-6">
       <CardDetail
         card={selectedCard}
         columnName={columnName}

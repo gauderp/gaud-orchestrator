@@ -29,9 +29,9 @@ export function BoardListPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Boards</h1>
+    <div className="p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Boards</h1>
         <Button onClick={() => setShowModal(true)}>
           <Plus size={16} className="mr-1.5" />
           New Board

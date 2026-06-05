@@ -131,15 +131,15 @@ export function BoardSettingsPage() {
   const sortedColumns = [...activeBoard.columns].sort((a, b) => a.position - b.position)
 
   return (
-    <div>
-      <div className="mb-6 flex items-center gap-4">
+    <div className="p-6">
+      <div className="mb-4 flex items-center gap-4">
         <Link
           to={`/boards/${id}`}
           className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] p-1.5 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)] dark:hover:text-[var(--color-ink-dark)]"
         >
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+        <h1 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           Board Settings — {activeBoard.name}
         </h1>
       </div>
