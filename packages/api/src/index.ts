@@ -1,8 +1,9 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import websocket from '@fastify/websocket'
-import { mkdirSync } from 'fs'
-import { dirname } from 'path'
+import { mkdirSync, existsSync } from 'fs'
+import { dirname, join } from 'path'
+import fastifyStatic from '@fastify/static'
 import { runMigrations } from './db/migrate.js'
 import { getDb } from './db/connection.js'
 import { createRegistryFromConfigs } from './services/provider-loader.js'
@@ -71,6 +72,22 @@ await server.register(specRoutes)
 await server.register(executionRoutes)
 await server.register(attachmentRoutes)
 await server.register(dashboardRoutes)
+
+// Serve frontend in production
+if (process.env['NODE_ENV'] === 'production') {
+  const webDistPath = join(process.cwd(), 'packages', 'web', 'dist')
+  if (existsSync(webDistPath)) {
+    await server.register(fastifyStatic, {
+      root: webDistPath,
+      prefix: '/',
+      wildcard: false,
+    })
+    // SPA fallback: serve index.html for all non-API routes
+    server.setNotFoundHandler(async (_req, reply) => {
+      return reply.sendFile('index.html', webDistPath)
+    })
+  }
+}
 
 const PORT = Number(process.env['PORT'] ?? 3001)
 await server.listen({ port: PORT, host: '0.0.0.0' })

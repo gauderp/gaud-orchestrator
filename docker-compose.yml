@@ -5,12 +5,15 @@ services:
       - "3001:3001"
     volumes:
       - gaud-data:/app/data
+      - gaud-attachments:/app/attachments
       - ./agents:/app/agents
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/orchestrator.db
       - AGENTS_DIR=/app/agents
+      - ATTACHMENTS_DIR=/app/attachments
       - LOG_LEVEL=info
 
 volumes:
   gaud-data:
+  gaud-attachments:
