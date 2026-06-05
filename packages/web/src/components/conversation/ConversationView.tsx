@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Send, Pause, Play, Zap, ZapOff } from 'lucide-react'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { Send, Pause, Play, Zap, ZapOff, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { MessageBubble } from './MessageBubble'
@@ -12,32 +12,59 @@ interface ConversationViewProps {
   conversation: ConversationWithMessages
 }
 
+const AGENT_COLORS = [
+  '#059669', '#2563EB', '#7C3AED', '#DB2777', '#EA580C', '#0891B2',
+]
+
 export function ConversationView({ conversation }: ConversationViewProps) {
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [userScrolled, setUserScrolled] = useState(false)
   const { sendMessage, triggerNextTurn, pauseConversation, resumeConversation, autoRun, setAutoRun } = useConversationStore()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll unless user scrolled up
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [conversation.messages.length])
+    if (!userScrolled) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [conversation.messages.length, userScrolled])
+
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50
+    setUserScrolled(!atBottom)
+  }, [])
 
   const handleSend = () => {
     if (!input.trim()) return
     sendMessage(conversation.id, input.trim())
     setInput('')
+    setUserScrolled(false)
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
   }
 
-  // Find the last question_for_user message
+  // Auto-grow textarea
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value)
+    const el = e.target
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }
+
   const lastQuestion = conversation.status === 'paused_for_user'
     ? [...conversation.messages].reverse().find((m) => m.messageType === 'question_for_user')
     : null
 
-  // Build agent name map from participants
+  // Build agent name/color maps
   const agentNames: Record<string, string> = {}
-  for (const p of conversation.participants) {
+  const agentColors: Record<string, string> = {}
+  conversation.participants.forEach((p, i) => {
     agentNames[p.agentId] = p.agentName ?? p.agentId
-  }
+    agentColors[p.agentId] = AGENT_COLORS[i % AGENT_COLORS.length]!
+  })
 
   const statusBadge = {
     active: { variant: 'info' as const, label: 'Active' },
@@ -48,21 +75,22 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3 dark:border-[var(--color-border-dark)]">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-2.5 dark:border-[var(--color-border-dark)]">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
-            {conversation.type.charAt(0).toUpperCase() + conversation.type.slice(1)} Conversation
+            {conversation.type.charAt(0).toUpperCase() + conversation.type.slice(1)}
           </h3>
           <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
         </div>
         <div className="flex items-center gap-2">
-          {/* Participants */}
+          {/* Participant avatars */}
           <div className="flex -space-x-1">
-            {conversation.participants.map((p) => (
+            {conversation.participants.map((p, i) => (
               <div
                 key={p.agentId}
-                title={agentNames[p.agentId]}
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)] text-[10px] font-bold text-white ring-2 ring-white dark:ring-[var(--color-bg-dark)]"
+                title={agentNames[p.agentId] ?? p.agentId}
+                className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white ring-2 ring-white dark:ring-[var(--color-bg-dark)]"
+                style={{ backgroundColor: agentColors[p.agentId] }}
               >
                 {(agentNames[p.agentId] ?? '?').charAt(0).toUpperCase()}
               </div>
@@ -77,7 +105,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
               autoRun
                 ? 'text-[var(--color-primary)]'
                 : 'text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]'
-            } hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)]`}
+            } hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)] cursor-pointer`}
           >
             {autoRun ? <Zap size={16} /> : <ZapOff size={16} />}
           </button>
@@ -87,7 +115,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
             <button
               onClick={() => pauseConversation(conversation.id)}
               title="Pause"
-              className="rounded-[var(--radius-md)] p-1.5 text-[var(--color-muted)] hover:bg-[var(--color-surface)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)]"
+              className="rounded-[var(--radius-md)] p-1.5 text-[var(--color-muted)] hover:bg-[var(--color-surface)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)] cursor-pointer"
             >
               <Pause size={16} />
             </button>
@@ -96,7 +124,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
             <button
               onClick={() => resumeConversation(conversation.id)}
               title="Resume"
-              className="rounded-[var(--radius-md)] p-1.5 text-[var(--color-primary)] hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)]"
+              className="rounded-[var(--radius-md)] p-1.5 text-[var(--color-primary)] hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)] cursor-pointer"
             >
               <Play size={16} />
             </button>
@@ -105,21 +133,18 @@ export function ConversationView({ conversation }: ConversationViewProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
         {conversation.messages.map((msg) => {
-          // Check if this message contains an artifact
           const artifactMatch = msg.content.match(/\[ARTIFACT]\s*([\s\S]+)$/i)
-
           return (
             <div key={msg.id}>
               <MessageBubble
                 message={msg}
                 agentName={msg.senderId ? agentNames[msg.senderId] : undefined}
+                agentColor={msg.senderId ? agentColors[msg.senderId] : undefined}
               />
               {artifactMatch && (
-                <div className="px-4 pb-3">
-                  <ArtifactBlock artifact={(artifactMatch[1] ?? '').trim()} />
-                </div>
+                <ArtifactBlock artifact={(artifactMatch[1] ?? '').trim()} />
               )}
             </div>
           )
@@ -137,14 +162,16 @@ export function ConversationView({ conversation }: ConversationViewProps) {
 
       {/* Input bar */}
       {conversation.status !== 'completed' && (
-        <div className="border-t border-[var(--color-border)] p-4 dark:border-[var(--color-border-dark)]">
-          <div className="flex gap-2">
+        <div className="border-t border-[var(--color-border)] px-4 py-3 dark:border-[var(--color-border-dark)]">
+          <div className="flex items-end gap-2">
             <textarea
+              ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleTextareaChange}
               placeholder="Type a message..."
               rows={1}
               className="flex-1 resize-none rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)] dark:placeholder:text-[var(--color-muted-dark)]"
+              style={{ maxHeight: '120px' }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
