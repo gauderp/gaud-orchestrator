@@ -32,8 +32,8 @@ export function SpecReviewPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <h1 className="text-2xl font-bold mb-6 text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Spec Review</h1>
+    <div className="mx-auto max-w-6xl p-6">
+      <h1 className="text-lg font-semibold mb-4 text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Specs</h1>
 
       <div className="flex gap-1 mb-6 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
         {STATUS_TABS.map((tab) => (

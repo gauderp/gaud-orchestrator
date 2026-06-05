@@ -103,7 +103,7 @@ export function AgentDetailPage() {
   ]
 
   return (
-    <div>
+    <div className="p-6">
       <Link
         to="/agents"
         className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:underline"
@@ -113,7 +113,7 @@ export function AgentDetailPage() {
       </Link>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+        <h1 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           {selectedAgent?.name ?? 'Loading...'}
         </h1>
         {selectedAgent?.role && (
@@ -123,15 +123,15 @@ export function AgentDetailPage() {
         )}
       </div>
 
-      <div className="mb-6 flex gap-1 rounded-[var(--radius-md)] border border-[var(--color-border)] p-1 dark:border-[var(--color-border-dark)] w-fit">
+      <div className="mb-6 flex gap-1 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
+            className={`-mb-px border-b-2 px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
               tab === t.key
-                ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
-                : 'text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
             }`}
           >
             {t.label}

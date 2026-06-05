@@ -38,8 +38,8 @@ export function SpecStudioPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6 text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Spec Studio</h1>
+    <div className="mx-auto max-w-4xl p-6">
+      <h1 className="text-lg font-semibold mb-6 text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Spec Studio</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input

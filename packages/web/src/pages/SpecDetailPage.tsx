@@ -42,7 +42,7 @@ export function SpecDetailPage() {
   ]
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl p-6">
       <Link
         to="/specs"
         className="text-[var(--color-primary)] hover:underline dark:text-[var(--color-primary)] text-sm mb-4 inline-block"
@@ -51,7 +51,7 @@ export function SpecDetailPage() {
       </Link>
 
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+        <h1 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           {selectedSpec.title}
         </h1>
         <Badge variant={statusBadgeVariant[selectedSpec.status] ?? 'neutral'}>

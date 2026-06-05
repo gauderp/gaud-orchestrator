@@ -21,7 +21,7 @@ export function AgentMemoryPage() {
   if (!id) return null
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link to={`/agents/${id}`} className="rounded p-1 hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-elevated-dark)] transition-colors">
@@ -29,7 +29,7 @@ export function AgentMemoryPage() {
         </Link>
         <Brain size={24} className="text-[var(--color-primary)]" />
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{selectedAgent?.name ?? 'Agent'} Memory</h1>
+          <h1 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{selectedAgent?.name ?? 'Agent'} Memory</h1>
           <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Long-term learnings and knowledge</p>
         </div>
       </div>
@@ -52,9 +52,9 @@ export function AgentMemoryPage() {
 
 function StatCard({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
-    <div className="rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-white dark:bg-[var(--color-surface-dark)] p-4">
-      <p className="text-xs font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] uppercase tracking-wide">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${color ?? 'text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]'}`}>{value}</p>
+    <div className="rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-white dark:bg-[var(--color-surface-dark)] px-3 py-2">
+      <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">{label}</p>
+      <p className={`text-lg font-semibold ${color ?? 'text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]'}`}>{value}</p>
     </div>
   )
 }

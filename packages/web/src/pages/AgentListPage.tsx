@@ -125,32 +125,32 @@ export function AgentListPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Agents</h1>
+    <div className="p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Agents</h1>
         <Button onClick={() => setShowModal(true)}>
           <Plus size={16} className="mr-1.5" />
           New Agent
         </Button>
       </div>
 
-      <div className="mb-4 flex gap-1 rounded-[var(--radius-md)] border border-[var(--color-border)] p-1 dark:border-[var(--color-border-dark)] w-fit">
+      <div className="mb-4 flex gap-1 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
         <button
           onClick={() => setView('tree')}
-          className={`rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
+          className={`-mb-px border-b-2 px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
             view === 'tree'
-              ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
-              : 'text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
+              ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+              : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
           }`}
         >
           Tree
         </button>
         <button
           onClick={() => setView('list')}
-          className={`rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
+          className={`-mb-px border-b-2 px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
             view === 'list'
-              ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
-              : 'text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
+              ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+              : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
           }`}
         >
           List

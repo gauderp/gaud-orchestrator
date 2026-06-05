@@ -60,7 +60,7 @@ export function SkillEditorPage() {
   }
 
   return (
-    <div>
+    <div className="p-6">
       <Link
         to="/skills"
         className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:underline"
@@ -69,7 +69,7 @@ export function SkillEditorPage() {
         Back to Skills
       </Link>
 
-      <h1 className="mb-6 text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+      <h1 className="mb-6 text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
         {isNew ? 'New Skill' : 'Edit Skill'}
       </h1>
 
