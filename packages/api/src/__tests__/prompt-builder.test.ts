@@ -58,6 +58,23 @@ describe('buildAgentTurnPrompt', () => {
     expect(prompt).toContain('[QUESTION_FOR_USER]')
     expect(prompt).toContain('[ARTIFACT]')
   })
+
+  it('includes relevant memories when provided', () => {
+    const prompt = buildAgentTurnPrompt({
+      agent: { name: 'Fiscal', instructions: 'Tax expert.', skills: [] },
+      conversation: { type: 'spec', summary: null },
+      recentMessages: [],
+      cardContext: { title: 'NFS-e', repos: [] },
+      relevantMemories: [
+        { type: 'error_correction', content: 'Catalao uses versaoDados 2.01', similarity: 0.85 },
+        { type: 'pattern_success', content: 'AbrasfV2 builder works for all ABRASF 2.x', similarity: 0.72 },
+      ],
+    })
+    expect(prompt).toContain('Previous Learnings')
+    expect(prompt).toContain('error_correction')
+    expect(prompt).toContain('versaoDados 2.01')
+    expect(prompt).toContain('AbrasfV2')
+  })
 })
 
 describe('summarizeMessages', () => {

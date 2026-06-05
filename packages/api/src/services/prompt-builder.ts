@@ -27,6 +27,7 @@ interface BuildPromptOpts {
   conversation: ConversationContext
   recentMessages: MessageContext[]
   cardContext: CardContext
+  relevantMemories?: Array<{ type: string; content: string; similarity: number }>
 }
 
 export function buildAgentTurnPrompt(opts: BuildPromptOpts): string {
@@ -59,6 +60,14 @@ export function buildAgentTurnPrompt(opts: BuildPromptOpts): string {
   // 4. Conversation summary (compressed history)
   if (opts.conversation.summary) {
     sections.push(`## Conversation Summary (previous messages)\n\n${opts.conversation.summary}`)
+  }
+
+  // 4.5. Relevant memories (learnings from past — Phase 5)
+  if (opts.relevantMemories && opts.relevantMemories.length > 0) {
+    const memoryLines = opts.relevantMemories.map((m) =>
+      `- [${m.type}] ${m.content}`
+    ).join('\n')
+    sections.push(`## Previous Learnings\n\nRelevant experience from past tasks:\n${memoryLines}`)
   }
 
   // 5. Recent messages (raw, for immediate context)

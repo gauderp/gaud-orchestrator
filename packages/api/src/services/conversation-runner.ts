@@ -3,6 +3,9 @@ import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
 import { buildAgentTurnPrompt, summarizeMessages } from './prompt-builder.js'
+import { AgentMemory } from './memory.js'
+import { createEmbeddingRegistry } from './embeddings.js'
+import { detectLearnings } from './learning-detector.js'
 
 // --- Response parser ---
 
@@ -180,13 +183,27 @@ export async function runConversationTurn(
     }
   }
 
-  // 10. Build prompt
+  // 10. Build recent messages list
   const recentMessages = allMessages.slice(-RECENT_MESSAGES_LIMIT).map((m: any) => ({
     senderType: m.sender_type,
     senderId: m.sender_id,
     content: m.content,
   }))
 
+  // 10.5. Query relevant memories for this agent (Phase 5)
+  const embeddingRegistry = createEmbeddingRegistry()
+  const agentMemory = new AgentMemory(db, embeddingRegistry)
+  const queryText = [
+    cardContext.title,
+    ...recentMessages.slice(-3).map((m) => m.content),
+  ].join(' ').substring(0, 500)
+  const relevantMemories = await agentMemory.search(queryText, {
+    agentId: nextAgent.agentId,
+    limit: 5,
+    minSimilarity: 0.4,
+  })
+
+  // 11. Build prompt
   const prompt = buildAgentTurnPrompt({
     agent: {
       name: agentRow.agent_name,
@@ -196,6 +213,11 @@ export async function runConversationTurn(
     conversation: { type: conv.type, summary },
     recentMessages,
     cardContext,
+    relevantMemories: relevantMemories.map((m) => ({
+      type: m.type,
+      content: m.content,
+      similarity: m.similarity,
+    })),
   })
 
   // 11. Call provider
@@ -243,6 +265,28 @@ export async function runConversationTurn(
   )
 
   const message = toCamelCase(db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId) as any)
+
+  // 13.5. Detect and store learnings (Phase 5)
+  const learningMessages = allMessages.slice(-5).map((m: any) => ({
+    senderType: m.sender_type as 'agent' | 'user' | 'system',
+    senderId: m.sender_id as string | null,
+    content: m.content as string,
+  }))
+  // Include the new agent response
+  learningMessages.push({
+    senderType: 'agent',
+    senderId: nextAgent.agentId,
+    content: responseText,
+  })
+  const learnings = detectLearnings(learningMessages, nextAgent.agentId)
+  for (const learning of learnings) {
+    await agentMemory.store(learning)
+    broadcast('memory:learning', {
+      agentId: learning.agentId,
+      type: learning.type,
+      content: learning.content,
+    })
+  }
 
   // 14. Update conversation status
   let newStatus: 'active' | 'paused_for_user' | 'completed' = 'active'
