@@ -18,6 +18,7 @@ import { memoryRoutes } from './routes/memory.js'
 import { specRoutes } from './routes/specs.js'
 import { executionRoutes } from './routes/executions.js'
 import { attachmentRoutes } from './routes/attachments.js'
+import { dashboardRoutes } from './routes/dashboard.js'
 import multipart from '@fastify/multipart'
 
 const dbPath = process.env['DATABASE_PATH'] ?? 'data/orchestrator.db'
@@ -69,6 +70,7 @@ await server.register(memoryRoutes)
 await server.register(specRoutes)
 await server.register(executionRoutes)
 await server.register(attachmentRoutes)
+await server.register(dashboardRoutes)
 
 const PORT = Number(process.env['PORT'] ?? 3001)
 await server.listen({ port: PORT, host: '0.0.0.0' })
