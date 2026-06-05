@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Typography — DESIGN.md: Inter + JetBrains Mono */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Colors — DESIGN.md: The Mission Control Console palette */
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-on-primary: #FFFFFF;
+
+  --color-accent: #059669;
+  --color-accent-hover: #047857;
+  --color-on-accent: #FFFFFF;
+
+  --color-destructive: #DC2626;
+  --color-destructive-hover: #B91C1C;
+  --color-on-destructive: #FFFFFF;
+
+  --color-warning: #D97706;
+
+  --color-surface: #F8FAFC;
+  --color-surface-elevated: #F1F5F9;
+  --color-ink: #0F172A;
+  --color-muted: #64748B;
+  --color-border: #E2E8F0;
+  --color-ring: #2563EB;
+
+  /* Dark mode colors */
+  --color-surface-dark: #18181B;
+  --color-surface-elevated-dark: #27272A;
+  --color-ink-dark: #FAFAFA;
+  --color-muted-dark: #A1A1AA;
+  --color-border-dark: #27272A;
+
+  /* Spacing — DESIGN.md: 4/8 system */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+
+  /* Radii — DESIGN.md */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+}
+
+@layer base {
+  html {
+    @apply bg-white text-[--color-ink] antialiased;
+    font-family: var(--font-sans);
+    font-size: 14px; /* DESIGN.md: 14px body default */
+    line-height: 1.6;
+  }
+  html.dark {
+    @apply bg-[#09090B] text-[--color-ink-dark];
+  }
+}
