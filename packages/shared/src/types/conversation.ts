@@ -15,6 +15,7 @@ export interface Conversation {
 export interface ConversationParticipant {
   conversationId: string
   agentId: string
+  agentName?: string // populated by JOIN on GET /api/conversations/:id
   joinedAt: string
 }
 

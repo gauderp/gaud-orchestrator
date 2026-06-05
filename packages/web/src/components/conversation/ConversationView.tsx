@@ -36,7 +36,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   // Build agent name map from participants
   const agentNames: Record<string, string> = {}
   for (const p of conversation.participants) {
-    agentNames[p.agentId] = p.agentId
+    agentNames[p.agentId] = p.agentName ?? p.agentId
   }
 
   const statusBadge = {
