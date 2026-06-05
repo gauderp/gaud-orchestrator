@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview } from '@gaud/shared'
 
 const API_BASE = '/api'
 
@@ -101,5 +101,19 @@ export const api = {
       request<AgentMemoryEntry>(`/agents/${agentId}/memories`, { method: 'POST', body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/memories/${id}`, { method: 'DELETE' }),
     stats: () => request<MemoryStats>('/memory/stats'),
+  },
+  specs: {
+    list: (status?: string) => request<Spec[]>(`/specs${status ? `?status=${status}` : ''}`),
+    get: (id: string) => request<Spec & { reviews: SpecReview[] }>(`/specs/${id}`),
+    create: (data: { title: string; content: string; sourceCardId?: string; createdByType?: string }) =>
+      request<Spec>('/specs', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: { title?: string; content?: string }) =>
+      request<Spec>(`/specs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    review: (id: string, data: { reviewerType: string; verdict: string; comment?: string }) =>
+      request<SpecReview>(`/specs/${id}/review`, { method: 'POST', body: JSON.stringify(data) }),
+    generate: (data: { title: string; description: string; repos?: string[]; agentIds: string[]; cardId?: string }) =>
+      request<{ spec: Spec; conversationId: string }>('/specs/generate', { method: 'POST', body: JSON.stringify(data) }),
+    decompose: (id: string, data: { boardId: string; columnId: string }) =>
+      request<{ specId: string; boardId: string; cards: any[] }>(`/specs/${id}/decompose`, { method: 'POST', body: JSON.stringify(data) }),
   },
 }
