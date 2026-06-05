@@ -17,6 +17,8 @@ import { conversationRoutes } from './routes/conversations.js'
 import { memoryRoutes } from './routes/memory.js'
 import { specRoutes } from './routes/specs.js'
 import { executionRoutes } from './routes/executions.js'
+import { attachmentRoutes } from './routes/attachments.js'
+import multipart from '@fastify/multipart'
 
 const dbPath = process.env['DATABASE_PATH'] ?? 'data/orchestrator.db'
 mkdirSync(dirname(dbPath), { recursive: true })
@@ -48,6 +50,7 @@ await server.register(cors, {
 })
 
 await server.register(websocket)
+await server.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } })
 
 server.register(async (app) => {
   app.get('/ws', { websocket: true }, (socket, _req) => {
@@ -65,6 +68,7 @@ await server.register(conversationRoutes)
 await server.register(memoryRoutes)
 await server.register(specRoutes)
 await server.register(executionRoutes)
+await server.register(attachmentRoutes)
 
 const PORT = Number(process.env['PORT'] ?? 3001)
 await server.listen({ port: PORT, host: '0.0.0.0' })
