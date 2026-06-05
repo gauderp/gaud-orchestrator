@@ -6,6 +6,9 @@ import { dirname } from 'path'
 import { runMigrations } from './db/migrate.js'
 import { addClient } from './ws/broadcast.js'
 import { healthRoutes } from './routes/health.js'
+import { skillRoutes } from './routes/skills.js'
+import { providerRoutes } from './routes/providers.js'
+import { agentRoutes } from './routes/agents.js'
 
 const dbPath = process.env['DATABASE_PATH'] ?? 'data/orchestrator.db'
 mkdirSync(dirname(dbPath), { recursive: true })
@@ -32,6 +35,9 @@ server.register(async (app) => {
 })
 
 await server.register(healthRoutes)
+await server.register(skillRoutes)
+await server.register(providerRoutes)
+await server.register(agentRoutes)
 
 const PORT = Number(process.env['PORT'] ?? 3001)
 await server.listen({ port: PORT, host: '0.0.0.0' })
