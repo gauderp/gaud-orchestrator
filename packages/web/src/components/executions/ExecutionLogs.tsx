@@ -2,9 +2,9 @@ import { useRef, useEffect, useState } from 'react'
 import type { ExecutionLog, ExecutionTask } from '@gaud/shared'
 
 const typeColors: Record<string, string> = {
-  stdout: 'text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]',
-  stderr: 'text-[var(--color-destructive)]',
-  approval_request: 'text-[var(--color-warning)]',
+  stdout: 'text-zinc-200',
+  stderr: 'text-red-400',
+  approval_request: 'text-amber-400',
 }
 
 interface Props {
@@ -58,15 +58,15 @@ export function ExecutionLogs({ tasks }: Props) {
       )}
       <div
         ref={containerRef}
-        className="h-80 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-dark)] p-3 dark:border-[var(--color-border-dark)]"
+        className="h-80 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-zinc-950 p-3 dark:border-[var(--color-border-dark)]"
       >
         {allLogs.length === 0 ? (
-          <p className="text-xs text-[var(--color-muted-dark)]">No logs yet.</p>
+          <p className="text-xs text-zinc-500">No logs yet.</p>
         ) : (
           <pre className="font-mono text-[0.8125rem] leading-relaxed whitespace-pre-wrap">
             {allLogs.map((log) => (
               <div key={log.id} className={typeColors[log.type] ?? typeColors.stdout}>
-                <span className="text-[var(--color-muted-dark)] select-none">[{log.taskTitle}] </span>
+                <span className="text-zinc-500 select-none">[{log.taskTitle}] </span>
                 {log.content}
               </div>
             ))}

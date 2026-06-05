@@ -103,7 +103,7 @@ export function GanttChart({ cards, dependencies, columns }: GanttChartProps) {
                   y={HEADER_HEIGHT + i * ROW_HEIGHT}
                   width={svgWidth}
                   height={ROW_HEIGHT}
-                  fill="var(--color-surface)"
+                  className="fill-[var(--color-surface)] dark:fill-[var(--color-surface-dark)]"
                   opacity={0.4}
                 />
               )}
@@ -112,8 +112,7 @@ export function GanttChart({ cards, dependencies, columns }: GanttChartProps) {
                 x={8}
                 y={y + BAR_HEIGHT / 2 + 1}
                 dominantBaseline="middle"
-                className="text-[11px]"
-                fill="var(--color-ink)"
+                className="text-[11px] fill-[var(--color-ink)] dark:fill-[var(--color-ink-dark)]"
               >
                 {card.title.length > 20 ? card.title.slice(0, 19) + '...' : card.title}
               </text>
@@ -153,7 +152,7 @@ export function GanttChart({ cards, dependencies, columns }: GanttChartProps) {
               key={`dep-${i}`}
               d={`M${fromX},${fromY} C${midX},${fromY} ${midX},${toY} ${toX},${toY}`}
               fill="none"
-              stroke="var(--color-muted)"
+              className="stroke-[var(--color-muted)] dark:stroke-[var(--color-muted-dark)]"
               strokeWidth={1}
               markerEnd="url(#arrowhead)"
             />
@@ -163,7 +162,7 @@ export function GanttChart({ cards, dependencies, columns }: GanttChartProps) {
         {/* Arrow marker definition */}
         <defs>
           <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L8,3 L0,6 Z" fill="var(--color-muted)" />
+            <path d="M0,0 L8,3 L0,6 Z" className="fill-[var(--color-muted)] dark:fill-[var(--color-muted-dark)]" />
           </marker>
         </defs>
       </svg>

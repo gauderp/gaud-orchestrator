@@ -90,7 +90,7 @@ export function MemoryList({ agentId }: MemoryListProps) {
       </div>
 
       {/* Loading state */}
-      {loading && <p className="text-sm text-[var(--color-muted)]">Loading...</p>}
+      {loading && <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>}
 
       {/* Memory cards */}
       <div className="space-y-3">

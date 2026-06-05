@@ -71,8 +71,7 @@ export function GanttHeader({ startDate, endDate, dayWidth, headerHeight }: Gant
           x={m.x + m.width / 2}
           y={14}
           textAnchor="middle"
-          className="text-[10px] font-medium"
-          fill="var(--color-ink)"
+          className="text-[10px] font-medium fill-[var(--color-ink)] dark:fill-[var(--color-ink-dark)]"
         >
           {m.label}
         </text>
@@ -85,8 +84,7 @@ export function GanttHeader({ startDate, endDate, dayWidth, headerHeight }: Gant
           x={w.x}
           y={30}
           textAnchor="start"
-          className="text-[9px]"
-          fill="var(--color-muted)"
+          className="text-[9px] fill-[var(--color-muted)] dark:fill-[var(--color-muted-dark)]"
         >
           {w.label}
         </text>
@@ -100,7 +98,7 @@ export function GanttHeader({ startDate, endDate, dayWidth, headerHeight }: Gant
           y1={headerHeight}
           x2={x}
           y2={9999}
-          stroke="var(--color-border)"
+          className="stroke-[var(--color-border)] dark:stroke-[var(--color-border-dark)]"
           strokeWidth={0.5}
         />
       ))}
