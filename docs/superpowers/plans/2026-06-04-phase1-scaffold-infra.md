@@ -383,8 +383,24 @@ export interface Card {
   estimatedTokens: number | null
   estimatedCostUsd: number | null
   position: number
+  startDate: string | null
+  dueDate: string | null
+  completedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface CardDependency {
+  cardId: string
+  dependsOnCardId: string
+}
+
+export interface CardWithDetails extends Card {
+  repos: CardRepo[]
+  comments: CardComment[]
+  attachments: CardAttachment[]
+  children: Card[]
+  dependencies: CardDependency[]
 }
 
 export interface CardRepo {
@@ -411,12 +427,6 @@ export interface CardAttachment {
   createdAt: string
 }
 
-export interface CardWithDetails extends Card {
-  repos: CardRepo[]
-  comments: CardComment[]
-  attachments: CardAttachment[]
-  children: Card[]
-}
 ```
 
 Create `packages/shared/src/types/spec.ts`:
@@ -930,8 +940,17 @@ CREATE TABLE cards (
   estimated_tokens INTEGER,
   estimated_cost_usd REAL,
   position INTEGER NOT NULL DEFAULT 0,
+  start_date TEXT,
+  due_date TEXT,
+  completed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE card_dependencies (
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  depends_on_card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  PRIMARY KEY (card_id, depends_on_card_id)
 );
 
 CREATE TABLE card_repos (

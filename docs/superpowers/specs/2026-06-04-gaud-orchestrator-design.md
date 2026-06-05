@@ -245,9 +245,34 @@ Executing        → sem acao (sistema monitora execucoes em andamento)
 Done             → sem acao
 ```
 
+#### Dependencias entre Cards
+
+Cards podem ter dependencias bloqueadoras (card A bloqueia card B):
+- Card bloqueado nao pode ser movido para colunas de execucao
+- Visivel no Kanban (icone de cadeado) e no Gantt (setas)
+- Ao completar card A, cards dependentes sao desbloqueados automaticamente
+
+#### Gantt View
+
+View alternativa do board — mesmos dados, renderizados como timeline:
+- Eixo X: tempo (dias/semanas)
+- Eixo Y: cards agrupados por tipo (Project > Epic > Task)
+- Barras coloridas por status da coluna atual
+- Setas de dependencia entre cards
+- Datas estimadas com base em:
+  - Estimativa de tokens/custo do card
+  - Throughput historico dos agentes (tasks/dia)
+  - Dependencias (card bloqueado so inicia apos bloqueador completar)
+- Drag horizontal para ajustar datas manualmente (override)
+- Milestones: marcar datas-chave (deadlines, releases)
+- Filtros: por type, agent, coluna
+
+Implementacao: biblioteca leve como `frappe-gantt` ou custom com canvas/SVG.
+
 ### Telas
 
 - **Board View**: Kanban com colunas, cards draggable, filtros (type, agent, status)
+- **Gantt View**: timeline com barras, dependencias, milestones (toggle entre Kanban/Gantt)
 - **Board Settings**: gerenciar colunas (nome, cor, prompt, auto-move), reordenar
 - **Card Detail**: modal ou page com todas as informacoes, comentarios, anexos, botao "Ask Agent", estimativa de custo
 
@@ -629,8 +654,17 @@ CREATE TABLE cards (
   estimated_tokens INTEGER,
   estimated_cost_usd REAL,
   position INTEGER NOT NULL DEFAULT 0,
+  start_date TEXT,       -- for Gantt: planned start (nullable, auto-calculated or manual)
+  due_date TEXT,         -- for Gantt: planned end / deadline
+  completed_at TEXT,     -- actual completion timestamp
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE card_dependencies (
+  card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  depends_on_card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  PRIMARY KEY (card_id, depends_on_card_id)
 );
 
 CREATE TABLE card_repos (
@@ -854,6 +888,9 @@ CREATE INDEX idx_memory_sessions_agent ON memory_sessions(agent_id);
 | POST | /api/cards/:id/estimate | Estimar custo de implementacao |
 | POST | /api/cards/:id/repos | Adicionar repo ao card |
 | DELETE | /api/cards/:id/repos/:repoId | Remover repo |
+| POST | /api/cards/:id/dependencies | Adicionar dependencia (depends_on_card_id) |
+| DELETE | /api/cards/:id/dependencies/:depId | Remover dependencia |
+| GET | /api/boards/:id/gantt | Dados do board para Gantt (cards com datas, dependencias, hierarchy) |
 
 ### Specs (SDD)
 | Method | Path | Descricao |
@@ -944,7 +981,8 @@ CREATE INDEX idx_memory_sessions_agent ON memory_sessions(agent_id);
 | Skills | /skills | SkillsListPage | CRUD lista |
 | | /skills/:id | SkillEditorPage | Editor markdown |
 | Boards | /boards | BoardListPage | Lista de boards |
-| | /boards/:id | BoardViewPage | Kanban com drag-and-drop |
+| | /boards/:id | BoardViewPage | Kanban com drag-and-drop (toggle para Gantt) |
+| | /boards/:id/gantt | GanttViewPage | Timeline com barras, dependencias, milestones |
 | | /boards/:id/settings | BoardSettingsPage | Colunas config |
 | Cards | /cards/:id | CardDetailPage | Modal ou page com tudo |
 | SDD | /specs/studio | SpecStudioPage | Gerar spec via agente |
