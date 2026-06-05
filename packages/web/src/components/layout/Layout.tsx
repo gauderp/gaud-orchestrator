@@ -8,7 +8,7 @@ export function Layout() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto bg-[var(--color-surface)] p-6 dark:bg-[var(--color-surface-dark)]">
+        <main className="flex-1 overflow-y-auto bg-white dark:bg-[#09090B]">
           <Outlet />
         </main>
       </div>

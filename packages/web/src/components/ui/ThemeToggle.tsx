@@ -7,10 +7,10 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-      className="rounded-[var(--radius-md)] p-2 text-[var(--color-muted)] hover:bg-[var(--color-surface)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)] cursor-pointer transition-colors duration-150"
-      aria-label="Toggle theme"
+      className="rounded-[var(--radius-md)] p-1.5 text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-elevated)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)] dark:hover:bg-[var(--color-surface-elevated-dark)] cursor-pointer transition-colors duration-100"
+      aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
     >
-      {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+      {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
     </button>
   )
 }
