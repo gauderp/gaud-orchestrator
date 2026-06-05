@@ -4,7 +4,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/app'
 
-export function App() {
+export function AppRoutes() {
   const theme = useAppStore((s) => s.theme)
 
   useEffect(() => {
@@ -12,20 +12,26 @@ export function App() {
   }, [theme])
 
   return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<DashboardPage />} />
+        {/* Placeholder routes — pages added in later phases */}
+        <Route path="/agents" element={<Placeholder title="Agents" />} />
+        <Route path="/skills" element={<Placeholder title="Skills" />} />
+        <Route path="/boards" element={<Placeholder title="Boards" />} />
+        <Route path="/specs" element={<Placeholder title="Specs" />} />
+        <Route path="/executions" element={<Placeholder title="Executions" />} />
+        <Route path="/settings" element={<Placeholder title="Settings" />} />
+        <Route path="/settings/providers" element={<Placeholder title="Providers" />} />
+      </Route>
+    </Routes>
+  )
+}
+
+export function App() {
+  return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<DashboardPage />} />
-          {/* Placeholder routes — pages added in later phases */}
-          <Route path="/agents" element={<Placeholder title="Agents" />} />
-          <Route path="/skills" element={<Placeholder title="Skills" />} />
-          <Route path="/boards" element={<Placeholder title="Boards" />} />
-          <Route path="/specs" element={<Placeholder title="Specs" />} />
-          <Route path="/executions" element={<Placeholder title="Executions" />} />
-          <Route path="/settings" element={<Placeholder title="Settings" />} />
-          <Route path="/settings/providers" element={<Placeholder title="Providers" />} />
-        </Route>
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   )
 }
