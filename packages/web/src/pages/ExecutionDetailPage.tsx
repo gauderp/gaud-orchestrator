@@ -29,7 +29,7 @@ export function ExecutionDetailPage() {
   }, [id, fetchExecution])
 
   if (!selectedExecution) {
-    return <div className="p-6 text-[--color-muted] dark:text-[--color-muted-dark]">Loading...</div>
+    return <div className="p-6 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</div>
   }
 
   const exec = selectedExecution
@@ -58,7 +58,7 @@ export function ExecutionDetailPage() {
     <div className="mx-auto max-w-6xl p-6">
       <Link
         to="/executions"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-[--color-muted] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:text-[--color-ink-dark]"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Executions
@@ -66,7 +66,7 @@ export function ExecutionDetailPage() {
 
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+          <h1 className="text-xl font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             Execution {exec.id.slice(0, 8)}
           </h1>
           <ExecutionStatus status={exec.status} tasksDone={tasksDone} tasksTotal={tasksTotal} />
@@ -87,20 +87,20 @@ export function ExecutionDetailPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex gap-1 border-b border-[--color-border] dark:border-[--color-border-dark]">
+      <div className="mb-4 flex gap-1 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? 'border-[--color-primary] text-[--color-primary]'
-                : 'border-transparent text-[--color-muted] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:text-[--color-ink-dark]'
+                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
             }`}
           >
             {tab.label}
             {tab.id === 'gaps' && pendingGaps > 0 && (
-              <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[--color-warning] px-1 text-[0.625rem] text-white">
+              <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-warning)] px-1 text-[0.625rem] text-white">
                 {pendingGaps}
               </span>
             )}

@@ -56,20 +56,20 @@ export function SkillEditorPage() {
   }
 
   if (loading) {
-    return <p className="text-[--color-muted] dark:text-[--color-muted-dark]">Loading...</p>
+    return <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>
   }
 
   return (
     <div>
       <Link
         to="/skills"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-[--color-primary] hover:underline"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:underline"
       >
         <ArrowLeft size={14} />
         Back to Skills
       </Link>
 
-      <h1 className="mb-6 text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">
+      <h1 className="mb-6 text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
         {isNew ? 'New Skill' : 'Edit Skill'}
       </h1>
 

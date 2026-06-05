@@ -13,7 +13,7 @@ export function ExecutionGaps({ gaps, onResolve }: Props) {
   const [responses, setResponses] = useState<Record<string, string>>({})
 
   if (gaps.length === 0) {
-    return <p className="text-sm text-[--color-muted] dark:text-[--color-muted-dark]">No gaps.</p>
+    return <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">No gaps.</p>
   }
 
   return (
@@ -23,24 +23,24 @@ export function ExecutionGaps({ gaps, onResolve }: Props) {
         return (
           <div
             key={gap.id}
-            className={`rounded-[--radius-lg] border p-4 ${
+            className={`rounded-[var(--radius-lg)] border p-4 ${
               isPending
-                ? 'border-[--color-warning] bg-amber-50 dark:bg-amber-950/20'
-                : 'border-[--color-accent] bg-emerald-50 dark:bg-emerald-950/20'
+                ? 'border-[var(--color-warning)] bg-amber-50 dark:bg-amber-950/20'
+                : 'border-[var(--color-accent)] bg-emerald-50 dark:bg-emerald-950/20'
             }`}
           >
             <div className="mb-2 flex items-start gap-2">
               {isPending ? (
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[--color-warning]" />
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warning)]" />
               ) : (
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[--color-accent]" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-accent)]" />
               )}
-              <p className="text-sm font-medium text-[--color-ink] dark:text-[--color-ink-dark]">
+              <p className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                 {gap.question}
               </p>
             </div>
             {gap.suggestion && (
-              <p className="mb-2 ml-6 text-xs text-[--color-muted] dark:text-[--color-muted-dark]">
+              <p className="mb-2 ml-6 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                 Suggestion: {gap.suggestion}
               </p>
             )}
@@ -64,7 +64,7 @@ export function ExecutionGaps({ gaps, onResolve }: Props) {
                 </Button>
               </div>
             ) : (
-              <p className="ml-6 text-sm text-[--color-ink] dark:text-[--color-ink-dark]">
+              <p className="ml-6 text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                 {gap.response}
               </p>
             )}

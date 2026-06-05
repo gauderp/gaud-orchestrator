@@ -18,7 +18,7 @@ export function CardDetailPage() {
   }, [selectedCard, activeBoard, fetchBoard])
 
   if (!selectedCard) {
-    return <p className="text-[--color-muted] dark:text-[--color-muted-dark]">Loading card...</p>
+    return <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading card...</p>
   }
 
   const columnName = activeBoard?.columns.find((c) => c.id === selectedCard.columnId)?.name

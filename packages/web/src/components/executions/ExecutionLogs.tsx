@@ -2,9 +2,9 @@ import { useRef, useEffect, useState } from 'react'
 import type { ExecutionLog, ExecutionTask } from '@gaud/shared'
 
 const typeColors: Record<string, string> = {
-  stdout: 'text-[--color-ink] dark:text-[--color-ink-dark]',
-  stderr: 'text-[--color-destructive]',
-  approval_request: 'text-[--color-warning]',
+  stdout: 'text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]',
+  stderr: 'text-[var(--color-destructive)]',
+  approval_request: 'text-[var(--color-warning)]',
 }
 
 interface Props {
@@ -30,13 +30,13 @@ export function ExecutionLogs({ tasks }: Props) {
     <div className="flex flex-col gap-2">
       {tasks.length > 1 && (
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Filter:</span>
+          <span className="text-xs font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Filter:</span>
           <button
             onClick={() => setFilterTaskId(null)}
             className={`rounded-full px-2 py-0.5 text-xs ${
               !filterTaskId
-                ? 'bg-[--color-primary] text-[--color-on-primary]'
-                : 'bg-[--color-surface] text-[--color-muted] dark:bg-[--color-surface-dark] dark:text-[--color-muted-dark]'
+                ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
+                : 'bg-[var(--color-surface)] text-[var(--color-muted)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-muted-dark)]'
             }`}
           >
             All
@@ -47,8 +47,8 @@ export function ExecutionLogs({ tasks }: Props) {
               onClick={() => setFilterTaskId(t.id)}
               className={`rounded-full px-2 py-0.5 text-xs ${
                 filterTaskId === t.id
-                  ? 'bg-[--color-primary] text-[--color-on-primary]'
-                  : 'bg-[--color-surface] text-[--color-muted] dark:bg-[--color-surface-dark] dark:text-[--color-muted-dark]'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
+                  : 'bg-[var(--color-surface)] text-[var(--color-muted)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-muted-dark)]'
               }`}
             >
               {t.title}
@@ -58,15 +58,15 @@ export function ExecutionLogs({ tasks }: Props) {
       )}
       <div
         ref={containerRef}
-        className="h-80 overflow-y-auto rounded-[--radius-lg] border border-[--color-border] bg-[--color-bg-dark] p-3 dark:border-[--color-border-dark]"
+        className="h-80 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg-dark)] p-3 dark:border-[var(--color-border-dark)]"
       >
         {allLogs.length === 0 ? (
-          <p className="text-xs text-[--color-muted-dark]">No logs yet.</p>
+          <p className="text-xs text-[var(--color-muted-dark)]">No logs yet.</p>
         ) : (
           <pre className="font-mono text-[0.8125rem] leading-relaxed whitespace-pre-wrap">
             {allLogs.map((log) => (
               <div key={log.id} className={typeColors[log.type] ?? typeColors.stdout}>
-                <span className="text-[--color-muted-dark] select-none">[{log.taskTitle}] </span>
+                <span className="text-[var(--color-muted-dark)] select-none">[{log.taskTitle}] </span>
                 {log.content}
               </div>
             ))}

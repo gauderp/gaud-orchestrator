@@ -2,10 +2,10 @@ import { useToastStore, type ToastVariant } from '@/store/toast'
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react'
 
 const variants: Record<ToastVariant, { bg: string; icon: typeof CheckCircle }> = {
-  success: { bg: 'bg-[--color-accent] text-white', icon: CheckCircle },
-  error: { bg: 'bg-[--color-destructive] text-white', icon: AlertCircle },
-  warning: { bg: 'bg-[--color-warning] text-white', icon: AlertTriangle },
-  info: { bg: 'bg-[--color-primary] text-white', icon: Info },
+  success: { bg: 'bg-[var(--color-accent)] text-white', icon: CheckCircle },
+  error: { bg: 'bg-[var(--color-destructive)] text-white', icon: AlertCircle },
+  warning: { bg: 'bg-[var(--color-warning)] text-white', icon: AlertTriangle },
+  info: { bg: 'bg-[var(--color-primary)] text-white', icon: Info },
 }
 
 export function ToastContainer() {
@@ -21,7 +21,7 @@ export function ToastContainer() {
         return (
           <div
             key={toast.id}
-            className={`flex items-center gap-3 rounded-[--radius-lg] px-4 py-3 shadow-lg transition-all duration-300 ${config.bg}`}
+            className={`flex items-center gap-3 rounded-[var(--radius-lg)] px-4 py-3 shadow-lg transition-all duration-300 ${config.bg}`}
             style={{ minWidth: 280, maxWidth: 400 }}
           >
             <Icon size={18} />

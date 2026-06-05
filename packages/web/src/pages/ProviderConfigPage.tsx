@@ -80,17 +80,17 @@ export function ProviderConfigPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">Providers</h1>
+        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Providers</h1>
         <Button onClick={() => setShowModal(true)}>
           <Plus size={16} className="mr-1.5" />
           Add Provider
         </Button>
       </div>
 
-      {loading && <p className="text-[--color-muted] dark:text-[--color-muted-dark]">Loading...</p>}
+      {loading && <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>}
 
       {!loading && providers.length === 0 && (
-        <p className="text-[--color-muted] dark:text-[--color-muted-dark]">
+        <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
           No providers configured yet. Add one to get started.
         </p>
       )}
@@ -102,28 +102,28 @@ export function ProviderConfigPage() {
             return (
               <div
                 key={provider.id}
-                className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]"
+                className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-[var(--spacing-lg)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]"
               >
                 <div className="mb-3 flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <Plug size={18} className="text-[--color-primary]" />
-                    <h3 className="font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+                    <Plug size={18} className="text-[var(--color-primary)]" />
+                    <h3 className="font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                       {provider.name}
                     </h3>
                   </div>
                   <Badge variant="info">{provider.type}</Badge>
                 </div>
 
-                <p className="mb-4 text-sm text-[--color-muted] dark:text-[--color-muted-dark]">
+                <p className="mb-4 text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                   {getConfigSummary(provider.configJson)}
                 </p>
 
                 {result && (
                   <div
-                    className={`mb-3 rounded-[--radius-md] px-3 py-2 text-sm ${
+                    className={`mb-3 rounded-[var(--radius-md)] px-3 py-2 text-sm ${
                       result.success
-                        ? 'bg-[--color-accent]/10 text-[--color-accent]'
-                        : 'bg-[--color-destructive]/10 text-[--color-destructive]'
+                        ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                        : 'bg-[var(--color-destructive)]/10 text-[var(--color-destructive)]'
                     }`}
                   >
                     {result.message}
@@ -164,13 +164,13 @@ export function ProviderConfigPage() {
             placeholder="e.g. My Claude API"
           />
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[--color-ink] dark:text-[--color-ink-dark]">
+            <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
               Type
             </label>
             <select
               value={formType}
               onChange={(e) => setFormType(e.target.value)}
-              className="h-9 rounded-[--radius-md] border border-[--color-border] bg-white px-3 text-sm text-[--color-ink] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark] dark:text-[--color-ink-dark]"
+              className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
             >
               {PROVIDER_TYPES.map((t) => (
                 <option key={t} value={t}>

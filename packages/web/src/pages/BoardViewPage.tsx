@@ -42,26 +42,26 @@ export function BoardViewPage() {
   }
 
   if (!activeBoard) {
-    return <p className="text-[--color-muted] dark:text-[--color-muted-dark]">Loading board...</p>
+    return <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading board...</p>
   }
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">
+        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           {activeBoard.name}
         </h1>
         <div className="flex items-center gap-2">
           <Link
             to={`/boards/${id}/gantt`}
-            className="inline-flex items-center gap-1.5 rounded-[--radius-md] px-3 py-1.5 text-sm font-medium text-[--color-muted] hover:bg-[--color-surface] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark] dark:hover:text-[--color-ink-dark]"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)] dark:hover:text-[var(--color-ink-dark)]"
           >
             <BarChart3 size={16} />
             Gantt
           </Link>
           <Link
             to={`/boards/${id}/settings`}
-            className="inline-flex items-center gap-1.5 rounded-[--radius-md] px-3 py-1.5 text-sm font-medium text-[--color-muted] hover:bg-[--color-surface] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark] dark:hover:text-[--color-ink-dark]"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)] dark:hover:text-[var(--color-ink-dark)]"
           >
             <Settings size={16} />
             Settings

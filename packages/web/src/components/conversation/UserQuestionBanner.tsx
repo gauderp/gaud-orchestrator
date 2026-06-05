@@ -17,14 +17,14 @@ export function UserQuestionBanner({ question, onRespond }: UserQuestionBannerPr
   }
 
   return (
-    <div className="border-l-4 border-[--color-warning] bg-amber-50 p-4 dark:bg-amber-950/20">
+    <div className="border-l-4 border-[var(--color-warning)] bg-amber-50 p-4 dark:bg-amber-950/20">
       <div className="flex items-start gap-2 mb-3">
-        <AlertCircle size={18} className="mt-0.5 shrink-0 text-[--color-warning]" />
+        <AlertCircle size={18} className="mt-0.5 shrink-0 text-[var(--color-warning)]" />
         <div>
-          <p className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+          <p className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             Agent needs your input
           </p>
-          <p className="mt-1 text-sm text-[--color-ink] dark:text-[--color-ink-dark]">
+          <p className="mt-1 text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             {question}
           </p>
         </div>
@@ -35,7 +35,7 @@ export function UserQuestionBanner({ question, onRespond }: UserQuestionBannerPr
           onChange={(e) => setResponse(e.target.value)}
           placeholder="Type your response..."
           rows={2}
-          className="flex-1 rounded-[--radius-md] border border-[--color-border] bg-white px-3 py-2 text-sm text-[--color-ink] placeholder:text-[--color-muted] focus:border-[--color-primary] focus:outline-none focus:ring-2 focus:ring-[--color-primary]/20 dark:border-[--color-border-dark] dark:bg-[--color-surface-dark] dark:text-[--color-ink-dark] dark:placeholder:text-[--color-muted-dark]"
+          className="flex-1 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)] dark:placeholder:text-[var(--color-muted-dark)]"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit()
           }}

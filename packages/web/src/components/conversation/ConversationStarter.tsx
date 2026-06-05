@@ -38,23 +38,23 @@ export function ConversationStarter({ cardId, onStart }: ConversationStarterProp
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-[--radius-lg] border border-[--color-border] bg-white p-4 dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
+    <div className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
       <div className="flex items-center gap-2">
-        <MessageSquarePlus size={18} className="text-[--color-primary]" />
-        <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+        <MessageSquarePlus size={18} className="text-[var(--color-primary)]" />
+        <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           Start Conversation
         </h3>
       </div>
 
       {/* Type selector */}
       <div>
-        <label className="mb-1 block text-xs font-medium tracking-wide text-[--color-muted] dark:text-[--color-muted-dark]">
+        <label className="mb-1 block text-xs font-medium tracking-wide text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
           TYPE
         </label>
         <select
           value={type}
           onChange={(e) => setType(e.target.value as ConversationType)}
-          className="w-full rounded-[--radius-md] border border-[--color-border] bg-white px-3 py-2 text-sm text-[--color-ink] focus:border-[--color-primary] focus:outline-none focus:ring-2 focus:ring-[--color-primary]/20 dark:border-[--color-border-dark] dark:bg-[--color-surface-dark] dark:text-[--color-ink-dark]"
+          className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
         >
           {CONVERSATION_TYPES.map((t) => (
             <option key={t.value} value={t.value}>{t.label}</option>
@@ -64,7 +64,7 @@ export function ConversationStarter({ cardId, onStart }: ConversationStarterProp
 
       {/* Agent selector */}
       <div>
-        <label className="mb-1 block text-xs font-medium tracking-wide text-[--color-muted] dark:text-[--color-muted-dark]">
+        <label className="mb-1 block text-xs font-medium tracking-wide text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
           AGENTS
         </label>
         <div className="flex flex-wrap gap-2">
@@ -74,8 +74,8 @@ export function ConversationStarter({ cardId, onStart }: ConversationStarterProp
               onClick={() => toggleAgent(agent.id)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 selectedAgentIds.includes(agent.id)
-                  ? 'bg-[--color-primary] text-white'
-                  : 'border border-[--color-border] text-[--color-ink] hover:bg-[--color-surface] dark:border-[--color-border-dark] dark:text-[--color-ink-dark] dark:hover:bg-[--color-surface-dark]'
+                  ? 'bg-[var(--color-primary)] text-white'
+                  : 'border border-[var(--color-border)] text-[var(--color-ink)] hover:bg-[var(--color-surface)] dark:border-[var(--color-border-dark)] dark:text-[var(--color-ink-dark)] dark:hover:bg-[var(--color-surface-dark)]'
               }`}
             >
               {agent.name}

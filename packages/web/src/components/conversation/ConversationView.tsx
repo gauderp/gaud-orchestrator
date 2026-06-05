@@ -48,9 +48,9 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[--color-border] px-4 py-3 dark:border-[--color-border-dark]">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3 dark:border-[var(--color-border-dark)]">
         <div className="flex items-center gap-3">
-          <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+          <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             {conversation.type.charAt(0).toUpperCase() + conversation.type.slice(1)} Conversation
           </h3>
           <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
@@ -62,7 +62,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
               <div
                 key={p.agentId}
                 title={agentNames[p.agentId]}
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-[--color-accent] text-[10px] font-bold text-white ring-2 ring-white dark:ring-[--color-bg-dark]"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)] text-[10px] font-bold text-white ring-2 ring-white dark:ring-[var(--color-bg-dark)]"
               >
                 {(agentNames[p.agentId] ?? '?').charAt(0).toUpperCase()}
               </div>
@@ -73,11 +73,11 @@ export function ConversationView({ conversation }: ConversationViewProps) {
           <button
             onClick={() => setAutoRun(!autoRun)}
             title={autoRun ? 'Auto-run ON' : 'Auto-run OFF'}
-            className={`rounded-[--radius-md] p-1.5 ${
+            className={`rounded-[var(--radius-md)] p-1.5 ${
               autoRun
-                ? 'text-[--color-primary]'
-                : 'text-[--color-muted] dark:text-[--color-muted-dark]'
-            } hover:bg-[--color-surface] dark:hover:bg-[--color-surface-dark]`}
+                ? 'text-[var(--color-primary)]'
+                : 'text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]'
+            } hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)]`}
           >
             {autoRun ? <Zap size={16} /> : <ZapOff size={16} />}
           </button>
@@ -87,7 +87,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
             <button
               onClick={() => pauseConversation(conversation.id)}
               title="Pause"
-              className="rounded-[--radius-md] p-1.5 text-[--color-muted] hover:bg-[--color-surface] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark]"
+              className="rounded-[var(--radius-md)] p-1.5 text-[var(--color-muted)] hover:bg-[var(--color-surface)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)]"
             >
               <Pause size={16} />
             </button>
@@ -96,7 +96,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
             <button
               onClick={() => resumeConversation(conversation.id)}
               title="Resume"
-              className="rounded-[--radius-md] p-1.5 text-[--color-primary] hover:bg-[--color-surface] dark:hover:bg-[--color-surface-dark]"
+              className="rounded-[var(--radius-md)] p-1.5 text-[var(--color-primary)] hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)]"
             >
               <Play size={16} />
             </button>
@@ -137,14 +137,14 @@ export function ConversationView({ conversation }: ConversationViewProps) {
 
       {/* Input bar */}
       {conversation.status !== 'completed' && (
-        <div className="border-t border-[--color-border] p-4 dark:border-[--color-border-dark]">
+        <div className="border-t border-[var(--color-border)] p-4 dark:border-[var(--color-border-dark)]">
           <div className="flex gap-2">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type a message..."
               rows={1}
-              className="flex-1 resize-none rounded-[--radius-md] border border-[--color-border] bg-white px-3 py-2 text-sm text-[--color-ink] placeholder:text-[--color-muted] focus:border-[--color-primary] focus:outline-none focus:ring-2 focus:ring-[--color-primary]/20 dark:border-[--color-border-dark] dark:bg-[--color-surface-dark] dark:text-[--color-ink-dark] dark:placeholder:text-[--color-muted-dark]"
+              className="flex-1 resize-none rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)] dark:placeholder:text-[var(--color-muted-dark)]"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()

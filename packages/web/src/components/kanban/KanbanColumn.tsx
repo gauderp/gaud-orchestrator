@@ -19,18 +19,18 @@ export function KanbanColumn({ column, cards, agents, onAddCard }: KanbanColumnP
   const agentMap = new Map(agents.map((a) => [a.id, a.name]))
 
   return (
-    <div className="flex min-w-[280px] flex-col rounded-lg bg-[--color-surface] dark:bg-[--color-surface-dark] border border-[--color-border] dark:border-[--color-border-dark]">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[--color-border] dark:border-[--color-border-dark]">
+    <div className="flex min-w-[280px] flex-col rounded-lg bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
         <span
           className="h-3 w-3 rounded-full shrink-0"
           style={{ backgroundColor: column.color }}
         />
-        <span className="text-sm font-medium text-[--color-ink] dark:text-[--color-ink-dark] truncate">
+        <span className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] truncate">
           {column.name}
         </span>
         <Badge variant="neutral">{cards.length}</Badge>
         {column.agentActionPrompt && (
-          <Zap size={14} className="text-[--color-warning] shrink-0" />
+          <Zap size={14} className="text-[var(--color-warning)] shrink-0" />
         )}
       </div>
       <div ref={setNodeRef} className="flex flex-1 flex-col gap-2 p-2 overflow-y-auto">
@@ -44,7 +44,7 @@ export function KanbanColumn({ column, cards, agents, onAddCard }: KanbanColumnP
           ))}
         </SortableContext>
       </div>
-      <div className="p-2 border-t border-[--color-border] dark:border-[--color-border-dark]">
+      <div className="p-2 border-t border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
         <Button variant="ghost" size="sm" className="w-full justify-start gap-1" onClick={() => onAddCard(column.id)}>
           <Plus size={14} />
           Add Card

@@ -28,18 +28,18 @@ export function KanbanCard({ card, agentName }: KanbanCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className="rounded-lg border border-[--color-border] bg-white p-3 cursor-grab active:cursor-grabbing transition-shadow dark:bg-[--color-surface-dark] dark:border-[--color-border-dark]"
+      className="rounded-lg border border-[var(--color-border)] bg-white p-3 cursor-grab active:cursor-grabbing transition-shadow dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)]"
     >
       <div className="flex items-center gap-2">
-        <span className="text-[--color-muted] dark:text-[--color-muted-dark]">
+        <span className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
           <CardTypeIcon type={card.type} size={14} />
         </span>
-        <span className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark] truncate">
+        <span className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] truncate">
           {card.title}
         </span>
       </div>
       {card.description && (
-        <p className="mt-1 text-xs text-[--color-muted] dark:text-[--color-muted-dark] truncate">
+        <p className="mt-1 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] truncate">
           {card.description}
         </p>
       )}

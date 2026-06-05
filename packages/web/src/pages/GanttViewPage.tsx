@@ -33,12 +33,12 @@ export function GanttViewPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">
+        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           {activeBoard?.name ?? 'Gantt View'}
         </h1>
         <Link
           to={`/boards/${id}`}
-          className="inline-flex items-center gap-1.5 rounded-[--radius-md] px-3 py-1.5 text-sm font-medium text-[--color-muted] hover:bg-[--color-surface] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark] dark:hover:text-[--color-ink-dark]"
+          className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)] dark:hover:text-[var(--color-ink-dark)]"
         >
           <LayoutGrid size={16} />
           Kanban
@@ -46,7 +46,7 @@ export function GanttViewPage() {
       </div>
 
       {loading && (
-        <p className="text-[--color-muted] dark:text-[--color-muted-dark]">Loading gantt data...</p>
+        <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading gantt data...</p>
       )}
 
       {!loading && ganttData && (
@@ -58,7 +58,7 @@ export function GanttViewPage() {
       )}
 
       {!loading && !ganttData && (
-        <p className="text-center py-12 text-[--color-muted] dark:text-[--color-muted-dark]">
+        <p className="text-center py-12 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
           Failed to load Gantt data.
         </p>
       )}

@@ -27,18 +27,18 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <span className="text-[--color-muted] dark:text-[--color-muted-dark]">
+        <span className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
           <CardTypeIcon type={card.type} size={20} />
         </span>
-        <h2 className="text-lg font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">{card.title}</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{card.title}</h2>
         {columnName && <Badge variant="neutral">{columnName}</Badge>}
       </div>
 
       {/* Description */}
       {card.description && (
         <div>
-          <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark] mb-1">Description</h3>
-          <p className="text-sm text-[--color-muted] dark:text-[--color-muted-dark] whitespace-pre-wrap">
+          <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] mb-1">Description</h3>
+          <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] whitespace-pre-wrap">
             {card.description}
           </p>
         </div>
@@ -53,18 +53,18 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
       {/* Attachments */}
       {card.attachments && card.attachments.length > 0 && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+          <h3 className="mb-2 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             Attachments
           </h3>
           <div className="flex flex-col gap-2">
             {card.attachments.map((att) => (
               <div
                 key={att.id}
-                className="flex items-center gap-2 rounded-[--radius-md] border border-[--color-border] bg-[--color-surface] px-3 py-2 text-sm dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]"
+                className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]"
               >
-                <Paperclip size={14} className="text-[--color-muted] dark:text-[--color-muted-dark]" />
-                <span className="text-[--color-ink] dark:text-[--color-ink-dark]">{att.filename}</span>
-                <span className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">{att.path}</span>
+                <Paperclip size={14} className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]" />
+                <span className="text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{att.filename}</span>
+                <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">{att.path}</span>
               </div>
             ))}
           </div>
@@ -75,7 +75,7 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
       <div>
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+            <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
               Conversations
             </h3>
             {conversations.length > 0 && (
@@ -84,7 +84,7 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
           </div>
           <button
             onClick={() => setShowStarter(!showStarter)}
-            className="flex items-center gap-1 rounded-[--radius-md] px-2 py-1 text-xs text-[--color-primary] hover:bg-[--color-surface] dark:hover:bg-[--color-surface-dark]"
+            className="flex items-center gap-1 rounded-[var(--radius-md)] px-2 py-1 text-xs text-[var(--color-primary)] hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)]"
           >
             <Plus size={12} />
             New
@@ -110,18 +110,18 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
               <Link
                 key={conv.id}
                 to={`/conversations/${conv.id}`}
-                className="flex items-center justify-between rounded-[--radius-md] border border-[--color-border] px-3 py-2 hover:bg-[--color-surface] dark:border-[--color-border-dark] dark:hover:bg-[--color-surface-dark]"
+                className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-2 hover:bg-[var(--color-surface)] dark:border-[var(--color-border-dark)] dark:hover:bg-[var(--color-surface-dark)]"
               >
                 <div className="flex items-center gap-2">
-                  <MessageSquare size={14} className="text-[--color-muted] dark:text-[--color-muted-dark]" />
-                  <span className="text-sm text-[--color-ink] dark:text-[--color-ink-dark]">
+                  <MessageSquare size={14} className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]" />
+                  <span className="text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                     {conv.type.charAt(0).toUpperCase() + conv.type.slice(1)}
                   </span>
                   <Badge variant={conv.status === 'active' ? 'info' : conv.status === 'completed' ? 'success' : 'warning'}>
                     {conv.status === 'paused_for_user' ? 'Paused' : conv.status.charAt(0).toUpperCase() + conv.status.slice(1)}
                   </Badge>
                 </div>
-                <span className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">
+                <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                   {new Date(conv.createdAt).toLocaleDateString()}
                 </span>
               </Link>
@@ -129,7 +129,7 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
           </div>
         ) : (
           !showStarter && (
-            <p className="text-sm text-[--color-muted] dark:text-[--color-muted-dark]">
+            <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
               No conversations yet. Start one to collaborate with agents.
             </p>
           )
@@ -139,12 +139,12 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
       {/* Dependencies */}
       {card.dependencies.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">Dependencies</h3>
+          <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Dependencies</h3>
           <div className="flex flex-col gap-1">
             {card.dependencies.map((dep) => (
               <div
                 key={`${dep.cardId}-${dep.dependsOnCardId}`}
-                className="rounded-[--radius-md] border border-[--color-border] bg-white px-3 py-2 text-xs font-mono text-[--color-muted] dark:bg-[--color-surface-dark] dark:border-[--color-border-dark] dark:text-[--color-muted-dark]"
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-mono text-[var(--color-muted)] dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)] dark:text-[var(--color-muted-dark)]"
               >
                 Depends on: {dep.dependsOnCardId}
               </div>

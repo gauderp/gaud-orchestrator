@@ -52,11 +52,11 @@ export function CardForm({ initial, onSubmit, loading }: CardFormProps) {
       <Textarea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-[--color-ink] dark:text-[--color-ink-dark]">Type</label>
+        <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Type</label>
         <select
           value={type}
           onChange={(e) => setType(e.target.value as CardType)}
-          className="h-9 rounded-[--radius-md] border border-[--color-border] bg-white px-3 text-sm text-[--color-ink] focus:outline-none focus:ring-2 focus:ring-[--color-ring] dark:bg-[--color-surface-dark] dark:border-[--color-border-dark] dark:text-[--color-ink-dark]"
+          className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)] dark:text-[var(--color-ink-dark)]"
         >
           {cardTypes.map((ct) => (
             <option key={ct.value} value={ct.value}>
@@ -67,11 +67,11 @@ export function CardForm({ initial, onSubmit, loading }: CardFormProps) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-[--color-ink] dark:text-[--color-ink-dark]">Assigned Agent</label>
+        <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Assigned Agent</label>
         <select
           value={assignedAgentId}
           onChange={(e) => setAssignedAgentId(e.target.value)}
-          className="h-9 rounded-[--radius-md] border border-[--color-border] bg-white px-3 text-sm text-[--color-ink] focus:outline-none focus:ring-2 focus:ring-[--color-ring] dark:bg-[--color-surface-dark] dark:border-[--color-border-dark] dark:text-[--color-ink-dark]"
+          className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)] dark:text-[var(--color-ink-dark)]"
         >
           <option value="">Unassigned</option>
           {agents.map((a) => (

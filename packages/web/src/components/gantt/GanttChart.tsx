@@ -32,7 +32,7 @@ export function GanttChart({ cards, dependencies, columns }: GanttChartProps) {
 
   if (datedCards.length === 0) {
     return (
-      <div className="flex items-center justify-center py-16 text-sm text-[--color-muted] dark:text-[--color-muted-dark]">
+      <div className="flex items-center justify-center py-16 text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
         No cards with dates to display on the Gantt chart.
       </div>
     )
@@ -76,7 +76,7 @@ export function GanttChart({ cards, dependencies, columns }: GanttChartProps) {
   const relevantDeps = dependencies.filter((d) => cardIdSet.has(d.cardId) && cardIdSet.has(d.dependsOnCardId))
 
   return (
-    <div className="overflow-x-auto border border-[--color-border] rounded-lg bg-white dark:bg-[--color-surface-dark] dark:border-[--color-border-dark]">
+    <div className="overflow-x-auto border border-[var(--color-border)] rounded-lg bg-white dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)]">
       <svg width={svgWidth} height={svgHeight} className="min-w-full">
         {/* Header translated to account for label area */}
         <g transform={`translate(${LEFT_LABEL_WIDTH}, 0)`}>

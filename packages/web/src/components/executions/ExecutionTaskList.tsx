@@ -26,7 +26,7 @@ export function ExecutionTaskList({ tasks }: Props) {
   const sorted = [...tasks].sort((a, b) => statusOrder[a.status] - statusOrder[b.status])
 
   if (tasks.length === 0) {
-    return <p className="text-sm text-[--color-muted] dark:text-[--color-muted-dark]">No tasks yet.</p>
+    return <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">No tasks yet.</p>
   }
 
   return (
@@ -34,16 +34,16 @@ export function ExecutionTaskList({ tasks }: Props) {
       {sorted.map((task) => (
         <div
           key={task.id}
-          className="flex items-center justify-between rounded-[--radius-lg] border border-[--color-border] bg-[--color-bg] p-3 dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]"
+          className="flex items-center justify-between rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-3 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]"
         >
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-[--color-ink] dark:text-[--color-ink-dark]">
+              <span className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                 {task.title}
               </span>
               <Badge variant={statusVariant[task.status]}>{task.status}</Badge>
             </div>
-            <div className="flex items-center gap-3 text-xs text-[--color-muted] dark:text-[--color-muted-dark]">
+            <div className="flex items-center gap-3 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
               {task.agentId && (
                 <span className="flex items-center gap-1">
                   <Bot className="h-3 w-3" />
@@ -63,7 +63,7 @@ export function ExecutionTaskList({ tasks }: Props) {
               href={task.prUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-[--color-primary] hover:underline"
+              className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline"
             >
               PR <ExternalLink className="h-3 w-3" />
             </a>

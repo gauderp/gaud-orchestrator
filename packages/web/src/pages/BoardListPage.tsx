@@ -31,7 +31,7 @@ export function BoardListPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">Boards</h1>
+        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Boards</h1>
         <Button onClick={() => setShowModal(true)}>
           <Plus size={16} className="mr-1.5" />
           New Board
@@ -39,11 +39,11 @@ export function BoardListPage() {
       </div>
 
       {loading && (
-        <p className="text-[--color-muted] dark:text-[--color-muted-dark]">Loading...</p>
+        <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>
       )}
 
       {!loading && boards.length === 0 && (
-        <p className="text-center text-[--color-muted] dark:text-[--color-muted-dark] py-12">
+        <p className="text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] py-12">
           No boards yet. Create your first board to get started.
         </p>
       )}
@@ -54,15 +54,15 @@ export function BoardListPage() {
             <Link
               key={board.id}
               to={`/boards/${board.id}`}
-              className="group rounded-[--radius-lg] border border-[--color-border] bg-white p-4 transition-colors hover:border-[--color-primary] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark] dark:hover:border-[--color-primary]"
+              className="group rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 transition-colors hover:border-[var(--color-primary)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:hover:border-[var(--color-primary)]"
             >
               <div className="flex items-center gap-3 mb-2">
-                <LayoutGrid size={18} className="text-[--color-muted] dark:text-[--color-muted-dark] group-hover:text-[--color-primary]" />
-                <h2 className="text-lg font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+                <LayoutGrid size={18} className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] group-hover:text-[var(--color-primary)]" />
+                <h2 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                   {board.name}
                 </h2>
               </div>
-              <p className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">
+              <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                 Created {new Date(board.createdAt).toLocaleDateString()}
               </p>
             </Link>

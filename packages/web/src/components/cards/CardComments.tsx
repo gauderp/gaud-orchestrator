@@ -40,10 +40,10 @@ export function CardComments({ cardId, comments, onUpdate }: CardCommentsProps) 
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">Comments</h3>
+      <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Comments</h3>
 
       {comments.length === 0 && (
-        <p className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">No comments yet.</p>
+        <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">No comments yet.</p>
       )}
 
       <div className="flex flex-col gap-3">
@@ -53,11 +53,11 @@ export function CardComments({ cardId, comments, onUpdate }: CardCommentsProps) 
               <Badge variant={authorVariant[comment.authorType] ?? 'neutral'}>
                 {comment.authorType}
               </Badge>
-              <span className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">
+              <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                 {formatTime(comment.createdAt)}
               </span>
             </div>
-            <p className="text-sm text-[--color-ink] dark:text-[--color-ink-dark] whitespace-pre-wrap">
+            <p className="text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] whitespace-pre-wrap">
               {comment.content}
             </p>
           </div>
@@ -69,7 +69,7 @@ export function CardComments({ cardId, comments, onUpdate }: CardCommentsProps) 
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Add a comment..."
-          className="flex-1 h-9 rounded-[--radius-md] border border-[--color-border] bg-white px-3 text-sm text-[--color-ink] placeholder:text-[--color-muted] focus:outline-none focus:ring-2 focus:ring-[--color-ring] dark:bg-[--color-surface-dark] dark:border-[--color-border-dark] dark:text-[--color-ink-dark]"
+          className="flex-1 h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)] dark:text-[var(--color-ink-dark)]"
         />
         <Button type="submit" size="sm" loading={adding}>
           Add Comment

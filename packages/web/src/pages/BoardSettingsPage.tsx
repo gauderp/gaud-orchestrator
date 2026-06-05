@@ -50,7 +50,7 @@ function ColumnRow({ column, onSaved, onDeleted }: { column: Column; onSaved: ()
   }
 
   return (
-    <div className="flex items-end gap-3 rounded-[--radius-lg] border border-[--color-border] bg-white p-4 dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
+    <div className="flex items-end gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
       <Input
         label="Name"
         value={form.name}
@@ -58,12 +58,12 @@ function ColumnRow({ column, onSaved, onDeleted }: { column: Column; onSaved: ()
         className="flex-1"
       />
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-[--color-ink] dark:text-[--color-ink-dark]">Color</label>
+        <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Color</label>
         <input
           type="color"
           value={form.color}
           onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
-          className="h-9 w-12 cursor-pointer rounded-[--radius-md] border border-[--color-border] dark:border-[--color-border-dark]"
+          className="h-9 w-12 cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]"
         />
       </div>
       <Input
@@ -74,13 +74,13 @@ function ColumnRow({ column, onSaved, onDeleted }: { column: Column; onSaved: ()
         className="flex-1"
       />
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-[--color-ink] dark:text-[--color-ink-dark]">Auto Move</label>
+        <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Auto Move</label>
         <div className="flex h-9 items-center">
           <input
             type="checkbox"
             checked={form.autoMove}
             onChange={(e) => setForm((f) => ({ ...f, autoMove: e.target.checked }))}
-            className="h-4 w-4 cursor-pointer rounded-[--radius-sm] border-[--color-border] text-[--color-primary] focus:ring-[--color-ring]"
+            className="h-4 w-4 cursor-pointer rounded-[var(--radius-sm)] border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-ring)]"
           />
         </div>
       </div>
@@ -125,7 +125,7 @@ export function BoardSettingsPage() {
   }
 
   if (!activeBoard) {
-    return <p className="text-[--color-muted] dark:text-[--color-muted-dark]">Loading...</p>
+    return <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>
   }
 
   const sortedColumns = [...activeBoard.columns].sort((a, b) => a.position - b.position)
@@ -135,29 +135,29 @@ export function BoardSettingsPage() {
       <div className="mb-6 flex items-center gap-4">
         <Link
           to={`/boards/${id}`}
-          className="inline-flex items-center gap-1.5 rounded-[--radius-md] p-1.5 text-[--color-muted] hover:bg-[--color-surface] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark] dark:hover:text-[--color-ink-dark]"
+          className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] p-1.5 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)] dark:hover:text-[var(--color-ink-dark)]"
         >
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">
+        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           Board Settings — {activeBoard.name}
         </h1>
       </div>
 
       <div className="flex flex-col gap-3 mb-8">
-        <h2 className="text-lg font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">Columns</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Columns</h2>
         {sortedColumns.map((col) => (
           <ColumnRow key={col.id} column={col} onSaved={reload} onDeleted={reload} />
         ))}
         {sortedColumns.length === 0 && (
-          <p className="text-sm text-[--color-muted] dark:text-[--color-muted-dark]">
+          <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
             No columns yet. Add one below.
           </p>
         )}
       </div>
 
-      <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-4 dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
-        <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark] mb-3">Add Column</h3>
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+        <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] mb-3">Add Column</h3>
         <div className="flex items-end gap-3">
           <Input
             label="Column Name"
@@ -167,12 +167,12 @@ export function BoardSettingsPage() {
             onKeyDown={(e) => { if (e.key === 'Enter') handleAddColumn() }}
           />
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[--color-ink] dark:text-[--color-ink-dark]">Color</label>
+            <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Color</label>
             <input
               type="color"
               value={newCol.color}
               onChange={(e) => setNewCol((s) => ({ ...s, color: e.target.value }))}
-              className="h-9 w-12 cursor-pointer rounded-[--radius-md] border border-[--color-border] dark:border-[--color-border-dark]"
+              className="h-9 w-12 cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]"
             />
           </div>
           <Button onClick={handleAddColumn} loading={adding} disabled={!newCol.name.trim()}>

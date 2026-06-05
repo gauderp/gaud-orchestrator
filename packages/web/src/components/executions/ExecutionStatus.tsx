@@ -27,13 +27,13 @@ export function ExecutionStatus({ status, tasksDone = 0, tasksTotal = 0 }: Props
       </Badge>
       {tasksTotal > 0 && (
         <div className="flex items-center gap-2">
-          <div className="h-1.5 w-24 rounded-full bg-[--color-border] dark:bg-[--color-border-dark]">
+          <div className="h-1.5 w-24 rounded-full bg-[var(--color-border)] dark:bg-[var(--color-border-dark)]">
             <div
-              className="h-full rounded-full bg-[--color-accent] transition-all duration-300"
+              className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300"
               style={{ width: `${Math.round((tasksDone / tasksTotal) * 100)}%` }}
             />
           </div>
-          <span className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">
+          <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
             {tasksDone}/{tasksTotal}
           </span>
         </div>

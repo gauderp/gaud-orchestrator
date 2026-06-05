@@ -29,15 +29,15 @@ function StatCard({
   accent?: string
 }) {
   return (
-    <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
-      <div className="flex items-center gap-2 text-[--color-muted] dark:text-[--color-muted-dark]">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-[var(--spacing-lg)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+      <div className="flex items-center gap-2 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
         <Icon size={16} />
         <span className="text-xs font-medium tracking-wide uppercase">{label}</span>
       </div>
-      <div className={`mt-2 text-2xl font-bold ${accent ?? 'text-[--color-ink] dark:text-[--color-ink-dark]'}`}>
+      <div className={`mt-2 text-2xl font-bold ${accent ?? 'text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]'}`}>
         {value}
       </div>
-      {sub && <div className="mt-1 text-xs text-[--color-muted] dark:text-[--color-muted-dark]">{sub}</div>}
+      {sub && <div className="mt-1 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">{sub}</div>}
     </div>
   )
 }
@@ -66,7 +66,7 @@ export function DashboardPage() {
 
   if (error) {
     return (
-      <div className="p-8 text-center text-[--color-destructive]">
+      <div className="p-8 text-center text-[var(--color-destructive)]">
         Failed to load dashboard: {error}
       </div>
     )
@@ -74,7 +74,7 @@ export function DashboardPage() {
 
   if (!data) {
     return (
-      <div className="p-8 text-center text-[--color-muted] dark:text-[--color-muted-dark]">
+      <div className="p-8 text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
         Loading dashboard...
       </div>
     )
@@ -84,7 +84,7 @@ export function DashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">Dashboard</h1>
+      <h1 className="mb-6 text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Dashboard</h1>
 
       {/* Row 1: Key metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -92,7 +92,7 @@ export function DashboardPage() {
           icon={Activity}
           label="API Status"
           value={data.health.status}
-          accent="text-[--color-accent]"
+          accent="text-[var(--color-accent)]"
           sub={`${data.health.wsClients} WS client${data.health.wsClients !== 1 ? 's' : ''}`}
         />
         <StatCard
@@ -117,29 +117,29 @@ export function DashboardPage() {
 
       {/* Row 2: Operational */}
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
-          <div className="flex items-center gap-2 text-[--color-muted] dark:text-[--color-muted-dark]">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-[var(--spacing-lg)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+          <div className="flex items-center gap-2 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
             <Zap size={16} />
             <span className="text-xs font-medium tracking-wide uppercase">Executions</span>
           </div>
-          <div className="mt-2 text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">{data.executions.total}</div>
+          <div className="mt-2 text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{data.executions.total}</div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {data.executions.active > 0 && <Badge label="active" count={data.executions.active} color="bg-[--color-primary]" />}
-            {data.executions.done > 0 && <Badge label="done" count={data.executions.done} color="bg-[--color-accent]" />}
-            {data.executions.failed > 0 && <Badge label="failed" count={data.executions.failed} color="bg-[--color-destructive]" />}
+            {data.executions.active > 0 && <Badge label="active" count={data.executions.active} color="bg-[var(--color-primary)]" />}
+            {data.executions.done > 0 && <Badge label="done" count={data.executions.done} color="bg-[var(--color-accent)]" />}
+            {data.executions.failed > 0 && <Badge label="failed" count={data.executions.failed} color="bg-[var(--color-destructive)]" />}
           </div>
         </div>
 
-        <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
-          <div className="flex items-center gap-2 text-[--color-muted] dark:text-[--color-muted-dark]">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-[var(--spacing-lg)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+          <div className="flex items-center gap-2 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
             <LayoutGrid size={16} />
             <span className="text-xs font-medium tracking-wide uppercase">Cards</span>
           </div>
-          <div className="mt-2 text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">{data.cards.total}</div>
+          <div className="mt-2 text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{data.cards.total}</div>
           {typeEntries.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {typeEntries.map(([type, count]) => (
-                <span key={type} className="inline-flex items-center gap-1 rounded-full border border-[--color-border] dark:border-[--color-border-dark] px-2 py-0.5 text-xs text-[--color-muted] dark:text-[--color-muted-dark]">
+                <span key={type} className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-2 py-0.5 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                   {type}: {count}
                 </span>
               ))}
@@ -147,17 +147,17 @@ export function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
-          <div className="flex items-center gap-2 text-[--color-muted] dark:text-[--color-muted-dark]">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-[var(--spacing-lg)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+          <div className="flex items-center gap-2 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
             <MessageSquare size={16} />
             <span className="text-xs font-medium tracking-wide uppercase">Conversations</span>
           </div>
-          <div className="mt-2 text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">{data.conversations.active}</div>
-          <div className="mt-1 text-xs text-[--color-muted] dark:text-[--color-muted-dark]">
+          <div className="mt-2 text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{data.conversations.active}</div>
+          <div className="mt-1 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
             active
             {data.conversations.pausedForUser > 0 && (
               <span className="ml-2">
-                <span className="inline-flex items-center rounded-full bg-[--color-warning] px-1.5 py-0.5 text-[10px] text-white">
+                <span className="inline-flex items-center rounded-full bg-[var(--color-warning)] px-1.5 py-0.5 text-[10px] text-white">
                   {data.conversations.pausedForUser} waiting
                 </span>
               </span>

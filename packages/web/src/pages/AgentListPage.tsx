@@ -44,29 +44,29 @@ function AgentNode({ node, providers, depth = 0 }: { node: TreeNode; providers: 
   return (
     <div>
       <div
-        className="flex items-center gap-2 rounded-[--radius-md] px-2 py-1.5 hover:bg-[--color-surface] dark:hover:bg-[--color-surface-dark]"
+        className="flex items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)]"
         style={{ paddingLeft: `${depth * 24 + 8}px` }}
       >
         {hasChildren ? (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="p-0.5 text-[--color-muted] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:text-[--color-ink-dark] cursor-pointer"
+            className="p-0.5 text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)] cursor-pointer"
           >
             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </button>
         ) : (
           <span className="w-5" />
         )}
-        <Bot size={16} className="text-[--color-muted] dark:text-[--color-muted-dark]" />
+        <Bot size={16} className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]" />
         <Link
           to={`/agents/${node.agent.id}`}
           className="flex-1 flex items-center gap-2"
         >
-          <span className="font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+          <span className="font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             {node.agent.name}
           </span>
           {node.agent.role && (
-            <span className="text-sm text-[--color-muted] dark:text-[--color-muted-dark]">
+            <span className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
               {node.agent.role}
             </span>
           )}
@@ -127,42 +127,42 @@ export function AgentListPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">Agents</h1>
+        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Agents</h1>
         <Button onClick={() => setShowModal(true)}>
           <Plus size={16} className="mr-1.5" />
           New Agent
         </Button>
       </div>
 
-      <div className="mb-4 flex gap-1 rounded-[--radius-md] border border-[--color-border] p-1 dark:border-[--color-border-dark] w-fit">
+      <div className="mb-4 flex gap-1 rounded-[var(--radius-md)] border border-[var(--color-border)] p-1 dark:border-[var(--color-border-dark)] w-fit">
         <button
           onClick={() => setView('tree')}
-          className={`rounded-[--radius-md] px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
+          className={`rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
             view === 'tree'
-              ? 'bg-[--color-primary] text-[--color-on-primary]'
-              : 'text-[--color-muted] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:text-[--color-ink-dark]'
+              ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
+              : 'text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
           }`}
         >
           Tree
         </button>
         <button
           onClick={() => setView('list')}
-          className={`rounded-[--radius-md] px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
+          className={`rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
             view === 'list'
-              ? 'bg-[--color-primary] text-[--color-on-primary]'
-              : 'text-[--color-muted] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:text-[--color-ink-dark]'
+              ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
+              : 'text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
           }`}
         >
           List
         </button>
       </div>
 
-      {loading && <p className="text-[--color-muted] dark:text-[--color-muted-dark]">Loading...</p>}
+      {loading && <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>}
 
       {!loading && view === 'tree' && (
-        <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-2 dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-2 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
           {tree.length === 0 ? (
-            <p className="p-4 text-center text-[--color-muted] dark:text-[--color-muted-dark]">
+            <p className="p-4 text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
               No agents yet. Create your first agent to get started.
             </p>
           ) : (
@@ -174,22 +174,22 @@ export function AgentListPage() {
       )}
 
       {!loading && view === 'list' && (
-        <div className="overflow-x-auto rounded-[--radius-lg] border border-[--color-border] dark:border-[--color-border-dark]">
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[--color-border] bg-[--color-surface] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Name</th>
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Role</th>
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Provider</th>
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Model</th>
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Cost Limit</th>
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Actions</th>
+              <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Name</th>
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Role</th>
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Provider</th>
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Model</th>
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Cost Limit</th>
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {agents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-[--color-muted] dark:text-[--color-muted-dark]">
+                  <td colSpan={6} className="px-4 py-8 text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                     No agents yet.
                   </td>
                 </tr>
@@ -201,12 +201,12 @@ export function AgentListPage() {
                   return (
                     <tr
                       key={agent.id}
-                      className="border-b border-[--color-border] bg-white dark:border-[--color-border-dark] dark:bg-transparent"
+                      className="border-b border-[var(--color-border)] bg-white dark:border-[var(--color-border-dark)] dark:bg-transparent"
                     >
-                      <td className="px-4 py-2 font-medium text-[--color-ink] dark:text-[--color-ink-dark]">
+                      <td className="px-4 py-2 font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                         {agent.name}
                       </td>
-                      <td className="px-4 py-2 text-[--color-muted] dark:text-[--color-muted-dark]">
+                      <td className="px-4 py-2 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                         {agent.role || '-'}
                       </td>
                       <td className="px-4 py-2">
@@ -214,16 +214,16 @@ export function AgentListPage() {
                           {provider ? provider.name : 'None'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-2 text-[--color-muted] dark:text-[--color-muted-dark]">
+                      <td className="px-4 py-2 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                         {agent.model || '-'}
                       </td>
-                      <td className="px-4 py-2 text-[--color-ink] dark:text-[--color-ink-dark]">
+                      <td className="px-4 py-2 text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                         ${agent.costLimitUsd.toFixed(2)}
                       </td>
                       <td className="px-4 py-2">
                         <Link
                           to={`/agents/${agent.id}`}
-                          className="text-sm font-medium text-[--color-primary] hover:underline"
+                          className="text-sm font-medium text-[var(--color-primary)] hover:underline"
                         >
                           View
                         </Link>
@@ -252,13 +252,13 @@ export function AgentListPage() {
             placeholder="e.g. Plans system architecture"
           />
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[--color-ink] dark:text-[--color-ink-dark]">
+            <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
               Parent Agent
             </label>
             <select
               value={formParent}
               onChange={(e) => setFormParent(e.target.value)}
-              className="h-9 rounded-[--radius-md] border border-[--color-border] bg-white px-3 text-sm text-[--color-ink] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark] dark:text-[--color-ink-dark]"
+              className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
             >
               <option value="">None (root agent)</option>
               {agents.map((a) => (

@@ -8,12 +8,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({ variant = 'primary', size = 'md', loading, className = '', children, disabled, ...props }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center rounded-[--radius-md] font-medium transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[--color-ring] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
+  const base = 'inline-flex items-center justify-center rounded-[var(--radius-md)] font-medium transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
   const variants = {
-    primary: 'bg-[--color-primary] text-[--color-on-primary] hover:bg-[--color-primary-hover]',
-    secondary: 'bg-transparent text-[--color-ink] border border-[--color-border] hover:bg-[--color-surface] dark:text-[--color-ink-dark] dark:border-[--color-border-dark] dark:hover:bg-[--color-surface-dark]',
-    ghost: 'text-[--color-muted] hover:bg-[--color-surface] dark:text-[--color-muted-dark] dark:hover:bg-[--color-surface-dark]',
-    destructive: 'bg-[--color-destructive] text-[--color-on-destructive] hover:bg-[--color-destructive-hover]',
+    primary: 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:bg-[var(--color-primary-hover)]',
+    secondary: 'bg-transparent text-[var(--color-ink)] border border-[var(--color-border)] hover:bg-[var(--color-surface)] dark:text-[var(--color-ink-dark)] dark:border-[var(--color-border-dark)] dark:hover:bg-[var(--color-surface-dark)]',
+    ghost: 'text-[var(--color-muted)] hover:bg-[var(--color-surface)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)]',
+    destructive: 'bg-[var(--color-destructive)] text-[var(--color-on-destructive)] hover:bg-[var(--color-destructive-hover)]',
   }
   const sizes = {
     sm: 'h-7 px-3 text-xs',

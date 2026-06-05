@@ -28,7 +28,7 @@ export function SkillsListPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">Skills</h1>
+        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Skills</h1>
         <Link to="/skills/new">
           <Button>
             <Plus size={16} className="mr-1.5" />
@@ -37,23 +37,23 @@ export function SkillsListPage() {
         </Link>
       </div>
 
-      {loading && <p className="text-[--color-muted] dark:text-[--color-muted-dark]">Loading...</p>}
+      {loading && <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</p>}
 
       {!loading && (
-        <div className="overflow-x-auto rounded-[--radius-lg] border border-[--color-border] dark:border-[--color-border-dark]">
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[--color-border] bg-[--color-surface] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Name</th>
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Description</th>
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Updated At</th>
-                <th className="px-4 py-2 text-left font-medium text-[--color-muted] dark:text-[--color-muted-dark]">Actions</th>
+              <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Name</th>
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Description</th>
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Updated At</th>
+                <th className="px-4 py-2 text-left font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {skills.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-[--color-muted] dark:text-[--color-muted-dark]">
+                  <td colSpan={4} className="px-4 py-8 text-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                     No skills yet. Create your first skill to get started.
                   </td>
                 </tr>
@@ -61,29 +61,29 @@ export function SkillsListPage() {
                 skills.map((skill) => (
                   <tr
                     key={skill.id}
-                    className="border-b border-[--color-border] bg-white dark:border-[--color-border-dark] dark:bg-transparent"
+                    className="border-b border-[var(--color-border)] bg-white dark:border-[var(--color-border-dark)] dark:bg-transparent"
                   >
-                    <td className="px-4 py-2 font-medium text-[--color-ink] dark:text-[--color-ink-dark]">
+                    <td className="px-4 py-2 font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                       {skill.name}
                     </td>
-                    <td className="px-4 py-2 text-[--color-muted] dark:text-[--color-muted-dark]">
+                    <td className="px-4 py-2 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                       {skill.description || '-'}
                     </td>
-                    <td className="px-4 py-2 text-[--color-muted] dark:text-[--color-muted-dark]">
+                    <td className="px-4 py-2 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                       {new Date(skill.updatedAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
                         <Link
                           to={`/skills/${skill.id}`}
-                          className="inline-flex items-center gap-1 text-sm font-medium text-[--color-primary] hover:underline"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-primary)] hover:underline"
                         >
                           <Edit size={14} />
                           Edit
                         </Link>
                         <button
                           onClick={() => setDeleteTarget({ id: skill.id, name: skill.name })}
-                          className="inline-flex items-center gap-1 text-sm font-medium text-[--color-destructive] hover:underline cursor-pointer"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-destructive)] hover:underline cursor-pointer"
                         >
                           <Trash2 size={14} />
                           Delete
@@ -105,7 +105,7 @@ export function SkillsListPage() {
         width="sm"
       >
         <div>
-          <p className="text-sm text-[--color-ink] dark:text-[--color-ink-dark]">
+          <p className="text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
           </p>
           <div className="mt-4 flex justify-end gap-2">

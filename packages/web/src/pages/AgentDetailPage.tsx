@@ -106,32 +106,32 @@ export function AgentDetailPage() {
     <div>
       <Link
         to="/agents"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-[--color-primary] hover:underline"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:underline"
       >
         <ArrowLeft size={14} />
         Back to Agents
       </Link>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[--color-ink] dark:text-[--color-ink-dark]">
+        <h1 className="text-2xl font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           {selectedAgent?.name ?? 'Loading...'}
         </h1>
         {selectedAgent?.role && (
-          <p className="mt-1 text-[--color-muted] dark:text-[--color-muted-dark]">
+          <p className="mt-1 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
             {selectedAgent.role}
           </p>
         )}
       </div>
 
-      <div className="mb-6 flex gap-1 rounded-[--radius-md] border border-[--color-border] p-1 dark:border-[--color-border-dark] w-fit">
+      <div className="mb-6 flex gap-1 rounded-[var(--radius-md)] border border-[var(--color-border)] p-1 dark:border-[var(--color-border-dark)] w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-[--radius-md] px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
+            className={`rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors ${
               tab === t.key
-                ? 'bg-[--color-primary] text-[--color-on-primary]'
-                : 'text-[--color-muted] hover:text-[--color-ink] dark:text-[--color-muted-dark] dark:hover:text-[--color-ink-dark]'
+                ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
+                : 'text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
             }`}
           >
             {t.label}
@@ -158,7 +158,7 @@ export function AgentDetailPage() {
       {tab === 'skills' && (
         <div className="space-y-6">
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+            <h3 className="mb-3 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
               Assigned Skills
             </h3>
             {selectedAgent?.skills?.length ? (
@@ -166,14 +166,14 @@ export function AgentDetailPage() {
                 {selectedAgent.skills.map((skill) => (
                   <div
                     key={skill.id}
-                    className="flex items-center justify-between rounded-[--radius-md] border border-[--color-border] p-3 dark:border-[--color-border-dark]"
+                    className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 dark:border-[var(--color-border-dark)]"
                   >
                     <div>
-                      <div className="font-medium text-[--color-ink] dark:text-[--color-ink-dark]">
+                      <div className="font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                         {skill.name}
                       </div>
                       {skill.description && (
-                        <div className="mt-0.5 text-sm text-[--color-muted] dark:text-[--color-muted-dark]">
+                        <div className="mt-0.5 text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                           {skill.description}
                         </div>
                       )}
@@ -183,27 +183,27 @@ export function AgentDetailPage() {
                       size="sm"
                       onClick={() => handleRemoveSkill(skill.id)}
                     >
-                      <Trash2 size={14} className="text-[--color-destructive]" />
+                      <Trash2 size={14} className="text-[var(--color-destructive)]" />
                     </Button>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-[--color-muted] dark:text-[--color-muted-dark]">
+              <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                 No skills assigned yet.
               </p>
             )}
           </div>
 
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+            <h3 className="mb-3 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
               Add Skill
             </h3>
             <div className="flex gap-2">
               <select
                 value={addSkillId}
                 onChange={(e) => setAddSkillId(e.target.value)}
-                className="h-9 flex-1 rounded-[--radius-md] border border-[--color-border] bg-white px-3 text-sm text-[--color-ink] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark] dark:text-[--color-ink-dark]"
+                className="h-9 flex-1 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
               >
                 <option value="">Select a skill...</option>
                 {availableSkills.map((s) => (
@@ -224,10 +224,10 @@ export function AgentDetailPage() {
       {tab === 'cost' && (
         <div className="space-y-6">
           {costData && (
-            <div className="rounded-[--radius-lg] border border-[--color-border] bg-white p-[--spacing-lg] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark]">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-[var(--spacing-lg)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
               <div className="mb-3 flex items-center gap-2">
-                <DollarSign size={18} className="text-[--color-primary]" />
-                <h3 className="font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+                <DollarSign size={18} className="text-[var(--color-primary)]" />
+                <h3 className="font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                   Cost Summary
                 </h3>
                 <Badge variant={costData.isOverLimit ? 'error' : 'success'}>
@@ -236,20 +236,20 @@ export function AgentDetailPage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
-                  <div className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">Total Cost</div>
-                  <div className="text-lg font-bold text-[--color-ink] dark:text-[--color-ink-dark]">
+                  <div className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Total Cost</div>
+                  <div className="text-lg font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                     ${costData.totalCostUsd.toFixed(4)} / ${costData.limitUsd.toFixed(2)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">Tokens In</div>
-                  <div className="text-lg font-bold text-[--color-ink] dark:text-[--color-ink-dark]">
+                  <div className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Tokens In</div>
+                  <div className="text-lg font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                     {costData.totalTokensIn.toLocaleString()}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">Tokens Out</div>
-                  <div className="text-lg font-bold text-[--color-ink] dark:text-[--color-ink-dark]">
+                  <div className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Tokens Out</div>
+                  <div className="text-lg font-bold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                     {costData.totalTokensOut.toLocaleString()}
                   </div>
                 </div>
@@ -258,18 +258,18 @@ export function AgentDetailPage() {
           )}
 
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+            <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
               Provider / Model
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-[--color-ink] dark:text-[--color-ink-dark]">
+                <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
                   Provider
                 </label>
                 <select
                   value={providerId}
                   onChange={(e) => setProviderId(e.target.value)}
-                  className="h-9 rounded-[--radius-md] border border-[--color-border] bg-white px-3 text-sm text-[--color-ink] dark:border-[--color-border-dark] dark:bg-[--color-surface-dark] dark:text-[--color-ink-dark]"
+                  className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
                 >
                   <option value="">None</option>
                   {providers.map((p) => (
@@ -293,7 +293,7 @@ export function AgentDetailPage() {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">
+            <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
               Cost Limit
             </h3>
             <div className="flex items-end gap-2">

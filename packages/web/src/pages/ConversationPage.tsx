@@ -13,7 +13,7 @@ export function ConversationPage() {
 
   if (loading || !activeConversation) {
     return (
-      <div className="flex h-full items-center justify-center text-[--color-muted] dark:text-[--color-muted-dark]">
+      <div className="flex h-full items-center justify-center text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
         Loading conversation...
       </div>
     )

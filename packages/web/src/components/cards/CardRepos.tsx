@@ -37,27 +37,27 @@ export function CardRepos({ cardId, repos, onUpdate }: CardReposProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold text-[--color-ink] dark:text-[--color-ink-dark]">Repositories</h3>
+      <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Repositories</h3>
 
       {repos.length === 0 && (
-        <p className="text-xs text-[--color-muted] dark:text-[--color-muted-dark]">No repositories linked.</p>
+        <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">No repositories linked.</p>
       )}
 
       <div className="flex flex-col gap-2">
         {repos.map((repo) => (
           <div
             key={repo.id}
-            className="flex items-center justify-between rounded-[--radius-md] border border-[--color-border] bg-white px-3 py-2 text-sm dark:bg-[--color-surface-dark] dark:border-[--color-border-dark]"
+            className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)]"
           >
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-[--color-ink] dark:text-[--color-ink-dark] truncate font-mono text-xs">{repo.repoPath}</span>
+              <span className="text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] truncate font-mono text-xs">{repo.repoPath}</span>
               {repo.specPath && (
-                <span className="text-[--color-muted] dark:text-[--color-muted-dark] truncate text-xs">{repo.specPath}</span>
+                <span className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] truncate text-xs">{repo.specPath}</span>
               )}
             </div>
             <button
               onClick={() => handleRemove(repo.id)}
-              className="shrink-0 ml-2 rounded-[--radius-md] p-1 text-[--color-muted] hover:text-[--color-destructive] hover:bg-[--color-surface] dark:hover:bg-[--color-surface-dark] cursor-pointer"
+              className="shrink-0 ml-2 rounded-[var(--radius-md)] p-1 text-[var(--color-muted)] hover:text-[var(--color-destructive)] hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)] cursor-pointer"
             >
               <Trash2 size={14} />
             </button>
