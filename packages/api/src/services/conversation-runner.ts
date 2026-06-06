@@ -190,6 +190,16 @@ export async function runConversationTurn(
     content: m.content,
   }))
 
+  // 10.3. Codebase analysis for spec/research/plan conversations
+  let codebaseAnalysis: string | undefined
+  if (['spec', 'research', 'plan'].includes(conv.type) && cardContext.repos.length > 0) {
+    try {
+      const { analyzeCodebase } = await import('./codebase-analyzer.js')
+      const analysis = await analyzeCodebase(cardContext.repos[0]!)
+      codebaseAnalysis = analysis.markdown
+    } catch { /* analysis optional */ }
+  }
+
   // 10.5. Query relevant memories for this agent (Phase 5)
   const embeddingRegistry = createEmbeddingRegistry()
   const agentMemory = new AgentMemory(db, embeddingRegistry)
@@ -218,6 +228,7 @@ export async function runConversationTurn(
       content: m.content,
       similarity: m.similarity,
     })),
+    codebaseAnalysis,
   })
 
   // 11. Call provider

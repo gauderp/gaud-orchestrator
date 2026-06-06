@@ -28,6 +28,8 @@ interface BuildPromptOpts {
   recentMessages: MessageContext[]
   cardContext: CardContext
   relevantMemories?: Array<{ type: string; content: string; similarity: number }>
+  codebaseAnalysis?: string
+  attachments?: Array<{ filename: string; content: string; type: 'text' | 'path' }>
 }
 
 export function buildAgentTurnPrompt(opts: BuildPromptOpts): string {
@@ -55,6 +57,22 @@ export function buildAgentTurnPrompt(opts: BuildPromptOpts): string {
   }
   if (opts.cardContext.specPath) {
     sections.push(`**Spec:** ${opts.cardContext.specPath}`)
+  }
+
+  // 3.5. Codebase analysis (Graphify)
+  if (opts.codebaseAnalysis) {
+    sections.push(`## Codebase Analysis\n\n${opts.codebaseAnalysis}`)
+  }
+
+  // 3.6. Card attachments
+  if (opts.attachments && opts.attachments.length > 0) {
+    const attachmentSections = opts.attachments.map(a => {
+      if (a.type === 'text') {
+        return `### ${a.filename}\n\`\`\`\n${a.content}\n\`\`\``
+      }
+      return `### ${a.filename}\n[File available at: ${a.content}]`
+    }).join('\n\n')
+    sections.push(`## Card Attachments\n\n${attachmentSections}`)
   }
 
   // 4. Conversation summary (compressed history)
