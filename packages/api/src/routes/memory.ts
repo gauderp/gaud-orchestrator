@@ -60,8 +60,14 @@ export async function memoryRoutes(app: FastifyInstance): Promise<void> {
     return memory.getStats()
   })
 
-  // Trigger consolidation (stub)
-  app.post('/api/memory/consolidate', async () => {
-    return { status: 'not_implemented', message: 'Consolidation will be implemented in a future iteration' }
+  // Trigger consolidation
+  app.post('/api/memory/consolidate', async (_req, reply) => {
+    const agents = db.prepare('SELECT id FROM agents').all() as any[]
+    const results: Record<string, { merged: number; decayed: number }> = {}
+    for (const agent of agents) {
+      results[agent.id] = await memory.consolidate(agent.id)
+    }
+    broadcast('memory:consolidated', results)
+    return reply.send({ status: 'ok', results })
   })
 }

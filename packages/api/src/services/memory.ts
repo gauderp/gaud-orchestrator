@@ -108,6 +108,76 @@ export class AgentMemory {
     this.db.prepare("UPDATE memory_sessions SET ended_at = datetime('now') WHERE id = ?").run(sessionId)
   }
 
+  async consolidate(agentId: string): Promise<{ merged: number; decayed: number }> {
+    let merged = 0
+
+    const memories = this.listForAgent(agentId)
+
+    // Group by type
+    const byType = new Map<string, typeof memories>()
+    for (const m of memories) {
+      const group = byType.get(m.type) ?? []
+      group.push(m)
+      byType.set(m.type, group)
+    }
+
+    for (const [, group] of byType) {
+      if (group.length < 2) continue
+
+      // Load embeddings for this group
+      const withEmbeddings = group.map(m => {
+        const row = this.db.prepare('SELECT embedding FROM agent_memories WHERE id = ?').get(m.id) as any
+        if (!row?.embedding) return null
+        return {
+          ...m,
+          embedding: Array.from(new Float64Array(
+            row.embedding.buffer,
+            row.embedding.byteOffset,
+            row.embedding.byteLength / 8,
+          )),
+        }
+      }).filter(Boolean) as Array<(typeof group)[0] & { embedding: number[] }>
+
+      // Find pairs with similarity > 0.85
+      const toDelete = new Set<string>()
+      for (let i = 0; i < withEmbeddings.length; i++) {
+        if (toDelete.has(withEmbeddings[i]!.id)) continue
+        for (let j = i + 1; j < withEmbeddings.length; j++) {
+          if (toDelete.has(withEmbeddings[j]!.id)) continue
+          const { cosineSimilarity } = await import('./similarity.js')
+          const sim = cosineSimilarity(withEmbeddings[i]!.embedding, withEmbeddings[j]!.embedding)
+          if (sim > 0.85) {
+            const keep = withEmbeddings[i]!.content.length >= withEmbeddings[j]!.content.length
+              ? withEmbeddings[i]! : withEmbeddings[j]!
+            const remove = keep === withEmbeddings[i] ? withEmbeddings[j]! : withEmbeddings[i]!
+            toDelete.add(remove.id)
+            this.db.prepare('UPDATE agent_memories SET relevance_score = relevance_score + 1 WHERE id = ?').run(keep.id)
+            merged++
+          }
+        }
+      }
+
+      for (const id of toDelete) {
+        this.db.prepare('DELETE FROM agent_memories WHERE id = ?').run(id)
+      }
+    }
+
+    const decayed = this.decayRelevance(agentId)
+
+    return { merged, decayed }
+  }
+
+  decayRelevance(agentId: string, daysThreshold = 30, decayAmount = 0.1): number {
+    const result = this.db.prepare(`
+      UPDATE agent_memories
+      SET relevance_score = relevance_score - ?
+      WHERE agent_id = ?
+        AND created_at < datetime('now', '-' || ? || ' days')
+        AND relevance_score > -1
+    `).run(decayAmount, agentId, daysThreshold)
+    return result.changes
+  }
+
   getStats(): MemoryStats {
     const total = (this.db.prepare('SELECT COUNT(*) as c FROM agent_memories').get() as Record<string, unknown>)['c'] as number
     const byTypeRows = this.db.prepare('SELECT type, COUNT(*) as c FROM agent_memories GROUP BY type').all() as Array<Record<string, unknown>>

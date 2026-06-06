@@ -190,6 +190,19 @@ export async function runConversationTurn(
     content: m.content,
   }))
 
+  // 10.2. Initialize memory
+  const embeddingRegistry = createEmbeddingRegistry()
+  const agentMemory = new AgentMemory(db, embeddingRegistry)
+
+  // 10.2b. Session lifecycle — start session if not already active
+  const existingSession = db.prepare(
+    'SELECT id FROM memory_sessions WHERE conversation_id = ? AND ended_at IS NULL'
+  ).get(conversationId) as any
+
+  if (!existingSession) {
+    agentMemory.startSession(nextAgent.agentId, conversationId)
+  }
+
   // 10.3. Codebase analysis for spec/research/plan conversations
   let codebaseAnalysis: string | undefined
   if (['spec', 'research', 'plan'].includes(conv.type) && cardContext.repos.length > 0) {
@@ -201,8 +214,6 @@ export async function runConversationTurn(
   }
 
   // 10.5. Query relevant memories for this agent (Phase 5)
-  const embeddingRegistry = createEmbeddingRegistry()
-  const agentMemory = new AgentMemory(db, embeddingRegistry)
   const queryText = [
     cardContext.title,
     ...recentMessages.slice(-3).map((m) => m.content),
@@ -309,6 +320,13 @@ export async function runConversationTurn(
     newStatus = 'completed'
     db.prepare('UPDATE conversations SET status = ?, updated_at = datetime("now") WHERE id = ?')
       .run('completed', conversationId)
+    // End memory session
+    const session = db.prepare(
+      'SELECT id FROM memory_sessions WHERE conversation_id = ? AND ended_at IS NULL'
+    ).get(conversationId) as any
+    if (session) {
+      agentMemory.endSession(session.id)
+    }
   }
 
   // 15. Broadcast
