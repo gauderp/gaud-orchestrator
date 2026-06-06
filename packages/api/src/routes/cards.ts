@@ -86,7 +86,8 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
     const column = db.prepare('SELECT * FROM columns WHERE id = ?').get(columnId) as any
     if (column?.agent_action_prompt) {
       import('../services/column-action.js').then(({ executeColumnAction }) => {
-        executeColumnAction(db, req.params.id, column).catch((err: any) => {
+        const registry = (app as any).providerRegistry ?? null
+        executeColumnAction(db, req.params.id, column, registry).catch((err: any) => {
           console.error('Column action failed:', err)
         })
       })
