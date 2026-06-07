@@ -56,6 +56,7 @@ export class ExecutionEngine {
     agentSkills?: string[]
     learnings?: string[]
     attachments?: Array<{ filename: string; content: string; type: 'text' | 'path' }>
+    codebaseAnalysis?: string
   }): string {
     const sections: string[] = []
 
@@ -77,6 +78,10 @@ export class ExecutionEngine {
 
     if (opts.specContent) {
       sections.push(`## Spec Context\n\n${opts.specContent}`)
+    }
+
+    if (opts.codebaseAnalysis) {
+      sections.push(`## Codebase Analysis\n\n${opts.codebaseAnalysis}`)
     }
 
     if (opts.learnings && opts.learnings.length > 0) {
@@ -102,7 +107,7 @@ export class ExecutionEngine {
    [APPROVAL_NEEDED] Your question here
    Then STOP and wait. Do NOT guess or improvise.
 5. Stay strictly within scope — implement only what this task describes
-6. Use rtk for git operations when available (token savings)`)
+6. Git operations: rtk (token-saving proxy) is available. Git commands will automatically be routed through rtk via Claude Code hooks. No action needed.`)
 
     return sections.join('\n\n')
   }
@@ -177,6 +182,16 @@ export class ExecutionEngine {
         } catch { /* attachments optional */ }
       }
 
+      // Analyze codebase for context
+      let codebaseAnalysis: string | undefined
+      if (repos.length > 0) {
+        try {
+          const { analyzeCodebase } = await import('./codebase-analyzer.js')
+          const analysis = await analyzeCodebase(repos[0]!)
+          codebaseAnalysis = analysis.markdown
+        } catch { /* optional */ }
+      }
+
       // Build prompt
       const branch = task.branch ?? GitManager.branchName(task.id, task.title ?? '')
       const prompt = ExecutionEngine.buildTaskPrompt({
@@ -188,6 +203,7 @@ export class ExecutionEngine {
         agentSkills: skills,
         learnings,
         attachments,
+        codebaseAnalysis,
       })
 
       // Create worktree (best effort)
