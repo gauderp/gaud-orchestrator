@@ -18,6 +18,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/providers/package.json packages/providers/
 COPY packages/api/package.json packages/api/
+COPY packages/mcp/package.json packages/mcp/
 COPY packages/web/package.json packages/web/
 RUN pnpm install --frozen-lockfile
 
@@ -27,6 +28,7 @@ WORKDIR /app
 COPY . .
 RUN pnpm --filter @gaud/web build
 RUN pnpm --filter @gaud/api build
+RUN pnpm --filter @gaud/mcp build
 
 # === Production ===
 FROM cli-tools AS production
@@ -43,6 +45,8 @@ COPY --from=build /app/packages/api/src/db/migrations ./packages/api/dist/db/mig
 COPY --from=build /app/packages/web/dist ./packages/web/dist
 COPY --from=build /app/packages/shared/src ./packages/shared/src
 COPY --from=build /app/packages/providers/src ./packages/providers/src
+COPY --from=build /app/packages/mcp/dist ./packages/mcp/dist
+COPY packages/mcp/package.json packages/mcp/
 COPY agents/ ./agents/
 COPY package.json pnpm-workspace.yaml ./
 COPY packages/shared/package.json packages/shared/

@@ -273,6 +273,69 @@ Pre-configured specialist agents in `agents/`:
 | `gaud-sefaz-distribution` | SEFAZ DFe Distribution (NSU, throttling, manifestation) |
 | `tributos-brasil` | Brazilian taxation legislation (2025-2026) |
 
+## MCP Integration
+
+The orchestrator exposes an MCP server with ~22 tools for controlling it from any
+MCP-compatible AI agent.
+
+### Register with Claude Code
+
+```bash
+claude mcp add gaud-orchestrator -- node packages/mcp/dist/server.js
+```
+
+Or for development (auto-reloads):
+```bash
+claude mcp add gaud-orchestrator -- npx tsx packages/mcp/src/server.ts
+```
+
+### Register with Cursor
+
+Add to Cursor settings (`.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "gaud-orchestrator": {
+      "command": "node",
+      "args": ["packages/mcp/dist/server.js"],
+      "env": {
+        "DATABASE_PATH": "data/orchestrator.db"
+      }
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `gaud_boards_list` | List all boards |
+| `gaud_boards_get` | Get board with columns and cards |
+| `gaud_cards_list` | List cards on a board |
+| `gaud_cards_get` | Get card details |
+| `gaud_cards_create` | Create a new card |
+| `gaud_cards_move` | Move card to column |
+| `gaud_agents_list` | List all agents |
+| `gaud_agents_get` | Get agent details |
+| `gaud_agents_tree` | Get org chart hierarchy |
+| `gaud_specs_list` | List specs |
+| `gaud_specs_get` | Get spec with reviews |
+| `gaud_specs_create` | Create a spec |
+| `gaud_specs_review` | Review a spec |
+| `gaud_executions_list` | List executions |
+| `gaud_executions_get` | Get execution details |
+| `gaud_executions_create` | Create an execution |
+| `gaud_executions_cancel` | Cancel execution |
+| `gaud_conversations_list` | List conversations |
+| `gaud_conversations_create` | Create conversation |
+| `gaud_conversations_send` | Send message |
+| `gaud_conversations_get` | Get conversation with messages |
+| `gaud_memory_search` | Search agent memories |
+| `gaud_memory_store` | Store a memory |
+| `gaud_memory_stats` | Get memory statistics |
+| `gaud_dashboard` | Get full dashboard metrics |
+
 ## License
 
 MIT
