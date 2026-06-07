@@ -68,6 +68,43 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       .run(msgId, req.params.id, 'user', content, 'content')
     const msg = toCamelCase(db.prepare('SELECT * FROM messages WHERE id = ?').get(msgId) as any)
 
+    // Handle /escalate command
+    if (content.trim().toLowerCase() === '/escalate') {
+      const lastQuestion = db.prepare(
+        "SELECT * FROM messages WHERE conversation_id = ? AND message_type = 'question_for_user' ORDER BY created_at DESC LIMIT 1"
+      ).get(req.params.id) as any
+
+      if (lastQuestion?.sender_id) {
+        const { HierarchyService } = await import('../services/hierarchy.js')
+        const hierarchy = new HierarchyService(db)
+        const parent = hierarchy.getParent(lastQuestion.sender_id)
+
+        if (parent) {
+          // Add parent to conversation if not already a participant
+          const existing = db.prepare(
+            'SELECT 1 FROM conversation_participants WHERE conversation_id = ? AND agent_id = ?'
+          ).get(req.params.id, (parent as any).id)
+          if (!existing) {
+            db.prepare('INSERT INTO conversation_participants (conversation_id, agent_id) VALUES (?, ?)')
+              .run(req.params.id, (parent as any).id)
+          }
+
+          // Add escalation message
+          db.prepare('INSERT INTO messages (id, conversation_id, sender_type, content, message_type, mentions) VALUES (?, ?, ?, ?, ?, ?)')
+            .run(randomUUID(), req.params.id, 'system',
+              `Question escalated to @${(parent as any).name}. Original question: "${lastQuestion.content}"`,
+              'content', JSON.stringify([(parent as any).id]))
+
+          // Resume conversation — next turn will go to the parent
+          db.prepare('UPDATE conversations SET status = ?, updated_at = datetime(\'now\') WHERE id = ?')
+            .run('active', req.params.id)
+          broadcast('conversation:status', { conversationId: req.params.id, status: 'active' })
+          broadcast('conversation:message', { conversationId: req.params.id, message: msg })
+          return reply.status(201).send(msg)
+        }
+      }
+    }
+
     // If conversation was paused_for_user, resume it
     const conv = db.prepare('SELECT status FROM conversations WHERE id = ?').get(req.params.id) as any
     if (conv?.status === 'paused_for_user') {

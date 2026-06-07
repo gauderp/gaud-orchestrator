@@ -326,6 +326,19 @@ export async function runConversationTurn(
     newStatus = 'paused_for_user'
     db.prepare('UPDATE conversations SET status = ?, updated_at = datetime("now") WHERE id = ?')
       .run('paused_for_user', conversationId)
+
+    // Check if agent has parent — offer escalation
+    const { HierarchyService } = await import('./hierarchy.js')
+    const hierarchyService = new HierarchyService(db)
+    const parentAgent = hierarchyService.getParent(nextAgent.agentId)
+
+    if (parentAgent) {
+      db.prepare('INSERT INTO messages (id, conversation_id, sender_type, content, message_type) VALUES (?, ?, ?, ?, ?)')
+        .run(randomUUID(), conversationId, 'system',
+          `This question can be escalated to ${(parentAgent as any).name} (supervisor). Reply with your answer, or type "/escalate" to forward to the supervisor.`,
+          'content')
+      broadcast('conversation:message', { conversationId, message: { senderType: 'system', content: 'Escalation available to supervisor' } })
+    }
   } else if (parsed.type === 'artifact') {
     newStatus = 'completed'
     db.prepare('UPDATE conversations SET status = ?, updated_at = datetime("now") WHERE id = ?')
