@@ -161,14 +161,75 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
 
   app.post<{ Params: { id: string } }>('/api/cards/:id/ask-agent', async (req, reply) => {
     const { agentId, prompt } = req.body as { agentId: string; prompt: string }
-    const commentId = randomUUID()
-    db.prepare('INSERT INTO card_comments (id, card_id, author_type, author_id, content) VALUES (?, ?, ?, ?, ?)')
-      .run(commentId, req.params.id, 'system', null, `Agent ${agentId} requested: ${prompt}`)
-    broadcast('card:comment', { cardId: req.params.id })
-    return reply.send({ status: 'queued', message: 'Agent action will be implemented in Phase 4/7' })
+    const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any
+    if (!card) return reply.status(404).send({ error: 'Card not found' })
+
+    // Create a conversation for this interaction
+    const convId = randomUUID()
+    const now = new Date().toISOString()
+    db.prepare('INSERT INTO conversations (id, card_id, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+      .run(convId, req.params.id, 'research', now, now)
+
+    // Add agent as participant
+    db.prepare('INSERT INTO conversation_participants (conversation_id, agent_id) VALUES (?, ?)')
+      .run(convId, agentId)
+
+    // Build context from card
+    const repos = (db.prepare('SELECT repo_path FROM card_repos WHERE card_id = ?').all(req.params.id) as any[])
+      .map((r: any) => r.repo_path)
+    const cardContext = `Card: ${card.title}\n${card.description ?? ''}\nRepos: ${repos.join(', ')}`
+
+    // Seed conversation with user prompt + card context
+    db.prepare('INSERT INTO messages (id, conversation_id, sender_type, content, message_type) VALUES (?, ?, ?, ?, ?)')
+      .run(randomUUID(), convId, 'user', `${prompt}\n\n## Card Context\n${cardContext}`, 'content')
+
+    broadcast('conversation:status', { conversationId: convId, status: 'active' })
+
+    // Trigger first agent turn
+    const registry = (app as any).providerRegistry
+    if (registry) {
+      try {
+        const { runConversationTurn } = await import('../services/conversation-runner.js')
+        await runConversationTurn(db, convId, registry)
+      } catch (err: any) {
+        console.error('Ask agent failed:', err)
+      }
+    }
+
+    return reply.status(201).send({ conversationId: convId, cardId: req.params.id, agentId })
   })
 
   app.post<{ Params: { id: string } }>('/api/cards/:id/estimate', async (req, reply) => {
-    return reply.send({ status: 'not_implemented', message: 'Cost estimation will be implemented in Phase 7' })
+    const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any
+    if (!card) return reply.status(404).send({ error: 'Card not found' })
+
+    const repos = db.prepare('SELECT repo_path FROM card_repos WHERE card_id = ?').all(req.params.id) as any[]
+    const repoList = repos.map((r: any) => r.repo_path).join(', ')
+
+    // Use codebase analyzer for context
+    let codebaseInfo = ''
+    if (repos.length > 0) {
+      try {
+        const { analyzeCodebase } = await import('../services/codebase-analyzer.js')
+        const analysis = await analyzeCodebase(repos[0].repo_path)
+        codebaseInfo = `\n\nCodebase: ${analysis.fileCount} files, ${analysis.routes.length} routes, ${analysis.exports.length} exports`
+      } catch { /* optional */ }
+    }
+
+    // Simple heuristic estimate based on description length and repos
+    const descLength = (card.description ?? '').length
+    const estimatedTokens = Math.max(5000, descLength * 10 + repos.length * 20000)
+    const estimatedCostUsd = estimatedTokens * 0.000015 // ~$15/1M tokens average
+
+    db.prepare('UPDATE cards SET estimated_tokens = ?, estimated_cost_usd = ?, updated_at = datetime("now") WHERE id = ?')
+      .run(estimatedTokens, estimatedCostUsd, req.params.id)
+
+    const updated = toCamelCase(db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any)
+    broadcast('card:updated', updated)
+    return reply.send({
+      estimatedTokens,
+      estimatedCostUsd,
+      details: `Based on description (${descLength} chars), ${repos.length} repo(s)${codebaseInfo}`,
+    })
   })
 }

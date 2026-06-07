@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, Execution, ExecutionTask, ExecutionGap, ExecutionLog } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, Execution, ExecutionTask, ExecutionGap, ExecutionLog } from '@gaud/shared'
 
 const API_BASE = '/api'
 
@@ -84,6 +84,9 @@ export const api = {
     removeRepo: (id: string, repoId: string) => request<void>(`/cards/${id}/repos/${repoId}`, { method: 'DELETE' }),
     addDependency: (id: string, dependsOnCardId: string) => request(`/cards/${id}/dependencies`, { method: 'POST', body: JSON.stringify({ dependsOnCardId }) }),
     removeDependency: (id: string, depId: string) => request<void>(`/cards/${id}/dependencies/${depId}`, { method: 'DELETE' }),
+    estimate: (id: string) => request<CardEstimate>(`/cards/${id}/estimate`, { method: 'POST' }),
+    askAgent: (id: string, data: { agentId: string; prompt: string }) =>
+      request<AskAgentResponse>(`/cards/${id}/ask-agent`, { method: 'POST', body: JSON.stringify(data) }),
   },
 
   conversations: {

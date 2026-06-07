@@ -55,3 +55,15 @@ export interface CardAttachment {
   path: string
   createdAt: string
 }
+
+export interface CardEstimate {
+  estimatedTokens: number
+  estimatedCostUsd: number
+  details: string
+}
+
+export interface AskAgentResponse {
+  conversationId: string
+  cardId: string
+  agentId: string
+}

@@ -130,7 +130,6 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
     // Use LLM to decompose
     try {
       const { buildDecomposePrompt, parseDecomposition } = await import('../services/spec-decomposer.js')
-      const { createProviderRegistry, createClaudeCliProvider } = await import('@gaud/providers')
 
       // Get available agents
       const agents = db.prepare('SELECT name FROM agents').all() as any[]
@@ -138,11 +137,12 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
 
       const prompt = buildDecomposePrompt(spec.content, agentNames)
 
-      // Call LLM
-      const registry = createProviderRegistry()
-      registry.register(createClaudeCliProvider())
-      const provider = registry.get('claude-cli')
-      if (!provider) return reply.status(500).send({ error: 'No provider available' })
+      // Call LLM via shared registry
+      const registry = (app as any).providerRegistry
+      if (!registry) return reply.status(500).send({ error: 'No providers configured' })
+      const providers = registry.list()
+      const provider = providers[0]
+      if (!provider) return reply.status(500).send({ error: 'No providers available' })
 
       let responseText = ''
       const session = await provider.spawn({ prompt, cwd: process.cwd() })

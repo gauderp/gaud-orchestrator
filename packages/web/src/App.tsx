@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { AgentListPage } from '@/pages/AgentListPage'
@@ -27,7 +27,7 @@ import { useBoardStore } from '@/store/boards'
 import { useConversationStore } from '@/store/conversations'
 import { useSpecStore } from '@/store/specs'
 import { useExecutionStore } from '@/store/executions'
-import { useSkillStore } from '@/store/skills'
+import { useToastStore } from '@/store/toast'
 
 export function AppRoutes() {
   const theme = useAppStore((s) => s.theme)
@@ -54,16 +54,12 @@ export function AppRoutes() {
           case 'conversation:status':
             useConversationStore.getState().onStatusChange(msg.payload.conversationId, msg.payload.status)
             break
-          case 'conversation:question': {
-            const { conversationId, question } = msg.payload as { conversationId: string; question: string }
-            console.log(`[WS] Agent question in ${conversationId}: ${question}`)
+          case 'conversation:question':
+            useToastStore.getState().addToast('warning', 'An agent needs your input', 5000)
             break
-          }
-          case 'conversation:artifact': {
-            const { conversationId } = msg.payload as { conversationId: string; artifact: string }
-            console.log(`[WS] Artifact produced in ${conversationId}`)
+          case 'conversation:artifact':
+            useToastStore.getState().addToast('success', 'Agent produced an artifact', 4000)
             break
-          }
           case 'spec:updated':
             useSpecStore.getState().onSpecUpdated(msg.payload)
             break
@@ -108,7 +104,7 @@ export function AppRoutes() {
         <Route path="/specs/:id" element={<SpecDetailPage />} />
         <Route path="/executions" element={<ExecutionListPage />} />
         <Route path="/executions/:id" element={<ExecutionDetailPage />} />
-        <Route path="/settings" element={<Placeholder title="Settings" />} />
+        <Route path="/settings" element={<Navigate to="/settings/providers" replace />} />
       </Route>
     </Routes>
   )
@@ -123,14 +119,5 @@ export function App() {
       <CommandPalette />
       <ToastContainer />
     </BrowserRouter>
-  )
-}
-
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div>
-      <h1 className="mb-4 text-2xl font-bold">{title}</h1>
-      <p className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Coming in next phase.</p>
-    </div>
   )
 }

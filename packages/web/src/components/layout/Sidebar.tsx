@@ -94,7 +94,9 @@ export function Sidebar() {
         <div className="px-2.5 mb-3">
           <button
             className="flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] px-2.5 h-8 text-[13px] text-[var(--color-muted)] hover:border-[var(--color-muted)] dark:border-[var(--color-border-dark)] dark:text-[var(--color-muted-dark)] dark:hover:border-[var(--color-muted-dark)] transition-colors cursor-pointer"
-            onClick={() => {/* TODO: command palette */}}
+            onClick={() => {
+              document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true, bubbles: true }))
+            }}
           >
             <Search size={14} />
             <span className="flex-1 text-left">Search</span>
