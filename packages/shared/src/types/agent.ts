@@ -9,7 +9,23 @@ export interface Agent {
   model: string | null
   costLimitUsd: number
   parentAgentId: string | null
+  requiresParentApproval: boolean
+  escalationTimeoutMinutes: number
   createdAt: string
+}
+
+export type AgentReviewStatus = 'pending' | 'approved' | 'rejected' | 'changes_requested'
+
+export interface AgentReview {
+  id: string
+  executionTaskId: string | null
+  conversationId: string | null
+  reviewerAgentId: string
+  revieweeAgentId: string
+  status: AgentReviewStatus
+  comment: string | null
+  createdAt: string
+  resolvedAt: string | null
 }
 
 export interface AgentCostLog {
