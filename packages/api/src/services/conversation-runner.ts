@@ -190,6 +190,15 @@ export async function runConversationTurn(
     content: m.content,
   }))
 
+  // 10.1. Read card attachments
+  let attachments: Array<{ filename: string; content: string; type: 'text' | 'path' }> = []
+  if (conv.card_id) {
+    try {
+      const { readCardAttachments } = await import('./attachment-reader.js')
+      attachments = readCardAttachments(db, conv.card_id)
+    } catch { /* attachments optional */ }
+  }
+
   // 10.2. Initialize memory
   const embeddingRegistry = createEmbeddingRegistry()
   const agentMemory = new AgentMemory(db, embeddingRegistry)
@@ -240,6 +249,7 @@ export async function runConversationTurn(
       similarity: m.similarity,
     })),
     codebaseAnalysis,
+    attachments,
   })
 
   // 11. Call provider

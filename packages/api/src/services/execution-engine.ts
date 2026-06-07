@@ -54,6 +54,7 @@ export class ExecutionEngine {
     agentInstructions?: string
     agentSkills?: string[]
     learnings?: string[]
+    attachments?: Array<{ filename: string; content: string; type: 'text' | 'path' }>
   }): string {
     const sections: string[] = []
 
@@ -79,6 +80,16 @@ export class ExecutionEngine {
 
     if (opts.learnings && opts.learnings.length > 0) {
       sections.push(`## Previous Learnings\n\n${opts.learnings.map(l => `- ${l}`).join('\n')}`)
+    }
+
+    if (opts.attachments && opts.attachments.length > 0) {
+      const attachmentSections = opts.attachments.map(a => {
+        if (a.type === 'text') {
+          return `### ${a.filename}\n\`\`\`\n${a.content}\n\`\`\``
+        }
+        return `### ${a.filename}\n[File available at: ${a.content}]`
+      }).join('\n\n')
+      sections.push(`## Card Attachments\n\n${attachmentSections}`)
     }
 
     sections.push(`## Rules
@@ -156,6 +167,15 @@ export class ExecutionEngine {
         learnings = memories.map(m => `[${(m as any).type}] ${(m as any).content}`)
       } catch { /* memory search optional */ }
 
+      // Read card attachments
+      let attachments: Array<{ filename: string; content: string; type: 'text' | 'path' }> = []
+      if (exec.card_id) {
+        try {
+          const { readCardAttachments } = await import('./attachment-reader.js')
+          attachments = readCardAttachments(this.db, exec.card_id)
+        } catch { /* attachments optional */ }
+      }
+
       // Build prompt
       const branch = task.branch ?? GitManager.branchName(task.id, task.title ?? '')
       const prompt = ExecutionEngine.buildTaskPrompt({
@@ -166,6 +186,7 @@ export class ExecutionEngine {
         agentInstructions: agent?.instructions,
         agentSkills: skills,
         learnings,
+        attachments,
       })
 
       // Create worktree (best effort)
