@@ -40,6 +40,16 @@ export const api = {
     assignSkill: (id: string, skillId: string) => request<void>(`/agents/${id}/skills`, { method: 'POST', body: JSON.stringify({ skillId }) }),
     removeSkill: (id: string, skillId: string) => request<void>(`/agents/${id}/skills/${skillId}`, { method: 'DELETE' }),
     getCost: (id: string) => request<{ totalCostUsd: number; totalTokensIn: number; totalTokensOut: number; limitUsd: number; isOverLimit: boolean }>(`/agents/${id}/cost`),
+    getTree: () => request<any[]>('/agents/tree'),
+    getReviews: (id: string) => request<any[]>(`/agents/${id}/reviews`),
+    getAllReviews: (id: string) => request<any[]>(`/agents/${id}/reviews/all`),
+    updateHierarchy: (id: string, data: { parentAgentId?: string | null; requiresParentApproval?: boolean; escalationTimeoutMinutes?: number }) =>
+      request<any>(`/agents/${id}/hierarchy`, { method: 'PUT', body: JSON.stringify(data) }),
+  },
+
+  reviews: {
+    resolve: (reviewId: string, data: { status: string; comment?: string }) =>
+      request<any>(`/reviews/${reviewId}/resolve`, { method: 'POST', body: JSON.stringify(data) }),
   },
 
   skills: {

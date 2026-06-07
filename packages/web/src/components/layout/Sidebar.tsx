@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Bot, Zap, Plug,
   Kanban, FileText, Play,
   ChevronsLeft, ChevronsRight,
-  Search,
+  Search, GitBranch,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import type { ComponentType } from 'react'
@@ -24,6 +24,7 @@ const mainNav: NavItem[] = [
 
 const configNav: NavItem[] = [
   { label: 'Agents', to: '/agents', icon: Bot },
+  { label: 'Org Chart', to: '/agents/org', icon: GitBranch },
   { label: 'Skills', to: '/skills', icon: Zap },
   { label: 'Providers', to: '/settings/providers', icon: Plug },
 ]

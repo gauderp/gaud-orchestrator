@@ -18,6 +18,7 @@ import { SpecReviewPage } from '@/pages/SpecReviewPage'
 import { SpecDetailPage } from '@/pages/SpecDetailPage'
 import { ExecutionListPage } from '@/pages/ExecutionListPage'
 import { ExecutionDetailPage } from '@/pages/ExecutionDetailPage'
+import { OrgChartPage } from '@/pages/OrgChartPage'
 import { ToastContainer } from '@/components/ui/Toast'
 import { CommandPalette } from '@/components/ui/CommandPalette'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
@@ -87,6 +88,7 @@ export function AppRoutes() {
       <Route element={<Layout />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/agents" element={<AgentListPage />} />
+        <Route path="/agents/org" element={<OrgChartPage />} />
         <Route path="/agents/:id" element={<AgentDetailPage />} />
         <Route path="/skills" element={<SkillsListPage />} />
         <Route path="/skills/new" element={<SkillEditorPage />} />

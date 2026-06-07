@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Save, Trash2, Plus, DollarSign } from 'lucide-react'
+import { ArrowLeft, Save, Trash2, Plus, DollarSign, Shield, Check, X, Clock } from 'lucide-react'
 import { useAgentStore } from '@/store/agents'
 import { useSkillStore } from '@/store/skills'
 import { useProviderStore } from '@/store/providers'
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 
-type Tab = 'instructions' | 'skills' | 'cost'
+type Tab = 'instructions' | 'skills' | 'cost' | 'reviews'
 
 interface CostData {
   totalCostUsd: number
@@ -34,6 +34,12 @@ export function AgentDetailPage() {
   const [costData, setCostData] = useState<CostData | null>(null)
   const [addSkillId, setAddSkillId] = useState('')
   const [saving, setSaving] = useState(false)
+  const [pendingReviews, setPendingReviews] = useState<any[]>([])
+  const [allReviews, setAllReviews] = useState<any[]>([])
+  const [hierarchyParentId, setHierarchyParentId] = useState('')
+  const [requiresApproval, setRequiresApproval] = useState(false)
+  const [escalationTimeout, setEscalationTimeout] = useState('30')
+  const [agents, setAgents] = useState<any[]>([])
 
   useEffect(() => {
     if (!id) return
@@ -41,6 +47,9 @@ export function AgentDetailPage() {
     fetchSkills()
     fetchProviders()
     api.agents.getCost(id).then(setCostData).catch(() => {})
+    api.agents.getReviews(id).then(setPendingReviews).catch(() => {})
+    api.agents.getAllReviews(id).then(setAllReviews).catch(() => {})
+    api.agents.list().then(setAgents).catch(() => {})
   }, [id, fetchAgent, fetchSkills, fetchProviders])
 
   useEffect(() => {
@@ -49,6 +58,9 @@ export function AgentDetailPage() {
       setProviderId(selectedAgent.providerId ?? '')
       setModel(selectedAgent.model ?? '')
       setCostLimit(String(selectedAgent.costLimitUsd))
+      setHierarchyParentId((selectedAgent as any).parentAgentId ?? '')
+      setRequiresApproval((selectedAgent as any).requiresParentApproval === 1 || (selectedAgent as any).requiresParentApproval === true)
+      setEscalationTimeout(String((selectedAgent as any).escalationTimeoutMinutes ?? 30))
     }
   }, [selectedAgent])
 
@@ -96,10 +108,33 @@ export function AgentDetailPage() {
     fetchAgent(id)
   }
 
+  const handleSaveHierarchy = async () => {
+    if (!id) return
+    setSaving(true)
+    try {
+      await api.agents.updateHierarchy(id, {
+        parentAgentId: hierarchyParentId || null,
+        requiresParentApproval: requiresApproval,
+        escalationTimeoutMinutes: Number(escalationTimeout) || 30,
+      })
+      fetchAgent(id)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleResolveReview = async (reviewId: string, status: 'approved' | 'rejected' | 'changes_requested') => {
+    if (!id) return
+    await api.reviews.resolve(reviewId, { status })
+    api.agents.getReviews(id).then(setPendingReviews).catch(() => {})
+    api.agents.getAllReviews(id).then(setAllReviews).catch(() => {})
+  }
+
   const tabs: { key: Tab; label: string }[] = [
     { key: 'instructions', label: 'Instructions' },
     { key: 'skills', label: 'Skills' },
     { key: 'cost', label: 'Cost' },
+    { key: 'reviews', label: `Reviews${pendingReviews.length > 0 ? ` (${pendingReviews.length})` : ''}` },
   ]
 
   return (
@@ -309,6 +344,138 @@ export function AgentDetailPage() {
                 Save
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'reviews' && (
+        <div className="space-y-6">
+          {/* Hierarchy Settings */}
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-[var(--spacing-lg)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+            <div className="mb-3 flex items-center gap-2">
+              <Shield size={18} className="text-[var(--color-primary)]" />
+              <h3 className="font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+                Hierarchy Settings
+              </h3>
+            </div>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+                  Parent Agent
+                </label>
+                <select
+                  value={hierarchyParentId}
+                  onChange={(e) => setHierarchyParentId(e.target.value)}
+                  className="h-9 w-full box-border rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
+                >
+                  <option value="">None (root agent)</option>
+                  {agents.filter((a) => a.id !== id).map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="requiresApproval"
+                  checked={requiresApproval}
+                  onChange={(e) => setRequiresApproval(e.target.checked)}
+                  className="h-4 w-4 rounded border-[var(--color-border)]"
+                />
+                <label htmlFor="requiresApproval" className="text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+                  Requires parent approval before PR creation
+                </label>
+              </div>
+              <Input
+                label="Escalation Timeout (minutes)"
+                type="number"
+                value={escalationTimeout}
+                onChange={(e) => setEscalationTimeout(e.target.value)}
+                placeholder="30"
+              />
+              <Button onClick={handleSaveHierarchy} loading={saving}>
+                <Save size={16} className="mr-1.5" />
+                Save Hierarchy
+              </Button>
+            </div>
+          </div>
+
+          {/* Pending Reviews (as reviewer) */}
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+              Pending Reviews (as reviewer)
+            </h3>
+            {pendingReviews.length === 0 ? (
+              <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+                No pending reviews.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {pendingReviews.map((review: any) => (
+                  <div
+                    key={review.id}
+                    className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 dark:border-[var(--color-border-dark)]"
+                  >
+                    <div>
+                      <div className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+                        Review for {review.revieweeAgentId}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+                        <Clock size={12} />
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" onClick={() => handleResolveReview(review.id, 'approved')}>
+                        <Check size={14} className="mr-1" /> Approve
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => handleResolveReview(review.id, 'changes_requested')}>
+                        <X size={14} className="mr-1" /> Request Changes
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Review History */}
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+              Review History
+            </h3>
+            {allReviews.length === 0 ? (
+              <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+                No reviews yet.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {allReviews.map((review: any) => (
+                  <div
+                    key={review.id}
+                    className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 dark:border-[var(--color-border-dark)]"
+                  >
+                    <div>
+                      <div className="text-sm text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+                        Reviewed by {review.reviewerAgentId}
+                      </div>
+                      {review.comment && (
+                        <div className="mt-0.5 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] max-w-md truncate">
+                          {review.comment}
+                        </div>
+                      )}
+                    </div>
+                    <Badge variant={
+                      review.status === 'approved' ? 'success' :
+                      review.status === 'rejected' ? 'error' :
+                      review.status === 'changes_requested' ? 'warning' : 'neutral'
+                    }>
+                      {review.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
