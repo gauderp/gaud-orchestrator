@@ -9,6 +9,7 @@ import { registerSpecTools } from './tools/specs.js'
 import { registerExecutionTools } from './tools/executions.js'
 import { registerConversationTools } from './tools/conversations.js'
 import { registerMemoryTools } from './tools/memory.js'
+import { registerDashboardTools } from './tools/dashboard.js'
 
 const dbPath = process.env['DATABASE_PATH'] ?? join(process.cwd(), 'data', 'orchestrator.db')
 const db = new Database(dbPath)
@@ -28,6 +29,7 @@ registerSpecTools(server, db)
 registerExecutionTools(server, db)
 registerConversationTools(server, db)
 registerMemoryTools(server, db)
+registerDashboardTools(server, db)
 
 // Start stdio transport
 const transport = new StdioServerTransport()
