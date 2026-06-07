@@ -95,7 +95,29 @@ export function AgentListPage() {
   const [formRole, setFormRole] = useState('')
   const [formParent, setFormParent] = useState('')
   const [formCostLimit, setFormCostLimit] = useState('')
+  const [formProvider, setFormProvider] = useState('')
+  const [formModel, setFormModel] = useState('')
   const [creating, setCreating] = useState(false)
+
+  function getModelsForProvider(providerId: string): string[] {
+    const provider = providers.find(p => p.id === providerId)
+    if (!provider) return []
+    switch (provider.type) {
+      case 'claude-cli':
+      case 'claude-api':
+        return ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5']
+      case 'openai':
+        return ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'o3-mini']
+      case 'gemini':
+        return ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash']
+      case 'deepseek':
+        return ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner']
+      case 'cursor':
+        return ['default']
+      default:
+        return []
+    }
+  }
 
   useEffect(() => {
     fetchAgents()
@@ -113,12 +135,16 @@ export function AgentListPage() {
         role: formRole.trim() || null,
         parentAgentId: formParent || null,
         costLimitUsd: formCostLimit ? Number(formCostLimit) : 0,
+        providerId: formProvider || null,
+        model: formModel || null,
       })
       setShowModal(false)
       setFormName('')
       setFormRole('')
       setFormParent('')
       setFormCostLimit('')
+      setFormProvider('')
+      setFormModel('')
     } finally {
       setCreating(false)
     }
@@ -287,6 +313,47 @@ export function AgentListPage() {
               ))}
             </select>
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 12, fontWeight: 500 }}>Provider</label>
+            <select
+              value={formProvider}
+              onChange={(e) => {
+                setFormProvider(e.target.value)
+                setFormModel('')
+              }}
+              style={{
+                height: 36, width: '100%', boxSizing: 'border-box',
+                borderRadius: 6, border: '1px solid #e2e8f0',
+                paddingLeft: 12, paddingRight: 12, fontSize: 14,
+                backgroundColor: '#fff',
+              }}
+            >
+              <option value="">No provider</option>
+              {providers.map((p) => (
+                <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
+              ))}
+            </select>
+          </div>
+          {formProvider && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 500 }}>Model</label>
+              <select
+                value={formModel}
+                onChange={(e) => setFormModel(e.target.value)}
+                style={{
+                  height: 36, width: '100%', boxSizing: 'border-box',
+                  borderRadius: 6, border: '1px solid #e2e8f0',
+                  paddingLeft: 12, paddingRight: 12, fontSize: 14,
+                  backgroundColor: '#fff',
+                }}
+              >
+                <option value="">Default model</option>
+                {getModelsForProvider(formProvider).map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <Input
             label="Cost Limit (USD)"
             type="number"
