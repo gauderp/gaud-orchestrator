@@ -49,7 +49,7 @@ describe('Codebase Analyzer', () => {
   it('detects imports/dependencies between files', async () => {
     const result = await analyzeCodebase(TMP)
     expect(result.dependencies.length).toBeGreaterThan(0)
-    expect(result.dependencies[0].to).toContain('../services/user')
+    expect(result.dependencies[0]!.to).toContain('../services/user')
   })
 
   it('produces a markdown summary', async () => {

@@ -33,8 +33,8 @@ describe('parseDecomposition', () => {
 \`\`\``
     const tasks = parseDecomposition(response)
     expect(tasks).toHaveLength(2)
-    expect(tasks[0].title).toBe('Build API endpoint')
-    expect(tasks[1].dependsOn).toContain('Build API endpoint')
+    expect(tasks[0]!.title).toBe('Build API endpoint')
+    expect(tasks[1]!.dependsOn).toContain('Build API endpoint')
   })
 
   it('handles raw JSON without markdown fence', () => {
@@ -50,6 +50,6 @@ describe('parseDecomposition', () => {
   it('defaults type to task when missing', () => {
     const response = '{"tasks": [{"title": "A", "description": "B", "dependsOn": []}]}'
     const tasks = parseDecomposition(response)
-    expect(tasks[0].type).toBe('task')
+    expect(tasks[0]!.type).toBe('task')
   })
 })

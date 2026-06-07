@@ -22,7 +22,7 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
     if (!spec) return reply.status(404).send({ error: 'Spec not found' })
     const reviews = db.prepare('SELECT * FROM spec_reviews WHERE spec_id = ? ORDER BY created_at').all(req.params.id)
     return reply.send({
-      ...toCamelCase(spec),
+      ...toCamelCase<Record<string, unknown>>(spec as Record<string, unknown>),
       reviews: toCamelCaseArray(reviews as any[]),
     })
   })
@@ -147,7 +147,7 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
       let responseText = ''
       const session = await provider.spawn({ prompt, cwd: process.cwd() })
       await new Promise<void>((resolve) => {
-        provider.onOutput(session.id, (event) => {
+        provider.onOutput(session.id, (event: { type: string; content: string }) => {
           if (event.type === 'stdout') responseText += event.content
         })
         setTimeout(resolve, 120_000)

@@ -34,8 +34,8 @@ describe('topKSimilar', () => {
     ]
     const results = topKSimilar(query, entries, 2)
     expect(results).toHaveLength(2)
-    expect(results[0].id).toBe('a')
-    expect(results[1].id).toBe('c')
+    expect(results[0]!.id).toBe('a')
+    expect(results[1]!.id).toBe('c')
   })
 
   it('returns all if K > entries length', () => {
@@ -53,6 +53,6 @@ describe('topKSimilar', () => {
     ]
     const results = topKSimilar(query, entries, 10, 0.5)
     expect(results).toHaveLength(1)
-    expect(results[0].id).toBe('a')
+    expect(results[0]!.id).toBe('a')
   })
 })

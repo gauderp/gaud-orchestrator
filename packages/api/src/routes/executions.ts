@@ -22,11 +22,11 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
     // Get logs for each task (last 50 per task)
     const tasksWithLogs = (tasks as any[]).map(t => {
       const logs = db.prepare('SELECT * FROM execution_logs WHERE execution_task_id = ? ORDER BY created_at DESC LIMIT 50').all(t.id)
-      return { ...toCamelCase(t), logs: toCamelCaseArray(logs as any[]) }
+      return { ...toCamelCase<Record<string, unknown>>(t as Record<string, unknown>), logs: toCamelCaseArray(logs as any[]) }
     })
 
     return reply.send({
-      ...toCamelCase(exec),
+      ...toCamelCase<Record<string, unknown>>(exec as Record<string, unknown>),
       tasks: tasksWithLogs,
       gaps: toCamelCaseArray(gaps as any[]),
     })

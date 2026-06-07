@@ -37,7 +37,7 @@ export function createOpenAICompatibleProvider(config: OpenAIConfig): AgentProvi
       const session: Session = { id, abortController, callbacks: [] }
       sessions.set(id, session)
 
-      const model = opts.model ?? Object.keys(config.models)[0]
+      const model = opts.model ?? Object.keys(config.models)[0] ?? 'gpt-4o'
       const body = buildRequestBody(opts.prompt, model)
 
       ;(async () => {
@@ -89,8 +89,10 @@ export function createOpenAICompatibleProvider(config: OpenAIConfig): AgentProvi
                 // Usage info (OpenAI includes at end when stream_options.include_usage is set)
                 if (parsed.usage) {
                   const pricing = config.models[model] ?? Object.values(config.models)[0]
-                  const cost = (parsed.usage.prompt_tokens ?? 0) * pricing.input +
-                    (parsed.usage.completion_tokens ?? 0) * pricing.output
+                  const cost = pricing
+                    ? (parsed.usage.prompt_tokens ?? 0) * pricing.input +
+                      (parsed.usage.completion_tokens ?? 0) * pricing.output
+                    : 0
                   for (const cb of session.callbacks) {
                     cb({
                       type: 'cost', content: '', timestamp: new Date().toISOString(),
@@ -127,6 +129,7 @@ export function createOpenAICompatibleProvider(config: OpenAIConfig): AgentProvi
     },
     estimateCost(model: string, tokens: { input: number; output: number }): number {
       const pricing = config.models[model] ?? Object.values(config.models)[0]
+      if (!pricing) return 0
       return tokens.input * pricing.input + tokens.output * pricing.output
     },
     buildRequestBody,

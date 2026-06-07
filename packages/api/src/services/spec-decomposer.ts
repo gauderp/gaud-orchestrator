@@ -55,7 +55,7 @@ export function parseDecomposition(response: string): DecomposedTask[] {
   let parsed: { tasks: any[] }
 
   if (jsonMatch) {
-    parsed = JSON.parse(jsonMatch[1])
+    parsed = JSON.parse(jsonMatch[1]!)
   } else {
     const trimmed = response.trim()
     if (trimmed.startsWith('{')) {
@@ -65,11 +65,11 @@ export function parseDecomposition(response: string): DecomposedTask[] {
     }
   }
 
-  return parsed.tasks.map((t) => ({
-    title: t.title,
-    description: t.description,
-    type: (t.type as CardType) ?? 'task',
-    dependsOn: t.dependsOn ?? [],
+  return parsed.tasks.map((t: any) => ({
+    title: t.title as string,
+    description: t.description as string,
+    type: (t.type ?? 'task') as CardType,
+    dependsOn: (t.dependsOn ?? []) as string[],
     agent: t.agent ?? undefined,
   }))
 }

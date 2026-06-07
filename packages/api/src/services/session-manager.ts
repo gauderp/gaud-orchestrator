@@ -32,7 +32,7 @@ export class SessionManager extends EventEmitter {
 
   static detectApprovalRequest(output: string): string | null {
     const match = output.match(/\[APPROVAL_NEEDED]\s*([\s\S]+?)$/i)
-    if (match) return match[1].trim()
+    if (match) return match[1]!.trim()
     return null
   }
 
