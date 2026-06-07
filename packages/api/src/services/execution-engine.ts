@@ -7,6 +7,7 @@ import { SessionManager } from './session-manager.js'
 import { AgentMemory } from './memory.js'
 import { createEmbeddingRegistry } from './embeddings.js'
 import { logCost } from './cost-tracker.js'
+import { HierarchyService } from './hierarchy.js'
 import type { ProviderRegistry } from '@gaud/providers'
 
 interface TaskRow {
@@ -290,52 +291,118 @@ export class ExecutionEngine {
       // Mark task done
       this.db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('done', task.id)
 
-      // Create PR (best effort)
-      if (task.branch) {
-        const exec = this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any
-        const repos = exec?.card_id
-          ? (this.db.prepare('SELECT repo_path FROM card_repos WHERE card_id = ?').all(exec.card_id) as any[])
-          : []
-        const repoPath = repos[0]?.repo_path
+      // Check if agent requires parent approval before PR creation
+      const hierarchy = new HierarchyService(this.db)
+      const agentId = task.agent_id
 
-        if (repoPath) {
-          try {
-            GitManager.pushBranch(repoPath, task.branch)
-            const prUrl = GitManager.createPR({
-              repoPath,
-              branch: task.branch,
-              title: task.title,
-              body: GitManager.prBody({
-                title: task.title,
-                description: task.description ?? '',
-                executionId: task.execution_id,
-                taskId: task.id,
-              }),
+      if (agentId && hierarchy.requiresApproval(agentId)) {
+        const parent = hierarchy.getParent(agentId)
+        if (parent) {
+          const review = hierarchy.createReview({
+            executionTaskId: task.id,
+            reviewerAgentId: parent.id as string,
+            revieweeAgentId: agentId,
+          })
+
+          // Create review conversation
+          const convId = randomUUID()
+          const now = new Date().toISOString()
+          const exec = this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any
+          this.db.prepare('INSERT INTO conversations (id, card_id, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+            .run(convId, exec?.card_id ?? null, 'review', now, now)
+          this.db.prepare('INSERT INTO conversation_participants (conversation_id, agent_id) VALUES (?, ?)')
+            .run(convId, parent.id as string)
+
+          // Seed with task output for review
+          const taskLogs = this.db.prepare(
+            'SELECT content FROM execution_logs WHERE execution_task_id = ? AND type = ? ORDER BY created_at'
+          ).all(task.id, 'stdout') as any[]
+          const taskOutput = taskLogs.map((l: any) => l.content).join('').slice(-3000)
+
+          const reviewPrompt = `Review the following work by ${task.agent_id || 'an agent'} on task "${task.title}".
+
+## Task Description
+${task.description || 'No description'}
+
+## Agent Output (last 3000 chars)
+${taskOutput || 'No output captured'}
+
+## Your Job
+As the supervisor, review this work:
+1. Does it fulfill the task requirements?
+2. Are there bugs, security issues, or quality problems?
+3. Is the approach correct?
+
+Respond with one of:
+- [APPROVED] if the work is good — include brief comment
+- [CHANGES_REQUESTED] if changes are needed — list specific issues
+- [REJECTED] if the approach is fundamentally wrong — explain why`
+
+          this.db.prepare('INSERT INTO messages (id, conversation_id, sender_type, content, message_type) VALUES (?, ?, ?, ?, ?)')
+            .run(randomUUID(), convId, 'system', reviewPrompt, 'content')
+
+          // Update review with conversation
+          this.db.prepare('UPDATE agent_reviews SET conversation_id = ? WHERE id = ?')
+            .run(convId, (review as any).id)
+
+          // Mark task as paused pending review
+          this.db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('paused', task.id)
+
+          broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any))
+          broadcast('agent:review', { reviewId: (review as any).id, taskId: task.id, reviewerAgentId: parent.id })
+
+          // Trigger the review conversation turn
+          if (this.providerRegistry) {
+            import('./conversation-runner.js').then(async ({ runConversationTurn }) => {
+              try {
+                const result = await runConversationTurn(this.db, convId, this.providerRegistry)
+                const reviewResponse = result.message?.content ?? ''
+
+                if (reviewResponse.includes('[APPROVED]')) {
+                  hierarchy.resolveReview((review as any).id, 'approved', reviewResponse)
+                  this.db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('done', task.id)
+                  this.createPR(task)
+                } else if (reviewResponse.includes('[CHANGES_REQUESTED]')) {
+                  hierarchy.resolveReview((review as any).id, 'changes_requested', reviewResponse)
+                  broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any))
+                  return
+                } else if (reviewResponse.includes('[REJECTED]')) {
+                  hierarchy.resolveReview((review as any).id, 'rejected', reviewResponse)
+                  this.db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('failed', task.id)
+                  broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any))
+                  return
+                } else {
+                  // No clear verdict — approve by default
+                  hierarchy.resolveReview((review as any).id, 'approved', reviewResponse)
+                  this.db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('done', task.id)
+                  this.createPR(task)
+                }
+              } catch (err) {
+                console.error('Supervisor review failed:', err)
+                this.db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('done', task.id)
+                this.createPR(task)
+              }
+
+              this.storeSuccessLearning(task)
+              broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any))
+              this.scheduleNextTasks(task.execution_id)
+            }).catch(() => {
+              // Fallback: proceed without review
+              this.db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('done', task.id)
+              this.createPR(task)
+              this.storeSuccessLearning(task)
+              broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any))
+              this.scheduleNextTasks(task.execution_id)
             })
-            this.db.prepare('UPDATE execution_tasks SET pr_url = ? WHERE id = ?').run(prUrl, task.id)
-          } catch (err) {
-            console.error('PR creation failed:', err)
+            return // Don't continue synchronously — async review handles the rest
           }
-        }
-
-        // Cleanup worktree
-        if (repoPath) {
-          try { GitManager.removeWorktree(repoPath, task.branch) } catch { /* ignore */ }
         }
       }
 
-      // Store success learning
-      this.memory.store({
-        agentId: task.agent_id ?? 'system',
-        type: 'pattern_success',
-        content: `Task "${task.title}" completed successfully`,
-        metadata: { executionId: task.execution_id, branch: task.branch },
-        tags: ['execution', 'success'],
-      }).catch(() => {})
-
+      // No parent approval needed — proceed normally
+      this.createPR(task)
+      this.storeSuccessLearning(task)
       broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any))
-
-      // Schedule next wave
       this.scheduleNextTasks(task.execution_id)
     })
 
@@ -357,6 +424,48 @@ export class ExecutionEngine {
       broadcast('execution:updated', toCamelCase(this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any))
       this.scheduleNextTasks(task.execution_id)
     })
+  }
+
+  private createPR(task: any): void {
+    if (!task.branch) return
+    const exec = this.db.prepare('SELECT * FROM executions WHERE id = ?').get(task.execution_id) as any
+    const repos = exec?.card_id
+      ? (this.db.prepare('SELECT repo_path FROM card_repos WHERE card_id = ?').all(exec.card_id) as any[])
+      : []
+    const repoPath = repos[0]?.repo_path
+
+    if (repoPath) {
+      try {
+        GitManager.pushBranch(repoPath, task.branch)
+        const prUrl = GitManager.createPR({
+          repoPath,
+          branch: task.branch,
+          title: task.title,
+          body: GitManager.prBody({
+            title: task.title,
+            description: task.description ?? '',
+            executionId: task.execution_id,
+            taskId: task.id,
+          }),
+        })
+        this.db.prepare('UPDATE execution_tasks SET pr_url = ? WHERE id = ?').run(prUrl, task.id)
+      } catch (err) {
+        console.error('PR creation failed:', err)
+      }
+
+      // Cleanup worktree
+      try { GitManager.removeWorktree(repoPath, task.branch) } catch { /* ignore */ }
+    }
+  }
+
+  private storeSuccessLearning(task: any): void {
+    this.memory.store({
+      agentId: task.agent_id ?? 'system',
+      type: 'pattern_success',
+      content: `Task "${task.title}" completed successfully`,
+      metadata: { executionId: task.execution_id, branch: task.branch },
+      tags: ['execution', 'success'],
+    }).catch(() => {})
   }
 
   private findTaskBySession(sessionId: string): any | null {
