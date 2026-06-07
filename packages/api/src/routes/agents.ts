@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
 import { getAgentCostSummary } from '../services/cost-tracker.js'
+import { HierarchyService } from '../services/hierarchy.js'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
+import { broadcast } from '../ws/broadcast.js'
 
 export async function agentRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
@@ -9,6 +11,13 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/agents', async (_req, reply) => {
     const agents = db.prepare('SELECT * FROM agents ORDER BY created_at').all()
     return reply.send(toCamelCaseArray(agents as any[]))
+  })
+
+  // Get hierarchy tree (must be before :id route)
+  app.get('/api/agents/tree', async (_req, reply) => {
+    const hierarchy = new HierarchyService(db)
+    const tree = hierarchy.getTree()
+    return reply.send(tree)
   })
 
   app.get<{ Params: { id: string } }>('/api/agents/:id', async (req, reply) => {
@@ -82,5 +91,54 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>('/api/agents/:id/cost', async (req, reply) => {
     const summary = getAgentCostSummary(db, req.params.id)
     return reply.send(summary)
+  })
+
+  // Get pending reviews for an agent (as reviewer)
+  app.get<{ Params: { id: string } }>('/api/agents/:id/reviews', async (req, reply) => {
+    const hierarchy = new HierarchyService(db)
+    const reviews = hierarchy.getPendingReviews(req.params.id)
+    return reply.send(reviews)
+  })
+
+  // Get all reviews for an agent (as reviewee)
+  app.get<{ Params: { id: string } }>('/api/agents/:id/reviews/all', async (req, reply) => {
+    const hierarchy = new HierarchyService(db)
+    const reviews = hierarchy.getReviewsForAgent(req.params.id)
+    return reply.send(reviews)
+  })
+
+  // Update agent hierarchy settings
+  app.put<{ Params: { id: string } }>('/api/agents/:id/hierarchy', async (req, reply) => {
+    const { parentAgentId, requiresParentApproval, escalationTimeoutMinutes } = req.body as any
+    const existing = db.prepare('SELECT * FROM agents WHERE id = ?').get(req.params.id) as any
+    if (!existing) return reply.status(404).send({ error: 'Agent not found' })
+
+    db.prepare(`
+      UPDATE agents SET parent_agent_id = ?, requires_parent_approval = ?, escalation_timeout_minutes = ? WHERE id = ?
+    `).run(
+      parentAgentId ?? null,
+      requiresParentApproval ? 1 : 0,
+      escalationTimeoutMinutes ?? 30,
+      req.params.id,
+    )
+    return reply.send(toCamelCase(db.prepare('SELECT * FROM agents WHERE id = ?').get(req.params.id) as any))
+  })
+
+  // Resolve a review manually (user action)
+  app.post<{ Params: { reviewId: string } }>('/api/reviews/:reviewId/resolve', async (req, reply) => {
+    const { status, comment } = req.body as { status: 'approved' | 'rejected' | 'changes_requested'; comment?: string }
+    const hierarchy = new HierarchyService(db)
+    hierarchy.resolveReview(req.params.reviewId, status, comment)
+
+    // If approved and linked to execution task, resume task
+    const review = db.prepare('SELECT * FROM agent_reviews WHERE id = ?').get(req.params.reviewId) as any
+    if (status === 'approved' && review?.execution_task_id) {
+      db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('done', review.execution_task_id)
+      broadcast('execution:updated', { taskId: review.execution_task_id, status: 'done' })
+    } else if (status === 'rejected' && review?.execution_task_id) {
+      db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('failed', review.execution_task_id)
+    }
+
+    return reply.send(toCamelCase(db.prepare('SELECT * FROM agent_reviews WHERE id = ?').get(req.params.reviewId) as any))
   })
 }
