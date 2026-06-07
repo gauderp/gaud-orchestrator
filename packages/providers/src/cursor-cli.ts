@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from 'child_process'
+import { spawn, type ChildProcess, execFileSync } from 'child_process'
 import { platform } from 'os'
 import type { AgentProvider } from './interface.js'
 import type { SpawnOpts, OutputEvent, AgentSession } from '@gaud/shared'
@@ -9,8 +9,16 @@ interface Session {
   callbacks: Array<(event: OutputEvent) => void>
 }
 
+function detectRtk(): boolean {
+  try {
+    execFileSync('rtk', ['--version'], { encoding: 'utf-8', timeout: 5000 })
+    return true
+  } catch { return false }
+}
+
 export function createCursorCliProvider(): AgentProvider & { buildArgs: (prompt: string, model?: string) => string[] } {
   const sessions = new Map<string, Session>()
+  const hasRtk = detectRtk()
 
   function buildArgs(prompt: string, _model?: string): string[] {
     return ['--prompt', prompt]
@@ -28,7 +36,11 @@ export function createCursorCliProvider(): AgentProvider & { buildArgs: (prompt:
 
       const proc = spawn(cursorPath, args, {
         cwd: opts.cwd,
-        env: { ...process.env, ...opts.env },
+        env: {
+          ...process.env,
+          ...opts.env,
+          ...(hasRtk ? { RTK_ENABLED: '1' } : {}),
+        },
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: true,
       })

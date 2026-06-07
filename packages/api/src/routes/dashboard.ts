@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { clientCount } from '../ws/broadcast.js'
+import { isRtkAvailable, getRtkGain } from '../services/rtk.js'
 
 export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
@@ -73,6 +74,10 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
       memories: { total: totalMemories, recentLearnings },
       skills: { total: skillsTotal },
       boards: { total: boardsTotal },
+      rtk: {
+        available: isRtkAvailable(),
+        gain: getRtkGain(),
+      },
     })
   })
 }
