@@ -47,7 +47,6 @@ export function createClaudeCliProvider(): AgentProvider & { buildArgs: (prompt:
         env: {
           ...process.env,
           ...opts.env,
-          ...(hasRtk ? { RTK_ENABLED: '1' } : {}),
         },
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: true,
