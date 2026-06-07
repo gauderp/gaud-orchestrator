@@ -6,6 +6,7 @@ import { buildAgentTurnPrompt, summarizeMessages } from './prompt-builder.js'
 import { AgentMemory } from './memory.js'
 import { createEmbeddingRegistry } from './embeddings.js'
 import { detectLearnings } from './learning-detector.js'
+import { getAvailableToolsForAgent, formatToolsForPrompt } from './mcp-client.js'
 
 // --- Response parser ---
 
@@ -233,6 +234,9 @@ export async function runConversationTurn(
     minSimilarity: 0.4,
   })
 
+  // 10.6. Get available MCP tools for this agent
+  const availableTools = formatToolsForPrompt(getAvailableToolsForAgent(db, nextAgent.agentId))
+
   // 11. Build prompt
   const prompt = buildAgentTurnPrompt({
     agent: {
@@ -250,6 +254,7 @@ export async function runConversationTurn(
     })),
     codebaseAnalysis,
     attachments,
+    availableTools,
   })
 
   // 11. Call provider

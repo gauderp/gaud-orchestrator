@@ -30,6 +30,7 @@ interface BuildPromptOpts {
   relevantMemories?: Array<{ type: string; content: string; similarity: number }>
   codebaseAnalysis?: string
   attachments?: Array<{ filename: string; content: string; type: 'text' | 'path' }>
+  availableTools?: string
 }
 
 export function buildAgentTurnPrompt(opts: BuildPromptOpts): string {
@@ -73,6 +74,11 @@ export function buildAgentTurnPrompt(opts: BuildPromptOpts): string {
       return `### ${a.filename}\n[File available at: ${a.content}]`
     }).join('\n\n')
     sections.push(`## Card Attachments\n\n${attachmentSections}`)
+  }
+
+  // 3.7. Available MCP tools
+  if (opts.availableTools) {
+    sections.push(opts.availableTools)
   }
 
   // 4. Conversation summary (compressed history)
