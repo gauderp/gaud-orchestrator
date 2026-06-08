@@ -70,6 +70,17 @@ export function SpecDetailPage() {
         )}
       </div>
 
+      {selectedSpec.repos && selectedSpec.repos.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-xs font-medium text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Repos:</span>
+          {selectedSpec.repos.map((r: any) => (
+            <Badge key={r.id} variant="neutral">
+              <span className="font-mono text-[11px]">{r.repoPath}</span>
+            </Badge>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-1 mb-6 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
         {tabs.map((tab) => (
           <button

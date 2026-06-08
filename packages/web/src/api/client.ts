@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, Execution, ExecutionTask, ExecutionGap, ExecutionLog, Repository, BugReport, BugReportWithAttachments } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, SpecRepo, Execution, ExecutionTask, ExecutionGap, ExecutionLog, Repository, BugReport, BugReportWithAttachments } from '@gaud/shared'
 
 const API_BASE = '/api'
 
@@ -183,7 +183,7 @@ export const api = {
 
   specs: {
     list: (status?: string) => request<Spec[]>(`/specs${status ? `?status=${status}` : ''}`),
-    get: (id: string) => request<Spec & { reviews: SpecReview[] }>(`/specs/${id}`),
+    get: (id: string) => request<Spec & { reviews: SpecReview[]; repos: SpecRepo[] }>(`/specs/${id}`),
     create: (data: { title: string; content: string; sourceCardId?: string; createdByType?: string }) =>
       request<Spec>('/specs', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: { title?: string; content?: string }) =>
@@ -194,5 +194,9 @@ export const api = {
       request<{ spec: Spec; conversationId: string }>('/specs/generate', { method: 'POST', body: JSON.stringify(data) }),
     decompose: (id: string, data: { boardId: string; columnId: string }) =>
       request<{ specId: string; boardId: string; cards: any[] }>(`/specs/${id}/decompose`, { method: 'POST', body: JSON.stringify(data) }),
+    listRepos: (specId: string) => request<SpecRepo[]>(`/specs/${specId}/repos`),
+    addRepo: (specId: string, data: { repoPath: string; repositoryId?: string }) =>
+      request<SpecRepo>(`/specs/${specId}/repos`, { method: 'POST', body: JSON.stringify(data) }),
+    removeRepo: (specId: string, repoId: string) => request<void>(`/specs/${specId}/repos/${repoId}`, { method: 'DELETE' }),
   },
 }

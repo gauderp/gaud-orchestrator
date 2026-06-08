@@ -21,9 +21,11 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
     const spec = db.prepare('SELECT * FROM specs WHERE id = ?').get(req.params.id) as any
     if (!spec) return reply.status(404).send({ error: 'Spec not found' })
     const reviews = db.prepare('SELECT * FROM spec_reviews WHERE spec_id = ? ORDER BY created_at').all(req.params.id)
+    const repos = db.prepare('SELECT * FROM spec_repos WHERE spec_id = ? ORDER BY created_at').all(req.params.id)
     return reply.send({
       ...toCamelCase<Record<string, unknown>>(spec as Record<string, unknown>),
       reviews: toCamelCaseArray(reviews as any[]),
+      repos: toCamelCaseArray(repos as any[]),
     })
   })
 
@@ -108,6 +110,14 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
     db.prepare('INSERT INTO messages (id, conversation_id, sender_type, content, message_type) VALUES (?, ?, ?, ?, ?)')
       .run(randomUUID(), convId, 'system', seedContent, 'content')
 
+    // Persist linked repos
+    const repoList = repos ?? []
+    for (const repoPath of repoList) {
+      const registered = db.prepare('SELECT id FROM repositories WHERE github_url = ?').get(repoPath) as any
+      db.prepare('INSERT INTO spec_repos (id, spec_id, repo_path, repository_id) VALUES (?, ?, ?, ?)')
+        .run(randomUUID(), specId, repoPath, registered?.id ?? null)
+    }
+
     const spec = toCamelCase(db.prepare('SELECT * FROM specs WHERE id = ?').get(specId) as any)
     broadcast('spec:updated', spec)
 
@@ -116,6 +126,27 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
       conversationId: convId,
       message: 'Conversation started. Trigger /api/conversations/' + convId + '/next-turn to begin agent collaboration.',
     })
+  })
+
+  // List repos for a spec
+  app.get<{ Params: { id: string } }>('/api/specs/:id/repos', async (req, reply) => {
+    const repos = db.prepare('SELECT * FROM spec_repos WHERE spec_id = ? ORDER BY created_at').all(req.params.id)
+    return reply.send(toCamelCaseArray(repos as any[]))
+  })
+
+  // Add repo to spec
+  app.post<{ Params: { id: string } }>('/api/specs/:id/repos', async (req, reply) => {
+    const { repoPath, repositoryId } = req.body as { repoPath: string; repositoryId?: string }
+    const id = randomUUID()
+    db.prepare('INSERT INTO spec_repos (id, spec_id, repo_path, repository_id) VALUES (?, ?, ?, ?)').run(id, req.params.id, repoPath, repositoryId ?? null)
+    const repo = toCamelCase(db.prepare('SELECT * FROM spec_repos WHERE id = ?').get(id) as any)
+    return reply.status(201).send(repo)
+  })
+
+  // Remove repo from spec
+  app.delete<{ Params: { id: string; repoId: string } }>('/api/specs/:id/repos/:repoId', async (req, reply) => {
+    db.prepare('DELETE FROM spec_repos WHERE id = ? AND spec_id = ?').run(req.params.repoId, req.params.id)
+    return reply.status(204).send()
   })
 
   // Decompose approved spec into cards
@@ -182,6 +213,15 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
           if (depId) {
             db.prepare('INSERT INTO card_dependencies (card_id, depends_on_card_id) VALUES (?, ?)').run(cardId, depId)
           }
+        }
+      }
+
+      // Propagate spec repos to created cards
+      const specRepos = db.prepare('SELECT * FROM spec_repos WHERE spec_id = ?').all(req.params.id) as any[]
+      for (const card of createdCards) {
+        for (const sr of specRepos) {
+          db.prepare('INSERT INTO card_repos (id, card_id, repo_path, repository_id) VALUES (?, ?, ?, ?)')
+            .run(randomUUID(), card.id, sr.repo_path, sr.repository_id)
         }
       }
 

@@ -1,10 +1,10 @@
 import { create } from 'zustand'
-import type { Spec, SpecReview } from '@gaud/shared'
+import type { Spec, SpecReview, SpecRepo } from '@gaud/shared'
 import { api } from '@/api/client'
 
 interface SpecState {
   specs: Spec[]
-  selectedSpec: (Spec & { reviews: SpecReview[] }) | null
+  selectedSpec: (Spec & { reviews: SpecReview[]; repos: SpecRepo[] }) | null
   loading: boolean
   statusFilter: string | null
 

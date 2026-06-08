@@ -22,3 +22,11 @@ export interface SpecReview {
   comment: string | null
   createdAt: string
 }
+
+export interface SpecRepo {
+  id: string
+  specId: string
+  repoPath: string
+  repositoryId: string | null
+  createdAt: string
+}

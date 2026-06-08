@@ -17,6 +17,8 @@ describe('Specs API', () => {
     db = new Database(':memory:')
     db.pragma('foreign_keys = ON')
     db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '001_initial.sql'), 'utf-8'))
+    db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '004_github_repos.sql'), 'utf-8'))
+    db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '006_spec_repos.sql'), 'utf-8'))
 
     // Seed board + column + card for linking
     db.prepare("INSERT INTO boards (id, name) VALUES ('b1', 'Board')").run()
