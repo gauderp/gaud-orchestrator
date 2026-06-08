@@ -158,6 +158,19 @@ export const api = {
     delete: (id: string) => request<void>(`/bug-reports/${id}`, { method: 'DELETE' }),
   },
 
+  backup: {
+    preview: (file: File) => {
+      const fd = new FormData(); fd.append('file', file)
+      return fetch(`${API_BASE}/backup/preview`, { method: 'POST', body: fd })
+        .then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error) }); return r.json() })
+    },
+    restore: (file: File) => {
+      const fd = new FormData(); fd.append('file', file)
+      return fetch(`${API_BASE}/backup/restore`, { method: 'POST', body: fd })
+        .then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error) }); return r.json() })
+    },
+  },
+
   executions: {
     list: () => request<Execution[]>('/executions'),
     get: (id: string) => request<Execution & { tasks: (ExecutionTask & { logs: ExecutionLog[] })[]; gaps: ExecutionGap[] }>(`/executions/${id}`),

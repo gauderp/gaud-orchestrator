@@ -23,6 +23,7 @@ import { dashboardRoutes } from './routes/dashboard.js'
 import { githubRoutes } from './routes/github.js'
 import { bugReportRoutes } from './routes/bug-reports.js'
 import { slackWebhookRoutes } from './routes/slack-webhook.js'
+import { backupRoutes } from './routes/backup.js'
 import multipart from '@fastify/multipart'
 
 const dbPath = process.env['DATABASE_PATH'] ?? 'data/orchestrator.db'
@@ -78,6 +79,7 @@ await server.register(dashboardRoutes)
 await server.register(githubRoutes)
 await server.register(bugReportRoutes)
 await server.register(slackWebhookRoutes)
+await server.register(backupRoutes)
 
 // Serve frontend in production
 if (process.env['NODE_ENV'] === 'production') {

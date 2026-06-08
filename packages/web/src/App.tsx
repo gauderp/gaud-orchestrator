@@ -22,6 +22,7 @@ import { RepositoryListPage } from '@/pages/RepositoryListPage'
 import { OrgChartPage } from '@/pages/OrgChartPage'
 import { BugReportPage } from '@/pages/BugReportPage'
 import { BugReportDetailPage } from '@/pages/BugReportDetailPage'
+import { BackupPage } from '@/pages/BackupPage'
 import { ToastContainer } from '@/components/ui/Toast'
 import { CommandPalette } from '@/components/ui/CommandPalette'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
@@ -119,6 +120,7 @@ export function AppRoutes() {
         <Route path="/repositories" element={<RepositoryListPage />} />
         <Route path="/bugs" element={<BugReportPage />} />
         <Route path="/bugs/:id" element={<BugReportDetailPage />} />
+        <Route path="/settings/backup" element={<BackupPage />} />
         <Route path="/settings" element={<Navigate to="/settings/providers" replace />} />
       </Route>
     </Routes>

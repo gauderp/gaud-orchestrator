@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Bot, Zap, Plug,
   Kanban, FileText, Play, Bug,
   ChevronsLeft, ChevronsRight,
-  Search, GitBranch, FolderGit2,
+  Search, GitBranch, FolderGit2, HardDrive,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import type { ComponentType } from 'react'
@@ -29,6 +29,7 @@ const configNav: NavItem[] = [
   { label: 'Skills', to: '/skills', icon: Zap },
   { label: 'Providers', to: '/settings/providers', icon: Plug },
   { label: 'Repositories', to: '/repositories', icon: FolderGit2 },
+  { label: 'Backup', to: '/settings/backup', icon: HardDrive },
 ]
 
 function NavSection({ items, collapsed }: { items: NavItem[]; collapsed: boolean }) {

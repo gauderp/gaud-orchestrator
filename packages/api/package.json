@@ -17,10 +17,14 @@
     "@fastify/websocket": "^11.0.0",
     "@gaud/providers": "workspace:*",
     "@gaud/shared": "workspace:*",
+    "adm-zip": "^0.5.17",
+    "archiver": "^8.0.0",
     "better-sqlite3": "^11.0.0",
     "fastify": "^5.0.0"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/archiver": "^8.0.0",
     "@types/better-sqlite3": "^7.6.0",
     "@types/ws": "^8.18.1",
     "tsx": "^4.19.0",
