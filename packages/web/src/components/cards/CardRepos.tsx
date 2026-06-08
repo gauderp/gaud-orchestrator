@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Trash2, Plus } from 'lucide-react'
-import type { CardRepo } from '@gaud/shared'
+import type { CardRepo, Repository } from '@gaud/shared'
 import { api } from '@/api/client'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -12,18 +12,33 @@ interface CardReposProps {
 }
 
 export function CardRepos({ cardId, repos, onUpdate }: CardReposProps) {
-  const [repoPath, setRepoPath] = useState('')
+  const [selectedRepo, setSelectedRepo] = useState('')
+  const [manualPath, setManualPath] = useState('')
   const [specPath, setSpecPath] = useState('')
   const [adding, setAdding] = useState(false)
+  const [registeredRepos, setRegisteredRepos] = useState<Repository[]>([])
+
+  useEffect(() => {
+    api.repositories.list().then(setRegisteredRepos)
+  }, [])
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
-    if (!repoPath.trim()) return
     setAdding(true)
     try {
-      await api.cards.addRepo(cardId, { repoPath: repoPath.trim(), specPath: specPath.trim() || undefined })
-      setRepoPath('')
+      if (selectedRepo === '__manual__') {
+        if (!manualPath.trim()) return
+        await api.cards.addRepo(cardId, { repoPath: manualPath.trim(), specPath: specPath.trim() || undefined })
+        setManualPath('')
+      } else if (selectedRepo) {
+        await api.cards.addRepo(cardId, {
+          repoPath: registeredRepos.find(r => r.id === selectedRepo)?.githubUrl ?? '',
+          specPath: specPath.trim() || undefined,
+          repositoryId: selectedRepo,
+        } as any)
+      }
       setSpecPath('')
+      setSelectedRepo('')
       onUpdate()
     } finally {
       setAdding(false)
@@ -34,6 +49,8 @@ export function CardRepos({ cardId, repos, onUpdate }: CardReposProps) {
     await api.cards.removeRepo(cardId, repoId)
     onUpdate()
   }
+
+  const clonedRepos = registeredRepos.filter(r => r.status === 'cloned')
 
   return (
     <div className="flex flex-col gap-3">
@@ -66,17 +83,32 @@ export function CardRepos({ cardId, repos, onUpdate }: CardReposProps) {
       </div>
 
       <form onSubmit={handleAdd} className="flex flex-col gap-2">
-        <Input
-          placeholder="Repository path"
-          value={repoPath}
-          onChange={(e) => setRepoPath(e.target.value)}
-        />
+        <select
+          value={selectedRepo}
+          onChange={(e) => setSelectedRepo(e.target.value)}
+          className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-2.5 h-8 text-[13px] dark:bg-[var(--color-surface-dark)] dark:border-[var(--color-border-dark)] dark:text-[var(--color-ink-dark)]"
+        >
+          <option value="">Select a repository...</option>
+          {clonedRepos.map(r => (
+            <option key={r.id} value={r.id}>{r.githubUrl}</option>
+          ))}
+          <option value="__manual__">Manual path...</option>
+        </select>
+
+        {selectedRepo === '__manual__' && (
+          <Input
+            placeholder="Repository path"
+            value={manualPath}
+            onChange={(e) => setManualPath(e.target.value)}
+          />
+        )}
+
         <Input
           placeholder="Spec path (optional)"
           value={specPath}
           onChange={(e) => setSpecPath(e.target.value)}
         />
-        <Button type="submit" variant="secondary" size="sm" loading={adding}>
+        <Button type="submit" variant="secondary" size="sm" loading={adding} disabled={!selectedRepo}>
           <Plus size={14} className="mr-1" />
           Add Repository
         </Button>

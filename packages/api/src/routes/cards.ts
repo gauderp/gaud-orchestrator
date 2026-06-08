@@ -116,10 +116,16 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
 
   // Repos
   app.post<{ Params: { id: string } }>('/api/cards/:id/repos', async (req, reply) => {
-    const { repoPath, specPath } = req.body as any
+    const { repoPath, specPath, repositoryId } = req.body as any
     const repoId = randomUUID()
-    db.prepare('INSERT INTO card_repos (id, card_id, repo_path, spec_path) VALUES (?, ?, ?, ?)')
-      .run(repoId, req.params.id, repoPath, specPath ?? null)
+    // If repositoryId provided, resolve path from repositories table
+    let resolvedPath = repoPath
+    if (repositoryId) {
+      const registered = db.prepare('SELECT * FROM repositories WHERE id = ?').get(repositoryId) as any
+      resolvedPath = registered?.local_path ?? repoPath
+    }
+    db.prepare('INSERT INTO card_repos (id, card_id, repo_path, spec_path, repository_id) VALUES (?, ?, ?, ?, ?)')
+      .run(repoId, req.params.id, resolvedPath, specPath ?? null, repositoryId ?? null)
     const repo = db.prepare('SELECT * FROM card_repos WHERE id = ?').get(repoId)
     return reply.status(201).send(toCamelCase(repo as any))
   })
