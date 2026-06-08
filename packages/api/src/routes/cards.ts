@@ -9,8 +9,22 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
   const editorPlus = requireRole('editor')
 
   app.get<{ Params: { boardId: string } }>('/api/boards/:boardId/cards', async (req, reply) => {
-    const cards = db.prepare('SELECT * FROM cards WHERE board_id = ? ORDER BY position').all(req.params.boardId)
-    return reply.send(toCamelCaseArray(cards as any[]))
+    const cards = db.prepare('SELECT * FROM cards WHERE board_id = ? ORDER BY position').all(req.params.boardId) as any[]
+    const cardIds = cards.map((c: any) => c.id)
+    const allTags = cardIds.length > 0
+      ? db.prepare(`SELECT * FROM card_tags WHERE card_id IN (${cardIds.map(() => '?').join(',')}) ORDER BY name`).all(...cardIds) as any[]
+      : []
+    const tagsByCard = new Map<string, any[]>()
+    for (const tag of allTags) {
+      const list = tagsByCard.get(tag.card_id) ?? []
+      list.push(tag)
+      tagsByCard.set(tag.card_id, list)
+    }
+    const result = cards.map((c: any) => ({
+      ...toCamelCase<Record<string, unknown>>(c),
+      tags: toCamelCaseArray(tagsByCard.get(c.id) ?? []),
+    }))
+    return reply.send(result)
   })
 
   app.get<{ Params: { id: string } }>('/api/cards/:id', async (req, reply) => {
@@ -21,6 +35,7 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
     const attachments = db.prepare('SELECT * FROM card_attachments WHERE card_id = ?').all(req.params.id)
     const children = db.prepare('SELECT * FROM cards WHERE parent_card_id = ? ORDER BY position').all(req.params.id)
     const dependencies = db.prepare('SELECT * FROM card_dependencies WHERE card_id = ?').all(req.params.id)
+    const tags = db.prepare('SELECT * FROM card_tags WHERE card_id = ? ORDER BY name').all(req.params.id)
     return reply.send({
       ...toCamelCase<Record<string, unknown>>(card),
       repos: toCamelCaseArray(repos as any[]),
@@ -28,6 +43,7 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
       attachments: toCamelCaseArray(attachments as any[]),
       children: toCamelCaseArray(children as any[]),
       dependencies: toCamelCaseArray(dependencies as any[]),
+      tags: toCamelCaseArray(tags as any[]),
     })
   })
 
@@ -148,6 +164,22 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
   app.delete<{ Params: { id: string; depId: string } }>('/api/cards/:id/dependencies/:depId', async (req, reply) => {
     db.prepare('DELETE FROM card_dependencies WHERE card_id = ? AND depends_on_card_id = ?')
       .run(req.params.id, req.params.depId)
+    return reply.status(204).send()
+  })
+
+  // Tags
+  app.post<{ Params: { id: string } }>('/api/cards/:id/tags', { preHandler: [editorPlus] }, async (req, reply) => {
+    const { name, color } = req.body as { name: string; color?: string }
+    if (!name?.trim()) return reply.status(400).send({ error: 'Tag name is required' })
+    const id = randomUUID()
+    db.prepare('INSERT INTO card_tags (id, card_id, name, color) VALUES (?, ?, ?, ?)')
+      .run(id, req.params.id, name.trim(), color ?? '#64748B')
+    const tag = toCamelCase(db.prepare('SELECT * FROM card_tags WHERE id = ?').get(id) as any)
+    return reply.status(201).send(tag)
+  })
+
+  app.delete<{ Params: { id: string; tagId: string } }>('/api/cards/:id/tags/:tagId', { preHandler: [editorPlus] }, async (req, reply) => {
+    db.prepare('DELETE FROM card_tags WHERE id = ? AND card_id = ?').run(req.params.tagId, req.params.id)
     return reply.status(204).send()
   })
 
