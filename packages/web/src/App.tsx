@@ -18,6 +18,7 @@ import { SpecReviewPage } from '@/pages/SpecReviewPage'
 import { SpecDetailPage } from '@/pages/SpecDetailPage'
 import { ExecutionListPage } from '@/pages/ExecutionListPage'
 import { ExecutionDetailPage } from '@/pages/ExecutionDetailPage'
+import { RepositoryListPage } from '@/pages/RepositoryListPage'
 import { OrgChartPage } from '@/pages/OrgChartPage'
 import { ToastContainer } from '@/components/ui/Toast'
 import { CommandPalette } from '@/components/ui/CommandPalette'
@@ -106,6 +107,7 @@ export function AppRoutes() {
         <Route path="/specs/:id" element={<SpecDetailPage />} />
         <Route path="/executions" element={<ExecutionListPage />} />
         <Route path="/executions/:id" element={<ExecutionDetailPage />} />
+        <Route path="/repositories" element={<RepositoryListPage />} />
         <Route path="/settings" element={<Navigate to="/settings/providers" replace />} />
       </Route>
     </Routes>

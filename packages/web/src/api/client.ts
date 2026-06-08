@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, Execution, ExecutionTask, ExecutionGap, ExecutionLog } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, Execution, ExecutionTask, ExecutionGap, ExecutionLog, Repository } from '@gaud/shared'
 
 const API_BASE = '/api'
 
@@ -132,6 +132,19 @@ export const api = {
     delete: (id: string) => request<void>(`/memories/${id}`, { method: 'DELETE' }),
     stats: () => request<MemoryStats>('/memory/stats'),
   },
+  github: {
+    auth: () => request<{ authenticated: boolean; user: string | null; orgs: string[] }>('/github/auth'),
+    listRemoteRepos: (owner: string) => request<Array<{ name: string; fullName: string; description: string; private: boolean }>>(`/github/repos/${owner}`),
+  },
+
+  repositories: {
+    list: () => request<Repository[]>('/repositories'),
+    add: (githubUrl: string, defaultBranch?: string) => request<Repository>('/repositories', { method: 'POST', body: JSON.stringify({ githubUrl, defaultBranch }) }),
+    sync: (id: string) => request<Repository>(`/repositories/${id}/sync`, { method: 'POST' }),
+    delete: (id: string) => request<void>(`/repositories/${id}`, { method: 'DELETE' }),
+    cleanupWorktrees: (id: string) => request<{ cleaned: number }>(`/repositories/${id}/cleanup-worktrees`, { method: 'POST' }),
+  },
+
   executions: {
     list: () => request<Execution[]>('/executions'),
     get: (id: string) => request<Execution & { tasks: (ExecutionTask & { logs: ExecutionLog[] })[]; gaps: ExecutionGap[] }>(`/executions/${id}`),
