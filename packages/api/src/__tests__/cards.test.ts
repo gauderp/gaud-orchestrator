@@ -20,6 +20,9 @@ describe('Cards API', () => {
     db = new Database(':memory:')
     db.pragma('foreign_keys = ON')
     db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '001_initial.sql'), 'utf-8'))
+    try { db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '002_fix_comment_author_type.sql'), 'utf-8')) } catch { /* optional */ }
+    try { db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '003_agent_hierarchy.sql'), 'utf-8')) } catch { /* optional */ }
+    try { db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '004_github_repos.sql'), 'utf-8')) } catch { /* optional */ }
     app.decorate('db', db)
     await app.register(boardRoutes)
     await app.register(cardRoutes)
