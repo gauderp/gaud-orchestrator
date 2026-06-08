@@ -60,13 +60,15 @@ export class GitManager {
   }
 
   static pushBranch(repoPath: string, branch: string): void {
-    execFileSync('git', ['push', '-u', 'origin', branch], { cwd: repoPath, encoding: 'utf-8' })
+    execFileSync('git', ['push', '-u', 'origin', branch], {
+      cwd: repoPath, encoding: 'utf-8', env: { ...process.env },
+    })
   }
 
   static createPR(opts: { repoPath: string; branch: string; title: string; body: string }): string {
     const result = execFileSync(
       'gh', ['pr', 'create', '--title', opts.title, '--body', opts.body, '--head', opts.branch],
-      { cwd: opts.repoPath, encoding: 'utf-8' },
+      { cwd: opts.repoPath, encoding: 'utf-8', env: { ...process.env } },
     )
     return result.trim()
   }

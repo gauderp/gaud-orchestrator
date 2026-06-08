@@ -7,20 +7,55 @@ import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 
 const REPOS_DIR = process.env['REPOS_DIR'] ?? join(process.cwd(), 'data', 'repos')
 
+function ghEnv(): NodeJS.ProcessEnv {
+  return { ...process.env }
+}
+
+function configureGitTokenAuth(): void {
+  const token = process.env['GITHUB_TOKEN']
+  if (!token) return
+  try {
+    execFileSync('git', ['config', '--global', 'credential.helper', ''], { encoding: 'utf-8' })
+    execFileSync('git', ['config', '--global', `url.https://${token}@github.com/.insteadOf`, 'https://github.com/'], { encoding: 'utf-8' })
+  } catch { /* best effort */ }
+}
+
 export class GitHubService {
   constructor(private db: Database.Database) {}
 
-  // Check if gh CLI is authenticated
+  // Check if gh CLI is authenticated (via GITHUB_TOKEN or gh auth)
   checkAuth(): { authenticated: boolean; user: string | null; orgs: string[] } {
+    const token = process.env['GITHUB_TOKEN']
+
+    if (token) {
+      try {
+        const output = execFileSync('gh', ['api', '/user', '--jq', '.login'], {
+          encoding: 'utf-8', timeout: 10000, env: ghEnv(),
+        })
+        const user = output.trim()
+
+        let orgs: string[] = []
+        try {
+          const orgOutput = execFileSync('gh', ['api', '/user/orgs', '--jq', '.[].login'], {
+            encoding: 'utf-8', timeout: 10000, env: ghEnv(),
+          })
+          orgs = orgOutput.trim().split('\n').filter(Boolean)
+        } catch { /* no orgs or permission */ }
+
+        return { authenticated: true, user, orgs }
+      } catch {
+        return { authenticated: false, user: null, orgs: [] }
+      }
+    }
+
+    // Fallback: check gh auth status
     try {
       const status = execFileSync('gh', ['auth', 'status'], {
         encoding: 'utf-8', timeout: 10000,
       })
-      // Extract username
       const userMatch = status.match(/Logged in to github\.com account (\S+)/)
       const user = userMatch ? userMatch[1] : null
 
-      // Get orgs
       let orgs: string[] = []
       try {
         const orgOutput = execFileSync('gh', ['org', 'list'], {
@@ -42,7 +77,7 @@ export class GitHubService {
         'repo', 'list', owner,
         '--json', 'name,nameWithOwner,description,isPrivate',
         '--limit', '100',
-      ], { encoding: 'utf-8', timeout: 30000 })
+      ], { encoding: 'utf-8', timeout: 30000, env: ghEnv() })
       const repos = JSON.parse(output)
       return repos.map((r: any) => ({
         name: r.name,
@@ -88,13 +123,15 @@ export class GitHubService {
     try {
       this.db.prepare('UPDATE repositories SET status = ? WHERE id = ?').run('syncing', repoId)
 
+      configureGitTokenAuth()
+
       if (existsSync(join(localPath, '.git'))) {
         // Already cloned, just pull
-        execFileSync('git', ['pull', '--ff-only'], { cwd: localPath, encoding: 'utf-8', timeout: 120000 })
+        execFileSync('git', ['pull', '--ff-only'], { cwd: localPath, encoding: 'utf-8', timeout: 120000, env: ghEnv() })
       } else {
         // Clone
         execFileSync('gh', ['repo', 'clone', repo.github_url, localPath], {
-          encoding: 'utf-8', timeout: 300000,
+          encoding: 'utf-8', timeout: 300000, env: ghEnv(),
         })
       }
 
@@ -115,7 +152,8 @@ export class GitHubService {
 
     try {
       this.db.prepare('UPDATE repositories SET status = ? WHERE id = ?').run('syncing', repoId)
-      execFileSync('git', ['pull', '--ff-only'], { cwd: repo.local_path, encoding: 'utf-8', timeout: 120000 })
+      configureGitTokenAuth()
+      execFileSync('git', ['pull', '--ff-only'], { cwd: repo.local_path, encoding: 'utf-8', timeout: 120000, env: ghEnv() })
       this.db.prepare("UPDATE repositories SET status = 'cloned', last_synced_at = datetime('now') WHERE id = ?").run(repoId)
     } catch (err: any) {
       this.db.prepare("UPDATE repositories SET status = 'error' WHERE id = ?").run(repoId)
