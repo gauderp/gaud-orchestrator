@@ -1,50 +1,51 @@
 # Gaud Orchestrator — Docker Compose
 #
 # Usage:
-#   docker compose up --build
+#   cp .env.example .env   # edit with your tokens
+#   docker compose up -d --build
 #
-# CLI providers (Claude Code, Cursor) use the host's subscriptions.
-# Auth credentials are mounted as read-only volumes from the host.
+# Authentication:
+#   - GitHub: via GITHUB_TOKEN env var (PAT or fine-grained token)
+#   - Claude: via ANTHROPIC_API_KEY (for claude-api provider)
+#            OR mounted ~/.claude (for claude-cli provider on same machine)
+#   - Other LLMs: via respective API keys
 
 services:
   gaud-orchestrator:
     build: .
     ports:
-      - "3001:3001"
+      - "${PORT:-3001}:3001"
     volumes:
-      # Data
       - gaud-data:/app/data
-      - gaud-attachments:/app/attachments
-      - gaud-repos:/app/data/repos
       - ./agents:/app/agents
-      # Host CLI auth (read-only) — uses your existing subscriptions
-      - ${CLAUDE_AUTH_DIR:-~/.claude}:/home/node/.claude:ro
-      - ${CURSOR_AUTH_DIR:-~/.cursor}:/home/node/.cursor:ro
-      # Host git config (for PR creation via gh)
-      - ~/.gitconfig:/home/node/.gitconfig:ro
-      - ${GH_CONFIG_DIR:-~/.config/gh}:/home/node/.config/gh:ro
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/orchestrator.db
       - AGENTS_DIR=/app/agents
-      - ATTACHMENTS_DIR=/app/attachments
+      - ATTACHMENTS_DIR=/app/data/attachments
       - REPOS_DIR=/app/data/repos
-      - LOG_LEVEL=info
-      - HOME=/home/node
-      # Optional: API keys for API-only providers (OpenAI, Gemini, DeepSeek)
-      # Not needed if you only use CLI providers with subscriptions
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # GitHub — used by gh CLI and git for clone/push/PR
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME:-Gaud Orchestrator}
+      - GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL:-orchestrator@gaud.dev}
+      - GIT_COMMITTER_NAME=${GIT_AUTHOR_NAME:-Gaud Orchestrator}
+      - GIT_COMMITTER_EMAIL=${GIT_AUTHOR_EMAIL:-orchestrator@gaud.dev}
+      # LLM API keys (configure the ones you use)
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
-    user: "1000:1000"
+      # Slack (optional)
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET:-}
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r => r.ok ? process.exit(0) : process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
 
 volumes:
   gaud-data:
-  gaud-attachments:
-  gaud-repos:

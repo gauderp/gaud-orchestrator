@@ -1,0 +1,12 @@
+# Development overlay — mounts host CLI credentials
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Only needed if you want to use claude-cli or cursor providers in Docker
+# (usually unnecessary — run `pnpm dev` for local development instead)
+
+services:
+  gaud-orchestrator:
+    volumes:
+      - ${HOME}/.claude:/root/.claude:ro
+      - ${HOME}/.cursor:/root/.cursor:ro
+      - ${HOME}/.config/gh:/root/.config/gh:ro
