@@ -1,7 +1,20 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, SpecRepo, Execution, ExecutionTask, ExecutionGap, ExecutionLog, Repository, BugReport, BugReportWithAttachments } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, CardTag, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, SpecRepo, Execution, ExecutionTask, ExecutionGap, ExecutionLog, Repository, BugReport, BugReportWithAttachments } from '@gaud/shared'
 import { useAuthStore } from '@/store/auth'
 
 const API_BASE = '/api'
+
+// Mutex for token refresh — prevents parallel 401s from triggering multiple refreshes
+let refreshPromise: Promise<boolean> | null = null
+
+async function tryRefresh(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise
+  refreshPromise = useAuthStore.getState().refresh().finally(() => { refreshPromise = null })
+  return refreshPromise
+}
+
+function getAuthHeader(): string | null {
+  return useAuthStore.getState().accessToken
+}
 
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {}
@@ -9,23 +22,20 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
     headers['Content-Type'] = 'application/json'
   }
 
-  // Add auth token
-  const token = useAuthStore.getState().accessToken
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
+  const token = getAuthHeader()
+  if (token) headers['Authorization'] = `Bearer ${token}`
 
   let res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: { ...headers, ...(options?.headers as Record<string, string> ?? {}) },
   })
 
-  // On 401, try refresh and retry once
+  // On 401, try refresh once and retry
   if (res.status === 401 && token) {
-    const refreshed = await useAuthStore.getState().refresh()
+    const refreshed = await tryRefresh()
     if (refreshed) {
-      const newToken = useAuthStore.getState().accessToken
-      headers['Authorization'] = `Bearer ${newToken}`
+      const newToken = getAuthHeader()
+      if (newToken) headers['Authorization'] = `Bearer ${newToken}`
       res = await fetch(`${API_BASE}${path}`, {
         ...options,
         headers: { ...headers, ...(options?.headers as Record<string, string> ?? {}) },
@@ -34,9 +44,7 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   }
 
   if (!res.ok) {
-    if (res.status === 401) {
-      useAuthStore.getState().logout()
-    }
+    if (res.status === 401) useAuthStore.getState().logout()
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(err.error || res.statusText)
   }
@@ -44,9 +52,23 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   return res.json()
 }
 
-function authHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().accessToken
-  return token ? { Authorization: `Bearer ${token}` } : {}
+async function fetchWithAuth(url: string, init: RequestInit): Promise<Response> {
+  const token = getAuthHeader()
+  const headers: Record<string, string> = { ...(init.headers as Record<string, string> ?? {}) }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  let res = await fetch(url, { ...init, headers })
+
+  if (res.status === 401 && token) {
+    const refreshed = await tryRefresh()
+    if (refreshed) {
+      const newToken = getAuthHeader()
+      if (newToken) headers['Authorization'] = `Bearer ${newToken}`
+      res = await fetch(url, { ...init, headers })
+    }
+  }
+  if (res.status === 401) useAuthStore.getState().logout()
+  return res
 }
 
 export const api = {
@@ -131,6 +153,10 @@ export const api = {
     estimate: (id: string) => request<CardEstimate>(`/cards/${id}/estimate`, { method: 'POST' }),
     askAgent: (id: string, data: { agentId: string; prompt: string }) =>
       request<AskAgentResponse>(`/cards/${id}/ask-agent`, { method: 'POST', body: JSON.stringify(data) }),
+    addTag: (cardId: string, data: { name: string; color?: string }) =>
+      request<CardTag>(`/cards/${cardId}/tags`, { method: 'POST', body: JSON.stringify(data) }),
+    removeTag: (cardId: string, tagId: string) =>
+      request<void>(`/cards/${cardId}/tags/${tagId}`, { method: 'DELETE' }),
   },
 
   conversations: {
@@ -178,7 +204,7 @@ export const api = {
   bugReports: {
     list: (status?: string) => request<BugReport[]>(`/bug-reports${status ? `?status=${status}` : ''}`),
     get: (id: string) => request<BugReportWithAttachments>(`/bug-reports/${id}`),
-    create: (data: FormData) => fetch(`${API_BASE}/bug-reports`, { method: 'POST', body: data, headers: authHeaders() }).then(r => {
+    create: (data: FormData) => fetchWithAuth(`${API_BASE}/bug-reports`, { method: 'POST', body: data }).then(r => {
       if (!r.ok) return r.json().then(e => { throw new Error(e.error) })
       return r.json()
     }),
@@ -191,12 +217,12 @@ export const api = {
   backup: {
     preview: (file: File) => {
       const fd = new FormData(); fd.append('file', file)
-      return fetch(`${API_BASE}/backup/preview`, { method: 'POST', body: fd, headers: authHeaders() })
+      return fetchWithAuth(`${API_BASE}/backup/preview`, { method: 'POST', body: fd })
         .then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error) }); return r.json() })
     },
     restore: (file: File) => {
       const fd = new FormData(); fd.append('file', file)
-      return fetch(`${API_BASE}/backup/restore`, { method: 'POST', body: fd, headers: authHeaders() })
+      return fetchWithAuth(`${API_BASE}/backup/restore`, { method: 'POST', body: fd })
         .then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error) }); return r.json() })
     },
   },

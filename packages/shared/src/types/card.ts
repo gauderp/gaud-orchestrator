@@ -30,6 +30,7 @@ export interface CardWithDetails extends Card {
   attachments: CardAttachment[]
   children: Card[]
   dependencies: CardDependency[]
+  tags: CardTag[]
 }
 
 export interface CardRepo {
@@ -53,6 +54,14 @@ export interface CardAttachment {
   cardId: string
   filename: string
   path: string
+  createdAt: string
+}
+
+export interface CardTag {
+  id: string
+  cardId: string
+  name: string
+  color: string
   createdAt: string
 }
 

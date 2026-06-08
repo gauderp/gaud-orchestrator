@@ -54,11 +54,12 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(400).send({ error: 'Title and description are required' })
     }
 
+    const user = (req as any).user as { id: string; name: string; email: string; role: string } | undefined
     const report = triage.createReport({
       title: fields['title'],
       description: fields['description'],
-      reporterName: fields['reporterName'],
-      reporterEmail: fields['reporterEmail'],
+      reporterName: user?.name ?? fields['reporterName'],
+      reporterEmail: user?.email ?? fields['reporterEmail'],
       source: fields['source'] as any ?? 'ui',
       attachments,
     })

@@ -8,7 +8,7 @@ import { join, resolve } from 'path'
 const TABLE_ORDER = [
   'users', 'setup_state',
   'providers', 'agents', 'skills', 'agent_skills', 'boards', 'columns', 'repositories',
-  'cards', 'card_dependencies', 'card_repos', 'card_comments', 'card_attachments',
+  'cards', 'card_dependencies', 'card_repos', 'card_comments', 'card_attachments', 'card_tags',
   'specs', 'spec_reviews', 'spec_repos', 'executions', 'execution_tasks', 'execution_logs', 'execution_gaps',
   'conversations', 'conversation_participants', 'messages',
   'agent_cost_log', 'agent_memories', 'memory_sessions', 'agent_reviews',

@@ -1,12 +1,12 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Link } from 'react-router-dom'
-import type { Card } from '@gaud/shared'
+import type { Card, CardTag } from '@gaud/shared'
 import { CardTypeIcon } from './CardTypeIcon'
 import { Badge } from '@/components/ui/Badge'
 
 interface KanbanCardProps {
-  card: Card
+  card: Card & { tags?: CardTag[] }
   agentName?: string
 }
 
@@ -43,6 +43,19 @@ export function KanbanCard({ card, agentName }: KanbanCardProps) {
         <p className="mt-0.5 text-xs leading-4 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] truncate pl-[20px]">
           {card.description}
         </p>
+      )}
+      {card.tags && card.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1 pl-[20px]">
+          {card.tags.map(tag => (
+            <span
+              key={tag.id}
+              className="rounded-full px-1.5 py-px text-[10px] font-medium text-white"
+              style={{ backgroundColor: tag.color }}
+            >
+              {tag.name}
+            </span>
+          ))}
+        </div>
       )}
       <div className="mt-1.5 flex items-center gap-1 pl-[20px] flex-wrap">
         <Badge variant="neutral">{card.type}</Badge>
