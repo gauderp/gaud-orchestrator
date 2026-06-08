@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Paperclip, MessageSquare, Plus, Calendar, GitBranch, Link2 } from 'lucide-react'
 import { CardRepos } from './CardRepos'
+import { CardTags } from './CardTags'
 import { CardComments } from './CardComments'
 import { useConversationStore } from '@/store/conversations'
 import { ConversationStarter } from '@/components/conversation/ConversationStarter'
@@ -195,6 +196,11 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
             <Badge variant="neutral">{columnName}</Badge>
           </MetaField>
         )}
+
+        {/* Tags */}
+        <MetaField label="Tags">
+          <CardTags cardId={card.id} tags={card.tags ?? []} onUpdate={onUpdate} />
+        </MetaField>
 
         {/* Type */}
         <MetaField label="Type">
