@@ -24,6 +24,7 @@ describe('Cards API', () => {
     try { db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '002_fix_comment_author_type.sql'), 'utf-8')) } catch { /* optional */ }
     try { db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '003_agent_hierarchy.sql'), 'utf-8')) } catch { /* optional */ }
     try { db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '004_github_repos.sql'), 'utf-8')) } catch { /* optional */ }
+    try { db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '008_card_tags.sql'), 'utf-8')) } catch { /* optional */ }
     app.decorate('db', db)
     await setupTestAuth(app)
     await app.register(boardRoutes)
