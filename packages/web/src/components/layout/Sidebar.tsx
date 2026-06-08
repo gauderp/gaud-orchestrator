@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useAppStore } from '@/store/app'
 import {
   LayoutDashboard, Bot, Zap, Plug,
-  Kanban, FileText, Play,
+  Kanban, FileText, Play, Bug,
   ChevronsLeft, ChevronsRight,
   Search, GitBranch, FolderGit2,
 } from 'lucide-react'
@@ -20,6 +20,7 @@ const mainNav: NavItem[] = [
   { label: 'Boards', to: '/boards', icon: Kanban },
   { label: 'Specs', to: '/specs', icon: FileText },
   { label: 'Executions', to: '/executions', icon: Play },
+  { label: 'Bug Reports', to: '/bugs', icon: Bug },
 ]
 
 const configNav: NavItem[] = [

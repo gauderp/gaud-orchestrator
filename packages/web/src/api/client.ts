@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, Execution, ExecutionTask, ExecutionGap, ExecutionLog, Repository } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, Execution, ExecutionTask, ExecutionGap, ExecutionLog, Repository, BugReport, BugReportWithAttachments } from '@gaud/shared'
 
 const API_BASE = '/api'
 
@@ -143,6 +143,19 @@ export const api = {
     sync: (id: string) => request<Repository>(`/repositories/${id}/sync`, { method: 'POST' }),
     delete: (id: string) => request<void>(`/repositories/${id}`, { method: 'DELETE' }),
     cleanupWorktrees: (id: string) => request<{ cleaned: number }>(`/repositories/${id}/cleanup-worktrees`, { method: 'POST' }),
+  },
+
+  bugReports: {
+    list: (status?: string) => request<BugReport[]>(`/bug-reports${status ? `?status=${status}` : ''}`),
+    get: (id: string) => request<BugReportWithAttachments>(`/bug-reports/${id}`),
+    create: (data: FormData) => fetch(`${API_BASE}/bug-reports`, { method: 'POST', body: data }).then(r => {
+      if (!r.ok) return r.json().then(e => { throw new Error(e.error) })
+      return r.json()
+    }),
+    triage: (id: string, agentId: string) => request(`/bug-reports/${id}/triage`, { method: 'POST', body: JSON.stringify({ agentId }) }),
+    respond: (id: string, content: string) => request(`/bug-reports/${id}/respond`, { method: 'POST', body: JSON.stringify({ content }) }),
+    createCard: (id: string, boardId: string, columnId: string) => request(`/bug-reports/${id}/create-card`, { method: 'POST', body: JSON.stringify({ boardId, columnId }) }),
+    delete: (id: string) => request<void>(`/bug-reports/${id}`, { method: 'DELETE' }),
   },
 
   executions: {

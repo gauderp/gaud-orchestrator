@@ -20,6 +20,8 @@ import { ExecutionListPage } from '@/pages/ExecutionListPage'
 import { ExecutionDetailPage } from '@/pages/ExecutionDetailPage'
 import { RepositoryListPage } from '@/pages/RepositoryListPage'
 import { OrgChartPage } from '@/pages/OrgChartPage'
+import { BugReportPage } from '@/pages/BugReportPage'
+import { BugReportDetailPage } from '@/pages/BugReportDetailPage'
 import { ToastContainer } from '@/components/ui/Toast'
 import { CommandPalette } from '@/components/ui/CommandPalette'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
@@ -71,6 +73,13 @@ export function AppRoutes() {
           case 'execution:task:log':
             // Real-time log append — refreshed when execution detail is viewed
             break
+          case 'bug_report:created':
+          case 'bug_report:triaging':
+          case 'bug_report:triaged':
+          case 'bug_report:needs_info':
+          case 'bug_report:rejected':
+            console.log(`[WS] Bug report event: ${msg.type}`, msg.payload)
+            break
           case 'memory:stored':
           case 'memory:learning':
             // Memory events — UI refresh handled by store when page is active
@@ -108,6 +117,8 @@ export function AppRoutes() {
         <Route path="/executions" element={<ExecutionListPage />} />
         <Route path="/executions/:id" element={<ExecutionDetailPage />} />
         <Route path="/repositories" element={<RepositoryListPage />} />
+        <Route path="/bugs" element={<BugReportPage />} />
+        <Route path="/bugs/:id" element={<BugReportDetailPage />} />
         <Route path="/settings" element={<Navigate to="/settings/providers" replace />} />
       </Route>
     </Routes>
