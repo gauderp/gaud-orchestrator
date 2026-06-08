@@ -3,20 +3,24 @@ import { useNavigate } from 'react-router-dom'
 import { Bug, Plus, Upload, AlertTriangle, CheckCircle2, HelpCircle, XCircle, Clock } from 'lucide-react'
 import type { BugReport } from '@gaud/shared'
 import { api } from '@/api/client'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 
-const statusConfig: Record<string, { label: string; bg: string; text: string; icon: any }> = {
-  new: { label: 'New', bg: '#dbeafe', text: '#1e40af', icon: Clock },
-  triaging: { label: 'Triaging', bg: '#fef9c3', text: '#854d0e', icon: Clock },
-  needs_info: { label: 'Needs Info', bg: '#fef3c7', text: '#92400e', icon: HelpCircle },
-  triaged: { label: 'Triaged', bg: '#dcfce7', text: '#166534', icon: CheckCircle2 },
-  rejected: { label: 'Rejected', bg: '#fecaca', text: '#991b1b', icon: XCircle },
+const statusConfig: Record<string, { label: string; variant: 'info' | 'warning' | 'success' | 'error' | 'neutral'; icon: any }> = {
+  new: { label: 'New', variant: 'info', icon: Clock },
+  triaging: { label: 'Triaging', variant: 'warning', icon: Clock },
+  needs_info: { label: 'Needs Info', variant: 'warning', icon: HelpCircle },
+  triaged: { label: 'Triaged', variant: 'success', icon: CheckCircle2 },
+  rejected: { label: 'Rejected', variant: 'error', icon: XCircle },
 }
 
-const severityConfig: Record<string, { bg: string; text: string }> = {
-  critical: { bg: '#fecaca', text: '#991b1b' },
-  high: { bg: '#fed7aa', text: '#9a3412' },
-  medium: { bg: '#fef9c3', text: '#854d0e' },
-  low: { bg: '#e0e7ff', text: '#3730a3' },
+const severityConfig: Record<string, { variant: 'error' | 'warning' | 'info' | 'neutral' }> = {
+  critical: { variant: 'error' },
+  high: { variant: 'warning' },
+  medium: { variant: 'warning' },
+  low: { variant: 'info' },
 }
 
 type TabStatus = 'all' | 'new' | 'needs_info' | 'triaged' | 'rejected'
@@ -29,11 +33,9 @@ export function BugReportPage() {
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
 
-  // Form fields
+  // Form fields — reporter name/email removed (auto-filled by backend from logged-in user)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [reporterName, setReporterName] = useState('')
-  const [reporterEmail, setReporterEmail] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -57,16 +59,12 @@ export function BugReportPage() {
       const formData = new FormData()
       formData.append('title', title)
       formData.append('description', description)
-      if (reporterName) formData.append('reporterName', reporterName)
-      if (reporterEmail) formData.append('reporterEmail', reporterEmail)
       for (const file of files) {
         formData.append('files', file)
       }
       await api.bugReports.create(formData)
       setTitle('')
       setDescription('')
-      setReporterName('')
-      setReporterEmail('')
       setFiles([])
       setShowForm(false)
       await loadReports()
@@ -86,178 +84,103 @@ export function BugReportPage() {
   ]
 
   return (
-    <div style={{ padding: '24px', maxWidth: '960px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Bug size={20} style={{ color: '#dc2626' }} />
-          <h1 style={{ fontSize: '20px', fontWeight: 600 }}>Bug Reports</h1>
+    <div className="mx-auto max-w-4xl p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2.5">
+          <Bug size={20} className="text-[var(--color-destructive)]" />
+          <h1 className="text-xl font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Bug Reports</h1>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '8px 14px', borderRadius: '6px',
-            background: '#dc2626', color: '#fff', border: 'none',
-            fontSize: '13px', cursor: 'pointer', fontWeight: 500,
-          }}
-        >
-          <Plus size={14} />
+        <Button onClick={() => setShowForm(!showForm)} size="sm" variant="destructive">
+          <Plus size={14} className="mr-1.5" />
           Report Bug
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div style={{
-          padding: '10px 14px', borderRadius: '8px', marginBottom: '16px',
-          background: '#fef2f2', color: '#991b1b', fontSize: '13px',
-        }}>
+        <div className="rounded-[var(--radius-md)] border border-[var(--color-destructive)]/20 bg-[var(--color-destructive)]/5 px-3.5 py-2.5 mb-4 text-sm text-[var(--color-destructive)]">
           {error}
         </div>
       )}
 
       {/* Submit Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} style={{
-          padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb',
-          background: '#fff', marginBottom: '24px',
-        }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '16px' }}>New Bug Report</h2>
+        <form onSubmit={handleSubmit} className="rounded-[var(--radius-md)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-white dark:bg-[var(--color-surface-dark)] p-5 mb-6">
+          <h2 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] mb-4">New Bug Report</h2>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Title *</label>
-              <input
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="Brief summary of the bug"
-                required
-                style={{
-                  width: '100%', padding: '8px 12px', borderRadius: '6px',
-                  border: '1px solid #e5e7eb', fontSize: '13px', boxSizing: 'border-box',
-                }}
-              />
-            </div>
+          <div className="flex flex-col gap-3">
+            <Input
+              label="Title"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Brief summary of the bug"
+              required
+            />
 
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Description *</label>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="What happened? What did you expect? Steps to reproduce..."
-                required
-                rows={6}
-                style={{
-                  width: '100%', padding: '8px 12px', borderRadius: '6px',
-                  border: '1px solid #e5e7eb', fontSize: '13px', resize: 'vertical',
-                  fontFamily: 'inherit', boxSizing: 'border-box',
-                }}
-              />
-            </div>
+            <Textarea
+              label="Description"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="What happened? What did you expect? Steps to reproduce..."
+              required
+              rows={6}
+              className="min-h-[100px]"
+            />
 
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Reporter Name</label>
-                <input
-                  value={reporterName}
-                  onChange={e => setReporterName(e.target.value)}
-                  placeholder="Your name"
-                  style={{
-                    width: '100%', padding: '8px 12px', borderRadius: '6px',
-                    border: '1px solid #e5e7eb', fontSize: '13px', boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Reporter Email</label>
-                <input
-                  value={reporterEmail}
-                  onChange={e => setReporterEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  type="email"
-                  style={{
-                    width: '100%', padding: '8px 12px', borderRadius: '6px',
-                    border: '1px solid #e5e7eb', fontSize: '13px', boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Attachments</label>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Attachments</span>
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
                 onChange={e => setFiles(Array.from(e.target.files ?? []))}
-                style={{ display: 'none' }}
+                className="hidden"
               />
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 14px', borderRadius: '6px', border: '1px dashed #d1d5db',
-                  background: '#f9fafb', fontSize: '13px', cursor: 'pointer', color: '#6b7280',
-                }}
+                className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-dashed border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)] px-3.5 py-2 text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] cursor-pointer hover:border-[var(--color-muted)] dark:hover:border-[var(--color-muted-dark)]"
               >
                 <Upload size={14} />
                 Upload screenshots, logs, videos...
               </button>
               {files.length > 0 && (
-                <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <div className="mt-2 flex gap-1.5 flex-wrap">
                   {files.map((f, i) => (
-                    <span key={i} style={{
-                      fontSize: '12px', padding: '4px 8px', borderRadius: '4px',
-                      background: '#f3f4f6', color: '#374151',
-                    }}>
-                      {f.name}
-                    </span>
+                    <Badge key={i} variant="neutral">{f.name}</Badge>
                   ))}
                 </div>
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                style={{
-                  padding: '8px 14px', borderRadius: '6px', border: '1px solid #e5e7eb',
-                  fontSize: '13px', cursor: 'pointer', background: '#fff',
-                }}
-              >
+            <div className="flex gap-2 justify-end mt-1">
+              <Button type="button" variant="secondary" size="sm" onClick={() => setShowForm(false)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                disabled={submitting || !title.trim() || !description.trim()}
-                style={{
-                  padding: '8px 18px', borderRadius: '6px', border: 'none',
-                  background: '#dc2626', color: '#fff', fontSize: '13px',
-                  cursor: 'pointer', fontWeight: 500,
-                  opacity: submitting || !title.trim() || !description.trim() ? 0.5 : 1,
-                }}
+                variant="destructive"
+                size="sm"
+                loading={submitting}
+                disabled={!title.trim() || !description.trim()}
               >
-                {submitting ? 'Submitting...' : 'Submit Report'}
-              </button>
+                Submit Report
+              </Button>
             </div>
           </div>
         </form>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', borderBottom: '1px solid #e5e7eb', paddingBottom: '0' }}>
+      <div className="flex gap-1 mb-4 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            style={{
-              padding: '8px 14px', fontSize: '13px', cursor: 'pointer',
-              border: 'none', background: 'none', fontWeight: tab === t.key ? 600 : 400,
-              color: tab === t.key ? '#dc2626' : '#6b7280',
-              borderBottom: tab === t.key ? '2px solid #dc2626' : '2px solid transparent',
-              marginBottom: '-1px',
-            }}
+            className={`-mb-px border-b-2 px-3.5 py-2 text-sm font-medium cursor-pointer transition-colors ${
+              tab === t.key
+                ? 'border-[var(--color-destructive)] text-[var(--color-destructive)]'
+                : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
+            }`}
           >
             {t.label}
           </button>
@@ -266,65 +189,42 @@ export function BugReportPage() {
 
       {/* Report List */}
       {reports.length === 0 ? (
-        <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '40px 0' }}>
+        <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] text-center py-10">
           No bug reports{tab !== 'all' ? ` with status "${tab}"` : ''}.
         </p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="flex flex-col gap-2">
           {reports.map(report => {
-            const status = (statusConfig[report.status] ?? statusConfig['new'])!
-            const severity = report.severity ? severityConfig[report.severity]! : null
+            const status = statusConfig[report.status] ?? statusConfig['new']!
+            const severity = report.severity ? severityConfig[report.severity] : null
             const StatusIcon = status.icon
             return (
               <div
                 key={report.id}
                 onClick={() => navigate(`/bugs/${report.id}`)}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '14px 16px', borderRadius: '8px',
-                  border: '1px solid #e5e7eb', background: '#fff',
-                  cursor: 'pointer', transition: 'border-color 0.15s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = '#d1d5db')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = '#e5e7eb')}
+                className="flex items-center justify-between px-4 py-3.5 rounded-[var(--radius-md)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-white dark:bg-[var(--color-surface-dark)] cursor-pointer transition-colors hover:border-[var(--color-muted)] dark:hover:border-[var(--color-muted-dark)]"
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <AlertTriangle size={14} style={{ color: '#dc2626', flexShrink: 0 }} />
-                    <span style={{ fontSize: '14px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={14} className="text-[var(--color-destructive)] shrink-0" />
+                    <span className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] truncate">
                       {report.title}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#9ca3af' }}>
+                  <div className="flex items-center gap-2 text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
                     {report.reporterName && <span>{report.reporterName}</span>}
                     <span>{new Date(report.createdAt).toLocaleDateString()}</span>
-                    {report.source !== 'ui' && (
-                      <span style={{
-                        fontSize: '11px', padding: '1px 5px', borderRadius: '3px',
-                        background: '#f3f4f6', color: '#6b7280',
-                      }}>
-                        {report.source}
-                      </span>
-                    )}
+                    {report.source !== 'ui' && <Badge variant="neutral">{report.source}</Badge>}
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <div className="flex items-center gap-2 shrink-0">
                   {severity && (
-                    <span style={{
-                      fontSize: '11px', padding: '2px 8px', borderRadius: '4px',
-                      background: severity.bg, color: severity.text, fontWeight: 500,
-                    }}>
-                      {report.severity}
-                    </span>
+                    <Badge variant={severity.variant}>{report.severity}</Badge>
                   )}
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: '4px',
-                    fontSize: '11px', padding: '2px 8px', borderRadius: '4px',
-                    background: status.bg, color: status.text, fontWeight: 500,
-                  }}>
-                    <StatusIcon size={12} />
+                  <Badge variant={status.variant}>
+                    <StatusIcon size={12} className="mr-1" />
                     {status.label}
-                  </span>
+                  </Badge>
                 </div>
               </div>
             )
