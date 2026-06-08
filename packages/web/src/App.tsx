@@ -23,16 +23,26 @@ import { OrgChartPage } from '@/pages/OrgChartPage'
 import { BugReportPage } from '@/pages/BugReportPage'
 import { BugReportDetailPage } from '@/pages/BugReportDetailPage'
 import { BackupPage } from '@/pages/BackupPage'
+import { LoginPage } from '@/pages/LoginPage'
+import { SetupPage } from '@/pages/SetupPage'
+import { UsersPage } from '@/pages/UsersPage'
 import { ToastContainer } from '@/components/ui/Toast'
 import { CommandPalette } from '@/components/ui/CommandPalette'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppStore } from '@/store/app'
+import { useAuthStore } from '@/store/auth'
 import { useBoardStore } from '@/store/boards'
 import { useConversationStore } from '@/store/conversations'
 import { useSpecStore } from '@/store/specs'
 import { useExecutionStore } from '@/store/executions'
 import { useToastStore } from '@/store/toast'
+
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuthStore()
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
 
 export function AppRoutes() {
   const theme = useAppStore((s) => s.theme)
@@ -42,8 +52,11 @@ export function AppRoutes() {
   }, [theme])
 
   useEffect(() => {
+    const token = useAuthStore.getState().accessToken
+    if (!token) return
+
     const wsPort = location.port === '5173' ? '3001' : location.port
-    const ws = new WebSocket(`ws://${location.hostname}:${wsPort}/ws`)
+    const ws = new WebSocket(`ws://${location.hostname}:${wsPort}/ws?token=${token}`)
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data)
@@ -96,7 +109,7 @@ export function AppRoutes() {
 
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route element={<AuthGuard><Layout /></AuthGuard>}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/agents" element={<AgentListPage />} />
         <Route path="/agents/org" element={<OrgChartPage />} />
@@ -121,6 +134,7 @@ export function AppRoutes() {
         <Route path="/bugs" element={<BugReportPage />} />
         <Route path="/bugs/:id" element={<BugReportDetailPage />} />
         <Route path="/settings/backup" element={<BackupPage />} />
+        <Route path="/settings/users" element={<UsersPage />} />
         <Route path="/settings" element={<Navigate to="/settings/providers" replace />} />
       </Route>
     </Routes>
@@ -128,10 +142,34 @@ export function AppRoutes() {
 }
 
 export function App() {
+  const [setupCompleted, setSetupCompleted] = useState<boolean | null>(null)
+  const { isAuthenticated, fetchMe } = useAuthStore()
+
+  useEffect(() => {
+    fetch('/api/setup/status').then(r => r.json()).then(d => setSetupCompleted(d.completed)).catch(() => setSetupCompleted(true))
+  }, [])
+
+  useEffect(() => {
+    if (isAuthenticated) fetchMe()
+  }, [])
+
+  if (setupCompleted === null) return null // loading
+
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <AppRoutes />
+        <Routes>
+          {/* Public routes — no layout */}
+          <Route path="/setup" element={setupCompleted ? <Navigate to="/" replace /> : <SetupPage onComplete={() => setSetupCompleted(true)} />} />
+          <Route path="/login" element={!setupCompleted ? <Navigate to="/setup" replace /> : isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+
+          {/* Protected routes — with layout */}
+          <Route path="/*" element={
+            !setupCompleted ? <Navigate to="/setup" replace /> :
+            !isAuthenticated ? <Navigate to="/login" replace /> :
+            <AppRoutes />
+          } />
+        </Routes>
       </ErrorBoundary>
       <CommandPalette />
       <ToastContainer />

@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function boardRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const editorPlus = requireRole('editor')
 
   app.get('/api/boards', async (_req, reply) => {
     const boards = db.prepare('SELECT * FROM boards ORDER BY created_at DESC').all()
@@ -17,7 +19,7 @@ export async function boardRoutes(app: FastifyInstance): Promise<void> {
     return reply.send({ ...toCamelCase<Record<string, unknown>>(board), columns: toCamelCaseArray(columns as any[]) })
   })
 
-  app.post('/api/boards', async (req, reply) => {
+  app.post('/api/boards', { preHandler: [editorPlus] }, async (req, reply) => {
     const { name } = req.body as { name: string }
     const id = randomUUID()
     db.prepare('INSERT INTO boards (id, name) VALUES (?, ?)').run(id, name)
@@ -25,7 +27,7 @@ export async function boardRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send(toCamelCase(board as any))
   })
 
-  app.put<{ Params: { id: string } }>('/api/boards/:id', async (req, reply) => {
+  app.put<{ Params: { id: string } }>('/api/boards/:id', { preHandler: [editorPlus] }, async (req, reply) => {
     const { name } = req.body as { name: string }
     const result = db.prepare('UPDATE boards SET name = ? WHERE id = ?').run(name, req.params.id)
     if (result.changes === 0) return reply.status(404).send({ error: 'Board not found' })
@@ -33,7 +35,7 @@ export async function boardRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(toCamelCase(board as any))
   })
 
-  app.delete<{ Params: { id: string } }>('/api/boards/:id', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>('/api/boards/:id', { preHandler: [editorPlus] }, async (req, reply) => {
     db.prepare('DELETE FROM boards WHERE id = ?').run(req.params.id)
     return reply.status(204).send()
   })

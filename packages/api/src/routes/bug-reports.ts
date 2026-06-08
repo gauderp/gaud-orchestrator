@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify'
 import { BugTriageService } from '../services/bug-triage.js'
 import { LocalFileStorage } from '../services/file-storage.js'
 import { randomUUID } from 'crypto'
+import { requireRole } from '../middleware/auth.js'
 
 export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const editorPlus = requireRole('editor')
   const providerRegistry = (app as any).providerRegistry
   const triage = new BugTriageService(db)
   const attachmentsDir = process.env['ATTACHMENTS_DIR'] ?? 'data/attachments'
@@ -24,7 +26,7 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Create bug report (multipart for file uploads)
-  app.post('/api/bug-reports', async (req, reply) => {
+  app.post('/api/bug-reports', { preHandler: [editorPlus] }, async (req, reply) => {
     const parts = req.parts()
     const fields: Record<string, string> = {}
     const attachments: Array<{ filename: string; path: string; fileType?: string }> = []
@@ -65,7 +67,7 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Trigger triage
-  app.post<{ Params: { id: string } }>('/api/bug-reports/:id/triage', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/bug-reports/:id/triage', { preHandler: [editorPlus] }, async (req, reply) => {
     const { agentId } = req.body as { agentId: string }
     if (!agentId) return reply.status(400).send({ error: 'agentId is required' })
 
@@ -81,7 +83,7 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Respond to agent's questions (for needs_info reports)
-  app.post<{ Params: { id: string } }>('/api/bug-reports/:id/respond', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/bug-reports/:id/respond', { preHandler: [editorPlus] }, async (req, reply) => {
     const { content } = req.body as { content: string }
     if (!content) return reply.status(400).send({ error: 'Content is required' })
 
@@ -124,7 +126,7 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Create bug card from triaged report
-  app.post<{ Params: { id: string } }>('/api/bug-reports/:id/create-card', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/bug-reports/:id/create-card', { preHandler: [editorPlus] }, async (req, reply) => {
     const { boardId, columnId } = req.body as { boardId: string; columnId: string }
     if (!boardId || !columnId) return reply.status(400).send({ error: 'boardId and columnId are required' })
 

@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode, type CSSProperties } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
@@ -10,33 +10,7 @@ interface ModalProps {
   width?: 'sm' | 'md' | 'lg'
 }
 
-const maxWidths: Record<string, number> = { sm: 448, md: 512, lg: 672 }
-
-const overlayStyle: CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  zIndex: 50,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-}
-
-const backdropStyle: CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-}
-
-const closeButtonStyle: CSSProperties = {
-  padding: 4,
-  borderRadius: 6,
-  cursor: 'pointer',
-  background: 'none',
-  border: 'none',
-  color: '#94a3b8',
-  display: 'flex',
-  alignItems: 'center',
-}
+const maxWidths: Record<string, string> = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' }
 
 export function Modal({ open, onClose, title, children, width = 'md' }: ModalProps) {
   useEffect(() => {
@@ -48,38 +22,16 @@ export function Modal({ open, onClose, title, children, width = 'md' }: ModalPro
 
   if (!open) return null
 
-  const dialogStyle: CSSProperties = {
-    position: 'relative',
-    width: '100%',
-    maxWidth: maxWidths[width],
-    margin: '0 16px',
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    padding: 24,
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-  }
-
-  const headerStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  }
-
-  const titleStyle: CSSProperties = {
-    fontSize: 16,
-    fontWeight: 600,
-    margin: 0,
-    color: '#0f172a',
-  }
-
   return createPortal(
-    <div style={overlayStyle}>
-      <div style={backdropStyle} onClick={onClose} />
-      <div style={dialogStyle}>
-        <div style={headerStyle}>
-          <h2 style={titleStyle}>{title}</h2>
-          <button onClick={onClose} style={closeButtonStyle}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className={`relative w-full ${maxWidths[width]} mx-4 rounded-[var(--radius-xl)] bg-white p-6 shadow-xl dark:bg-[var(--color-surface-dark)] dark:border dark:border-[var(--color-border-dark)]`}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{title}</h2>
+          <button
+            onClick={onClose}
+            className="flex items-center rounded-[var(--radius-md)] p-1 text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)] dark:hover:bg-[var(--color-surface-elevated-dark)] cursor-pointer transition-colors"
+          >
             <X size={18} />
           </button>
         </div>

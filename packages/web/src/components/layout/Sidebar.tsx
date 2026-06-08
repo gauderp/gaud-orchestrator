@@ -1,10 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAppStore } from '@/store/app'
+import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Bot, Zap, Plug,
   Kanban, FileText, Play, Bug,
   ChevronsLeft, ChevronsRight,
-  Search, GitBranch, FolderGit2, HardDrive,
+  Search, GitBranch, FolderGit2, HardDrive, Users,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import type { ComponentType } from 'react'
@@ -30,6 +31,7 @@ const configNav: NavItem[] = [
   { label: 'Providers', to: '/settings/providers', icon: Plug },
   { label: 'Repositories', to: '/repositories', icon: FolderGit2 },
   { label: 'Backup', to: '/settings/backup', icon: HardDrive },
+  { label: 'Users', to: '/settings/users', icon: Users },
 ]
 
 function NavSection({ items, collapsed }: { items: NavItem[]; collapsed: boolean }) {
@@ -68,7 +70,14 @@ function NavSection({ items, collapsed }: { items: NavItem[]; collapsed: boolean
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useAppStore()
+  const user = useAuthStore((s) => s.user)
   const location = useLocation()
+
+  // Filter config nav: Users page is admin-only
+  const filteredConfigNav = configNav.filter(item => {
+    if (item.to === '/settings/users') return user?.role === 'admin'
+    return true
+  })
 
   // Show search hint
   const isMac = navigator.platform.includes('Mac')
@@ -113,7 +122,7 @@ export function Sidebar() {
       <nav className={`flex-1 overflow-y-auto ${sidebarCollapsed ? 'px-1.5' : 'px-2.5'}`}>
         <NavSection items={mainNav} collapsed={sidebarCollapsed} />
         <div className="my-3 mx-2 h-px bg-[var(--color-border)] dark:bg-[var(--color-border-dark)]" />
-        <NavSection items={configNav} collapsed={sidebarCollapsed} />
+        <NavSection items={filteredConfigNav} collapsed={sidebarCollapsed} />
       </nav>
 
       {/* Footer */}

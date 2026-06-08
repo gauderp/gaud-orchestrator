@@ -6,6 +6,7 @@ import Database from 'better-sqlite3'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { setupTestAuth } from './helpers/auth.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -24,6 +25,7 @@ describe('Cards API', () => {
     try { db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '003_agent_hierarchy.sql'), 'utf-8')) } catch { /* optional */ }
     try { db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '004_github_repos.sql'), 'utf-8')) } catch { /* optional */ }
     app.decorate('db', db)
+    await setupTestAuth(app)
     await app.register(boardRoutes)
     await app.register(cardRoutes)
     await app.ready()

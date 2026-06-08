@@ -1,11 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 import { BackupService } from '../services/BackupService.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function backupRoutes(app: FastifyInstance): Promise<void> {
   const backupService = new BackupService()
+  const adminOnly = requireRole('admin')
 
   // GET /api/backup — generate and download ZIP
-  app.get<{ Querystring: { includeRepos?: string } }>('/api/backup', async (req, reply) => {
+  app.get<{ Querystring: { includeRepos?: string } }>('/api/backup', { preHandler: [adminOnly] }, async (req, reply) => {
     const includeRepos = req.query.includeRepos === 'true'
     try {
       const buffer = await backupService.generateBackup(includeRepos)
@@ -21,7 +23,7 @@ export async function backupRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // POST /api/backup/restore — upload ZIP and restore
-  app.post('/api/backup/restore', async (req, reply) => {
+  app.post('/api/backup/restore', { preHandler: [adminOnly] }, async (req, reply) => {
     try {
       const data = await req.file({ limits: { fileSize: 500 * 1024 * 1024 } })
       if (!data) {
@@ -37,7 +39,7 @@ export async function backupRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // POST /api/backup/preview — upload ZIP, return manifest
-  app.post('/api/backup/preview', async (req, reply) => {
+  app.post('/api/backup/preview', { preHandler: [adminOnly] }, async (req, reply) => {
     try {
       const data = await req.file({ limits: { fileSize: 500 * 1024 * 1024 } })
       if (!data) {

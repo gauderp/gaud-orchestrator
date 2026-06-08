@@ -4,9 +4,11 @@ import { getAgentCostSummary } from '../services/cost-tracker.js'
 import { HierarchyService } from '../services/hierarchy.js'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function agentRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const adminOnly = requireRole('admin')
 
   app.get('/api/agents', async (_req, reply) => {
     const agents = db.prepare('SELECT * FROM agents ORDER BY created_at').all()
@@ -36,7 +38,7 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
     return reply.send({ ...agent, skills, children })
   })
 
-  app.post('/api/agents', async (req, reply) => {
+  app.post('/api/agents', { preHandler: [adminOnly] }, async (req, reply) => {
     const { name, role, instructions, providerId, model, costLimitUsd, parentAgentId } = req.body as any
     const id = randomUUID()
     db.prepare(`
@@ -48,7 +50,7 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send(toCamelCase(agent as any))
   })
 
-  app.put<{ Params: { id: string } }>('/api/agents/:id', async (req, reply) => {
+  app.put<{ Params: { id: string } }>('/api/agents/:id', { preHandler: [adminOnly] }, async (req, reply) => {
     const { name, role, instructions, providerId, model, costLimitUsd, parentAgentId } = req.body as any
     const existing = db.prepare('SELECT * FROM agents WHERE id = ?').get(req.params.id) as any
     if (!existing) return reply.status(404).send({ error: 'Agent not found' })
@@ -67,7 +69,7 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(toCamelCase(agent as any))
   })
 
-  app.delete<{ Params: { id: string } }>('/api/agents/:id', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>('/api/agents/:id', { preHandler: [adminOnly] }, async (req, reply) => {
     db.prepare('DELETE FROM agents WHERE id = ?').run(req.params.id)
     return reply.status(204).send()
   })

@@ -1,22 +1,52 @@
 import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, SpecRepo, Execution, ExecutionTask, ExecutionGap, ExecutionLog, Repository, BugReport, BugReportWithAttachments } from '@gaud/shared'
+import { useAuthStore } from '@/store/auth'
 
 const API_BASE = '/api'
 
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {}
-  if (options?.body) {
+  if (options?.body && !(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json'
   }
-  const res = await fetch(`${API_BASE}${path}`, {
+
+  // Add auth token
+  const token = useAuthStore.getState().accessToken
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  let res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: { ...headers, ...(options?.headers as Record<string, string> ?? {}) },
   })
+
+  // On 401, try refresh and retry once
+  if (res.status === 401 && token) {
+    const refreshed = await useAuthStore.getState().refresh()
+    if (refreshed) {
+      const newToken = useAuthStore.getState().accessToken
+      headers['Authorization'] = `Bearer ${newToken}`
+      res = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: { ...headers, ...(options?.headers as Record<string, string> ?? {}) },
+      })
+    }
+  }
+
   if (!res.ok) {
+    if (res.status === 401) {
+      useAuthStore.getState().logout()
+    }
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(err.error || res.statusText)
   }
   if (res.status === 204) return undefined as T
   return res.json()
+}
+
+function authHeaders(): Record<string, string> {
+  const token = useAuthStore.getState().accessToken
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 export const api = {
@@ -148,7 +178,7 @@ export const api = {
   bugReports: {
     list: (status?: string) => request<BugReport[]>(`/bug-reports${status ? `?status=${status}` : ''}`),
     get: (id: string) => request<BugReportWithAttachments>(`/bug-reports/${id}`),
-    create: (data: FormData) => fetch(`${API_BASE}/bug-reports`, { method: 'POST', body: data }).then(r => {
+    create: (data: FormData) => fetch(`${API_BASE}/bug-reports`, { method: 'POST', body: data, headers: authHeaders() }).then(r => {
       if (!r.ok) return r.json().then(e => { throw new Error(e.error) })
       return r.json()
     }),
@@ -161,12 +191,12 @@ export const api = {
   backup: {
     preview: (file: File) => {
       const fd = new FormData(); fd.append('file', file)
-      return fetch(`${API_BASE}/backup/preview`, { method: 'POST', body: fd })
+      return fetch(`${API_BASE}/backup/preview`, { method: 'POST', body: fd, headers: authHeaders() })
         .then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error) }); return r.json() })
     },
     restore: (file: File) => {
       const fd = new FormData(); fd.append('file', file)
-      return fetch(`${API_BASE}/backup/restore`, { method: 'POST', body: fd })
+      return fetch(`${API_BASE}/backup/restore`, { method: 'POST', body: fd, headers: authHeaders() })
         .then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error) }); return r.json() })
     },
   },

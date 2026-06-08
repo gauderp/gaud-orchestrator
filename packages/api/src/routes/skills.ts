@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function skillRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const adminOnly = requireRole('admin')
 
   app.get('/api/skills', async (_req, reply) => {
     const skills = db.prepare('SELECT * FROM skills ORDER BY name').all()
@@ -16,7 +18,7 @@ export async function skillRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(toCamelCase(skill as any))
   })
 
-  app.post('/api/skills', async (req, reply) => {
+  app.post('/api/skills', { preHandler: [adminOnly] }, async (req, reply) => {
     const { name, description, content } = req.body as { name: string; description?: string; content: string }
     const id = randomUUID()
     const now = new Date().toISOString()
@@ -27,7 +29,7 @@ export async function skillRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send(toCamelCase(skill as any))
   })
 
-  app.put<{ Params: { id: string } }>('/api/skills/:id', async (req, reply) => {
+  app.put<{ Params: { id: string } }>('/api/skills/:id', { preHandler: [adminOnly] }, async (req, reply) => {
     const { name, description, content } = req.body as { name: string; description?: string; content: string }
     const now = new Date().toISOString()
     const result = db.prepare(
@@ -38,7 +40,7 @@ export async function skillRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(toCamelCase(skill as any))
   })
 
-  app.delete<{ Params: { id: string } }>('/api/skills/:id', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>('/api/skills/:id', { preHandler: [adminOnly] }, async (req, reply) => {
     const result = db.prepare('DELETE FROM skills WHERE id = ?').run(req.params.id)
     if (result.changes === 0) return reply.status(404).send({ error: 'Skill not found' })
     return reply.status(204).send()

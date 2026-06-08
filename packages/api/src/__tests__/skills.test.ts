@@ -5,6 +5,7 @@ import Database from 'better-sqlite3'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { setupTestAuth } from './helpers/auth.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -18,6 +19,7 @@ describe('Skills API', () => {
     const sql = readFileSync(join(__dirname, '..', 'db', 'migrations', '001_initial.sql'), 'utf-8')
     db.exec(sql)
     app.decorate('db', db)
+    await setupTestAuth(app)
     await app.register(skillRoutes)
     await app.ready()
   })

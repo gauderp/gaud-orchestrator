@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function conversationRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const editorPlus = requireRole('editor')
 
   // List conversations for a card
   app.get<{ Params: { cardId: string } }>('/api/cards/:cardId/conversations', async (req, reply) => {
@@ -13,7 +15,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Create conversation with participants
-  app.post('/api/conversations', async (req, reply) => {
+  app.post('/api/conversations', { preHandler: [editorPlus] }, async (req, reply) => {
     const { cardId, type, agentIds } = req.body as { cardId?: string; type: string; agentIds: string[] }
     const id = randomUUID()
     const now = new Date().toISOString()
@@ -61,7 +63,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Send user message
-  app.post<{ Params: { id: string } }>('/api/conversations/:id/messages', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/conversations/:id/messages', { preHandler: [editorPlus] }, async (req, reply) => {
     const { content } = req.body as { content: string }
     const msgId = randomUUID()
     db.prepare('INSERT INTO messages (id, conversation_id, sender_type, content, message_type) VALUES (?, ?, ?, ?, ?)')
@@ -125,7 +127,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Trigger next agent turn
-  app.post<{ Params: { id: string } }>('/api/conversations/:id/next-turn', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/conversations/:id/next-turn', { preHandler: [editorPlus] }, async (req, reply) => {
     const { runConversationTurn } = await import('../services/conversation-runner.js')
     const registry = (app as any).providerRegistry
 

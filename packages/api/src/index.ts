@@ -8,6 +8,11 @@ import { runMigrations } from './db/migrate.js'
 import { getDb } from './db/connection.js'
 import { createRegistryFromConfigs } from './services/provider-loader.js'
 import { addClient } from './ws/broadcast.js'
+import { authPlugin } from './middleware/auth.js'
+import { verifyToken } from './middleware/auth.js'
+import { authRoutes } from './routes/auth.js'
+import { setupRoutes } from './routes/setup.js'
+import { userRoutes } from './routes/users.js'
 import { healthRoutes } from './routes/health.js'
 import { skillRoutes } from './routes/skills.js'
 import { providerRoutes } from './routes/providers.js'
@@ -59,10 +64,25 @@ await server.register(websocket)
 await server.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } })
 
 server.register(async (app) => {
-  app.get('/ws', { websocket: true }, (socket, _req) => {
-    addClient(socket)
+  app.get('/ws', { websocket: true }, (socket, req) => {
+    // Validate token from query param
+    const url = new URL(req.url, `http://${req.headers.host}`)
+    const token = url.searchParams.get('token')
+    if (!token) { socket.close(4001, 'Token required'); return }
+    try {
+      verifyToken(token)
+      addClient(socket)
+    } catch {
+      socket.close(4001, 'Invalid token')
+    }
   })
 })
+
+// Auth middleware (MUST be before other routes)
+await server.register(authPlugin)
+await server.register(authRoutes)
+await server.register(setupRoutes)
+await server.register(userRoutes)
 
 await server.register(healthRoutes)
 await server.register(skillRoutes)

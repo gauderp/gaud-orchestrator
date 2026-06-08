@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify'
 import { GitHubService } from '../services/github.js'
 import { toCamelCase } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function githubRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const editorPlus = requireRole('editor')
   const github = new GitHubService(db)
 
   // Check GitHub auth status
@@ -28,7 +30,7 @@ export async function githubRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Add a repo (clone from GitHub)
-  app.post('/api/repositories', async (req, reply) => {
+  app.post('/api/repositories', { preHandler: [editorPlus] }, async (req, reply) => {
     const { githubUrl, defaultBranch } = req.body as { githubUrl: string; defaultBranch?: string }
     if (!githubUrl) return reply.status(400).send({ error: 'githubUrl required' })
     try {
@@ -41,7 +43,7 @@ export async function githubRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Sync a repo (pull latest)
-  app.post<{ Params: { id: string } }>('/api/repositories/:id/sync', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/repositories/:id/sync', { preHandler: [editorPlus] }, async (req, reply) => {
     try {
       await github.syncRepo(req.params.id)
       const repo = toCamelCase(db.prepare('SELECT * FROM repositories WHERE id = ?').get(req.params.id) as any)
@@ -53,7 +55,7 @@ export async function githubRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Remove a repo
-  app.delete<{ Params: { id: string } }>('/api/repositories/:id', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>('/api/repositories/:id', { preHandler: [editorPlus] }, async (req, reply) => {
     github.removeRepo(req.params.id)
     return reply.status(204).send()
   })

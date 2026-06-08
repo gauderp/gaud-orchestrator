@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function specRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const editorPlus = requireRole('editor')
 
   // List specs (optional status filter)
   app.get<{ Querystring: { status?: string } }>('/api/specs', async (req, reply) => {
@@ -30,7 +32,7 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Create spec (manual)
-  app.post('/api/specs', async (req, reply) => {
+  app.post('/api/specs', { preHandler: [editorPlus] }, async (req, reply) => {
     const { title, content, sourceCardId, createdByType, createdById } = req.body as any
     const id = randomUUID()
     const now = new Date().toISOString()
@@ -44,7 +46,7 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Update spec (creates new version)
-  app.put<{ Params: { id: string } }>('/api/specs/:id', async (req, reply) => {
+  app.put<{ Params: { id: string } }>('/api/specs/:id', { preHandler: [editorPlus] }, async (req, reply) => {
     const { title, content } = req.body as any
     const existing = db.prepare('SELECT * FROM specs WHERE id = ?').get(req.params.id) as any
     if (!existing) return reply.status(404).send({ error: 'Spec not found' })
@@ -59,7 +61,7 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Submit review (approve/reject/comment)
-  app.post<{ Params: { id: string } }>('/api/specs/:id/review', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/specs/:id/review', { preHandler: [editorPlus] }, async (req, reply) => {
     const { reviewerType, reviewerId, verdict, comment } = req.body as any
     const reviewId = randomUUID()
     db.prepare(`
@@ -83,7 +85,7 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Generate spec via conversation (delegates to Conversation Engine)
-  app.post('/api/specs/generate', async (req, reply) => {
+  app.post('/api/specs/generate', { preHandler: [editorPlus] }, async (req, reply) => {
     const { title, description, repos, agentIds, cardId } = req.body as any
     if (!agentIds || agentIds.length === 0) {
       return reply.status(400).send({ error: 'At least one agent is required' })
@@ -150,7 +152,7 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Decompose approved spec into cards
-  app.post<{ Params: { id: string } }>('/api/specs/:id/decompose', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/specs/:id/decompose', { preHandler: [editorPlus] }, async (req, reply) => {
     const { boardId, columnId } = req.body as { boardId: string; columnId: string }
     const spec = db.prepare('SELECT * FROM specs WHERE id = ?').get(req.params.id) as any
     if (!spec) return reply.status(404).send({ error: 'Spec not found' })

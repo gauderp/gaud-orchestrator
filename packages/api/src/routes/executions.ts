@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function executionRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const editorPlus = requireRole('editor')
 
   // List executions
   app.get('/api/executions', async (_req, reply) => {
@@ -33,7 +35,7 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Create execution
-  app.post('/api/executions', async (req, reply) => {
+  app.post('/api/executions', { preHandler: [editorPlus] }, async (req, reply) => {
     const { cardId, specId } = req.body as any
     const id = randomUUID()
     const now = new Date().toISOString()
@@ -45,7 +47,7 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Start execution (triggers engine)
-  app.post<{ Params: { id: string } }>('/api/executions/:id/execute', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/executions/:id/execute', { preHandler: [editorPlus] }, async (req, reply) => {
     try {
       const { ExecutionEngine } = await import('../services/execution-engine.js')
       const registry = (app as any).providerRegistry
@@ -59,7 +61,7 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
   })
 
   // Cancel execution
-  app.post<{ Params: { id: string } }>('/api/executions/:id/cancel', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/executions/:id/cancel', { preHandler: [editorPlus] }, async (req, reply) => {
     db.prepare("UPDATE executions SET status = ?, updated_at = datetime('now') WHERE id = ?")
       .run('failed', req.params.id)
     const exec = toCamelCase(db.prepare('SELECT * FROM executions WHERE id = ?').get(req.params.id) as any)

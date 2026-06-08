@@ -5,6 +5,7 @@ import Database from 'better-sqlite3'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { setupTestAuth } from './helpers/auth.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -26,6 +27,7 @@ describe('Specs API', () => {
     db.prepare("INSERT INTO cards (id, board_id, column_id, type, title) VALUES ('c1', 'b1', 'col1', 'task', 'NFS-e')").run()
 
     ;(app as any).db = db
+    await setupTestAuth(app)
     await app.register(specRoutes)
     await app.ready()
   })

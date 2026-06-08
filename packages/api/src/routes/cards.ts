@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function cardRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const editorPlus = requireRole('editor')
 
   app.get<{ Params: { boardId: string } }>('/api/boards/:boardId/cards', async (req, reply) => {
     const cards = db.prepare('SELECT * FROM cards WHERE board_id = ? ORDER BY position').all(req.params.boardId)
@@ -29,7 +31,7 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
     })
   })
 
-  app.post('/api/cards', async (req, reply) => {
+  app.post('/api/cards', { preHandler: [editorPlus] }, async (req, reply) => {
     const { boardId, columnId, parentCardId, type, title, description, assignedAgentId,
       estimatedTokens, estimatedCostUsd, startDate, dueDate } = req.body as any
     const id = randomUUID()
@@ -49,7 +51,7 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send(result)
   })
 
-  app.put<{ Params: { id: string } }>('/api/cards/:id', async (req, reply) => {
+  app.put<{ Params: { id: string } }>('/api/cards/:id', { preHandler: [editorPlus] }, async (req, reply) => {
     const fields = req.body as any
     const existing = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any
     if (!existing) return reply.status(404).send({ error: 'Card not found' })
@@ -72,7 +74,7 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(result)
   })
 
-  app.put<{ Params: { id: string } }>('/api/cards/:id/move', async (req, reply) => {
+  app.put<{ Params: { id: string } }>('/api/cards/:id/move', { preHandler: [editorPlus] }, async (req, reply) => {
     const { columnId, position } = req.body as { columnId: string; position: number }
     const existing = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any
     if (!existing) return reply.status(404).send({ error: 'Card not found' })
@@ -96,14 +98,14 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(result)
   })
 
-  app.delete<{ Params: { id: string } }>('/api/cards/:id', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>('/api/cards/:id', { preHandler: [editorPlus] }, async (req, reply) => {
     db.prepare('DELETE FROM cards WHERE id = ?').run(req.params.id)
     broadcast('card:deleted', { id: req.params.id })
     return reply.status(204).send()
   })
 
   // Comments
-  app.post<{ Params: { id: string } }>('/api/cards/:id/comments', async (req, reply) => {
+  app.post<{ Params: { id: string } }>('/api/cards/:id/comments', { preHandler: [editorPlus] }, async (req, reply) => {
     const { authorType, authorId, content } = req.body as any
     const commentId = randomUUID()
     db.prepare('INSERT INTO card_comments (id, card_id, author_type, author_id, content) VALUES (?, ?, ?, ?, ?)')

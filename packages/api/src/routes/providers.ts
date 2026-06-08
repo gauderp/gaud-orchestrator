@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
 import { toCamelCase } from '../utils/case.js'
+import { requireRole } from '../middleware/auth.js'
 
 export async function providerRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
+  const adminOnly = requireRole('admin')
 
   function parseProvider(p: any) {
     return { ...toCamelCase<Record<string, unknown>>(p), configJson: JSON.parse(p.config_json) }
@@ -20,7 +22,7 @@ export async function providerRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(parseProvider(p))
   })
 
-  app.post('/api/providers', async (req, reply) => {
+  app.post('/api/providers', { preHandler: [adminOnly] }, async (req, reply) => {
     const { name, type, configJson } = req.body as { name: string; type: string; configJson: Record<string, unknown> }
     const id = randomUUID()
     db.prepare(
@@ -30,7 +32,7 @@ export async function providerRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send(parseProvider(p))
   })
 
-  app.put<{ Params: { id: string } }>('/api/providers/:id', async (req, reply) => {
+  app.put<{ Params: { id: string } }>('/api/providers/:id', { preHandler: [adminOnly] }, async (req, reply) => {
     const { name, type, configJson } = req.body as { name: string; type: string; configJson: Record<string, unknown> }
     const result = db.prepare(
       'UPDATE providers SET name = ?, type = ?, config_json = ? WHERE id = ?'
@@ -40,7 +42,7 @@ export async function providerRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(parseProvider(p))
   })
 
-  app.delete<{ Params: { id: string } }>('/api/providers/:id', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>('/api/providers/:id', { preHandler: [adminOnly] }, async (req, reply) => {
     db.prepare('DELETE FROM providers WHERE id = ?').run(req.params.id)
     return reply.status(204).send()
   })

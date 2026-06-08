@@ -5,6 +5,7 @@ import Database from 'better-sqlite3'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { setupTestAuth } from './helpers/auth.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -27,6 +28,7 @@ describe('Conversations API', () => {
     db.prepare("INSERT INTO cards (id, board_id, column_id, type, title) VALUES ('c1', 'b1', 'col1', 'task', 'NFS-e')").run()
 
     app.decorate('db', db)
+    await setupTestAuth(app)
     await app.register(conversationRoutes)
     await app.ready()
   })

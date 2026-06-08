@@ -1,9 +1,11 @@
 import { useLocation, useParams, Link } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, LogOut } from 'lucide-react'
 import { useBoardStore } from '@/store/boards'
 import { useAgentStore } from '@/store/agents'
 import { useSpecStore } from '@/store/specs'
 import { useExecutionStore } from '@/store/executions'
+import { useAuthStore } from '@/store/auth'
+import { Badge } from '@/components/ui/Badge'
 
 interface Crumb {
   label: string
@@ -42,6 +44,7 @@ function useBreadcrumbs(): Crumb[] {
   }
 
   if (path === '/settings/providers') return [{ label: 'Providers' }]
+  if (path === '/settings/users') return [{ label: 'Users' }]
   if (path === '/settings') return [{ label: 'Settings' }]
 
   if (path === '/boards') return [{ label: 'Boards' }]
@@ -90,6 +93,7 @@ function useBreadcrumbs(): Crumb[] {
 
 export function Header() {
   const crumbs = useBreadcrumbs()
+  const { user, logout } = useAuthStore()
 
   return (
     <header className="flex h-11 items-center border-b border-[var(--color-border)] bg-white px-4 dark:border-[var(--color-border-dark)] dark:bg-[#09090B]">
@@ -115,6 +119,21 @@ export function Header() {
           )
         })}
       </nav>
+      <div className="ml-auto flex items-center gap-2">
+        {user && (
+          <>
+            <span className="text-[13px] text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">{user.name}</span>
+            <Badge variant="neutral">{user.role}</Badge>
+            <button
+              onClick={logout}
+              className="rounded-[var(--radius-md)] p-1.5 text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-elevated)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)] dark:hover:bg-[var(--color-surface-elevated-dark)] cursor-pointer transition-colors"
+              title="Logout"
+            >
+              <LogOut size={14} />
+            </button>
+          </>
+        )}
+      </div>
     </header>
   )
 }

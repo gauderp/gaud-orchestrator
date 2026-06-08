@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, rmSync, readdirSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 
 const TABLE_ORDER = [
+  'users', 'setup_state',
   'providers', 'agents', 'skills', 'agent_skills', 'boards', 'columns', 'repositories',
   'cards', 'card_dependencies', 'card_repos', 'card_comments', 'card_attachments',
   'specs', 'spec_reviews', 'spec_repos', 'executions', 'execution_tasks', 'execution_logs', 'execution_gaps',
