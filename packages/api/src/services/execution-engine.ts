@@ -154,9 +154,32 @@ export class ExecutionEngine {
       const card = exec.card_id
         ? this.db.prepare('SELECT * FROM cards WHERE id = ?').get(exec.card_id) as any
         : null
-      const repos = card
-        ? (this.db.prepare('SELECT repo_path FROM card_repos WHERE card_id = ?').all(exec.card_id) as any[]).map(r => r.repo_path)
+      // Resolve repo paths — support both local paths and GitHub URLs
+      const cardRepos = card
+        ? (this.db.prepare('SELECT * FROM card_repos WHERE card_id = ?').all(exec.card_id) as any[])
         : []
+      const repos: string[] = []
+      const { GitHubService } = await import('./github.js')
+      const githubService = new GitHubService(this.db)
+      for (const cr of cardRepos) {
+        if (cr.repository_id) {
+          const registered = this.db.prepare('SELECT local_path, status FROM repositories WHERE id = ?').get(cr.repository_id) as any
+          if (registered?.local_path && registered.status === 'cloned') {
+            repos.push(registered.local_path)
+          }
+        } else if (cr.repo_path) {
+          if (cr.repo_path.includes('/') && !cr.repo_path.includes(':') && !cr.repo_path.startsWith('/')) {
+            try {
+              const path = await githubService.resolveRepoPath(cr.repo_path)
+              repos.push(path)
+            } catch {
+              repos.push(cr.repo_path)
+            }
+          } else {
+            repos.push(cr.repo_path)
+          }
+        }
+      }
       const skills = agent
         ? (this.db.prepare('SELECT s.content FROM skills s JOIN agent_skills ags ON ags.skill_id = s.id WHERE ags.agent_id = ?').all(agent.id) as any[]).map(s => s.content)
         : []
