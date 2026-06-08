@@ -15,6 +15,7 @@ services:
       # Data
       - gaud-data:/app/data
       - gaud-attachments:/app/attachments
+      - gaud-repos:/app/data/repos
       - ./agents:/app/agents
       # Host CLI auth (read-only) — uses your existing subscriptions
       - ${CLAUDE_AUTH_DIR:-~/.claude}:/home/node/.claude:ro
@@ -27,6 +28,7 @@ services:
       - DATABASE_PATH=/app/data/orchestrator.db
       - AGENTS_DIR=/app/agents
       - ATTACHMENTS_DIR=/app/attachments
+      - REPOS_DIR=/app/data/repos
       - LOG_LEVEL=info
       - HOME=/home/node
       # Optional: API keys for API-only providers (OpenAI, Gemini, DeepSeek)
@@ -45,3 +47,4 @@ services:
 volumes:
   gaud-data:
   gaud-attachments:
+  gaud-repos:
