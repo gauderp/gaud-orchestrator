@@ -20,6 +20,7 @@ import { specRoutes } from './routes/specs.js'
 import { executionRoutes } from './routes/executions.js'
 import { attachmentRoutes } from './routes/attachments.js'
 import { dashboardRoutes } from './routes/dashboard.js'
+import { githubRoutes } from './routes/github.js'
 import multipart from '@fastify/multipart'
 
 const dbPath = process.env['DATABASE_PATH'] ?? 'data/orchestrator.db'
@@ -72,6 +73,7 @@ await server.register(specRoutes)
 await server.register(executionRoutes)
 await server.register(attachmentRoutes)
 await server.register(dashboardRoutes)
+await server.register(githubRoutes)
 
 // Serve frontend in production
 if (process.env['NODE_ENV'] === 'production') {
