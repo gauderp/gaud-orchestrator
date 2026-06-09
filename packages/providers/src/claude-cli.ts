@@ -30,7 +30,7 @@ export function createClaudeCliProvider(): AgentProvider & { buildArgs: (prompt:
     const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose']
     if (model) args.push('--model', model)
     if (systemPrompt) {
-      args.push('--append-system-prompt', systemPrompt)
+      args.push('--system-prompt', systemPrompt)
     }
     if (addDirs?.length) {
       for (const dir of addDirs) args.push('--add-dir', dir)

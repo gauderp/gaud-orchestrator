@@ -140,20 +140,21 @@ Analyze this bug report. If you have enough information, provide your triage res
           addDirs: attachments.length > 0 ? [resolvePath(attachmentsDir)] : undefined,
         })
 
-        // Collect output with timeout
+        // Collect output — wait for "result" type JSON or timeout
         await new Promise<void>((resolve) => {
           let resolved = false
+          const done = () => { if (!resolved) { resolved = true; resolve() } }
           provider.onOutput(session.id, (event: any) => {
-            if (event.type === 'stdout') responseText += event.content
-          })
-          // Resolve after receiving content or timeout
-          const check = setInterval(() => {
-            if (responseText.length > 50 && !resolved) {
-              // Wait a bit more for completion
-              setTimeout(() => { if (!resolved) { resolved = true; clearInterval(check); resolve() } }, 3000)
+            if (event.type === 'stdout') {
+              responseText += event.content
+              // Check if we received the result JSON (means response is complete)
+              if (responseText.includes('"type":"result"')) done()
             }
-          }, 1000)
-          setTimeout(() => { if (!resolved) { resolved = true; clearInterval(check); provider.kill(session.id); resolve() } }, 120_000)
+            if (event.type === 'stderr') {
+              console.error('[triage-stderr]', event.content)
+            }
+          })
+          setTimeout(() => { provider.kill(session.id); done() }, 120_000)
         })
       } finally {
         broadcast('conversation:typing', { conversationId: convId, agentId: triageAgentId, typing: false })
