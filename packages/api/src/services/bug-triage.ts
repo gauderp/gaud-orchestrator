@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3'
 import { randomUUID } from 'crypto'
 import { broadcast } from '../ws/broadcast.js'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
+import { BUG_BOARD_ID, BUG_COLUMNS } from '@gaud/shared'
 
 export class BugTriageService {
   constructor(private db: Database.Database) {}
@@ -48,6 +49,13 @@ export class BugTriageService {
     this.db.prepare("UPDATE bug_reports SET status = 'triaging', updated_at = datetime('now') WHERE id = ?")
       .run(reportId)
 
+    // Move card to "Triaging" column
+    if (report.card_id) {
+      this.db.prepare("UPDATE cards SET column_id = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(BUG_COLUMNS.TRIAGING, report.card_id)
+      broadcast('card:updated', { id: report.card_id, columnId: BUG_COLUMNS.TRIAGING })
+    }
+
     const attachments = this.db.prepare('SELECT * FROM bug_report_attachments WHERE bug_report_id = ?')
       .all(reportId) as any[]
 
@@ -78,15 +86,21 @@ export class BugTriageService {
       return `### ${att.filename}\n[${att.file_type ?? 'file'}: ${absPath}]`
     }).join('\n\n')
 
-    // Create triage conversation
-    const convId = randomUUID()
+    // Reuse existing conversation (created on bug report creation) or create new one
+    let convId = report.conversation_id as string | null
     const now = new Date().toISOString()
-    this.db.prepare('INSERT INTO conversations (id, type, created_at, updated_at) VALUES (?, ?, ?, ?)')
-      .run(convId, 'research', now, now)
-    this.db.prepare('INSERT INTO conversation_participants (conversation_id, agent_id) VALUES (?, ?)')
-      .run(convId, triageAgentId)
-
-    this.db.prepare('UPDATE bug_reports SET conversation_id = ? WHERE id = ?').run(convId, reportId)
+    if (!convId) {
+      convId = randomUUID()
+      this.db.prepare('INSERT INTO conversations (id, type, created_at, updated_at) VALUES (?, ?, ?, ?)')
+        .run(convId, 'research', now, now)
+      this.db.prepare('UPDATE bug_reports SET conversation_id = ? WHERE id = ?').run(convId, reportId)
+    }
+    // Add agent as participant
+    const existingParticipant = this.db.prepare('SELECT 1 FROM conversation_participants WHERE conversation_id = ? AND agent_id = ?').get(convId, triageAgentId)
+    if (!existingParticipant) {
+      this.db.prepare('INSERT INTO conversation_participants (conversation_id, agent_id) VALUES (?, ?)')
+        .run(convId, triageAgentId)
+    }
 
     // Load triage skill content
     const { readFileSync: readSkill } = await import('fs')
@@ -176,13 +190,12 @@ Analyze this bug report. If you have enough information, provide your triage res
           WHERE id = ?
         `).run(severityMatch?.[1]?.toLowerCase() ?? 'medium', response, reportId)
 
-        // Auto-create card on Bug Triage board → "Triaged" column
-        const bugBoard = this.db.prepare("SELECT id FROM boards WHERE name = 'Bug Triage'").get() as any
-        if (bugBoard) {
-          const triagedCol = this.db.prepare("SELECT id FROM columns WHERE board_id = ? AND name = 'Triaged'").get(bugBoard.id) as any
-          if (triagedCol) {
-            this.createBugCard(reportId, bugBoard.id, triagedCol.id)
-          }
+        // Move existing card to "Triaged" column (card created on bug report creation in "New")
+        const bugReport = this.db.prepare('SELECT card_id FROM bug_reports WHERE id = ?').get(reportId) as any
+        if (bugReport?.card_id) {
+          this.db.prepare('UPDATE cards SET column_id = ?, description = ?, updated_at = datetime(\'now\') WHERE id = ?')
+            .run(BUG_COLUMNS.TRIAGED, `## Original Report\n\n${report.description}\n\n## Triage Summary\n\n${response}`, bugReport.card_id)
+          broadcast('card:updated', { id: bugReport.card_id, columnId: BUG_COLUMNS.TRIAGED })
         }
 
         broadcast('bug_report:triaged', { id: reportId, severity: severityMatch?.[1] })

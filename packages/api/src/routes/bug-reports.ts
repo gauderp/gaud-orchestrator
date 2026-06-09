@@ -64,6 +64,24 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
       attachments,
     })
 
+    // Create empty conversation immediately so user can chat before triage
+    const convId = randomUUID()
+    const now = new Date().toISOString()
+    db.prepare('INSERT INTO conversations (id, type, created_at, updated_at) VALUES (?, ?, ?, ?)').run(convId, 'research', now, now)
+    db.prepare('UPDATE bug_reports SET conversation_id = ? WHERE id = ?').run(convId, report['id'] as string)
+    ;(report as any).conversationId = convId
+
+    // Auto-create card on Bug Triage board → "New" column
+    const { BUG_BOARD_ID, BUG_COLUMNS } = await import('@gaud/shared')
+    const reportId = report['id'] as string
+    const cardId = randomUUID()
+    const maxPos = db.prepare('SELECT MAX(position) as mp FROM cards WHERE column_id = ?').get(BUG_COLUMNS.NEW) as any
+    const position = (maxPos?.mp ?? -1) + 1
+    db.prepare('INSERT INTO cards (id, board_id, column_id, type, title, description, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(cardId, BUG_BOARD_ID, BUG_COLUMNS.NEW, 'bug', fields['title'], fields['description'], position, now, now)
+    db.prepare('UPDATE bug_reports SET card_id = ? WHERE id = ?').run(cardId, reportId)
+    ;(report as any).cardId = cardId
+
     return reply.status(201).send(report)
   })
 
