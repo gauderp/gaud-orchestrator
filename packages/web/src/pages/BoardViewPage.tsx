@@ -78,8 +78,8 @@ export function BoardViewPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between px-6 pt-6 pb-4">
         <h1 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           {activeBoard.name}
         </h1>
@@ -105,6 +105,7 @@ export function BoardViewPage() {
         </div>
       </div>
 
+      <div className="flex-1 overflow-hidden">
       <KanbanBoard
         columns={activeBoard.columns}
         cards={cards}
@@ -112,6 +113,8 @@ export function BoardViewPage() {
         onMoveCard={moveCard}
         onAddCard={handleInlineAdd}
       />
+
+      </div>
 
       <Modal open={showNewCard} onClose={() => setShowNewCard(false)} title="New Card" width="lg">
         <CardForm onSubmit={handleCreateCard} loading={creating} />
