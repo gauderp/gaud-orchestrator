@@ -94,27 +94,36 @@ Ou criar endpoint específico:
 // body: { boardId, columnId }
 ```
 
-## 3. Board "Bug Triage" oculto do /boards
+## 3. Board de bugs — fixo via migration, não aparece em /boards
 
-### 3a. Database — Flag `internal` no board
+O board de bugs é uma **estrutura fixa do sistema**, não um board criado pelo usuário. Tem ID constante, colunas com IDs constantes, e não aparece na listagem de boards.
 
-**Migration `packages/api/src/db/migrations/010_board_internal.sql`:**
+### 3a. Constante — ID fixo do bug board
 
-```sql
-ALTER TABLE boards ADD COLUMN internal INTEGER NOT NULL DEFAULT 0;
+**Arquivo: `packages/shared/src/constants.ts`** (ou criar se não existir)
+
+```typescript
+export const BUG_BOARD_ID = 'bug-triage-board'
+export const BUG_COLUMNS = {
+  NEW: 'bug-col-new',
+  TRIAGING: 'bug-col-triaging',
+  TRIAGED: 'bug-col-triaged',
+  IN_PROGRESS: 'bug-col-progress',
+  TESTING: 'bug-col-testing',
+  REOPENED: 'bug-col-reopened',
+  DONE: 'bug-col-done',
+} as const
 ```
 
-### 3b. Board de bugs — fixo via migration OU criado no setup
+Usar essas constantes em todo o código que referencia o bug board (frontend, backend, triage service).
 
-O board "Bug Triage" deve existir sempre. Duas estratégias (implementar ambas como fallback):
+### 3b. Migration — Criar board fixo
 
-**Via migration `010_board_internal.sql`** — criar o board fixo se não existir:
+**Migration `packages/api/src/db/migrations/010_bug_board_fixed.sql`:**
 
 ```sql
-ALTER TABLE boards ADD COLUMN internal INTEGER NOT NULL DEFAULT 0;
-
--- Create Bug Triage board if not exists (idempotent)
-INSERT OR IGNORE INTO boards (id, name, internal) VALUES ('bug-triage-board', 'Bug Triage', 1);
+-- Fixed Bug Triage board — system-managed, not user-created
+INSERT OR IGNORE INTO boards (id, name) VALUES ('bug-triage-board', 'Bug Triage');
 INSERT OR IGNORE INTO columns (id, board_id, name, color, position) VALUES
   ('bug-col-new', 'bug-triage-board', 'New', '#3B82F6', 0),
   ('bug-col-triaging', 'bug-triage-board', 'Triaging', '#F59E0B', 1),
@@ -125,85 +134,70 @@ INSERT OR IGNORE INTO columns (id, board_id, name, color, position) VALUES
   ('bug-col-done', 'bug-triage-board', 'Done', '#10B981', 6);
 ```
 
-**Via setup** — se o setup já cria o board, marcá-lo como `internal = 1`:
-
-```typescript
-db.prepare('INSERT INTO boards (id, name, internal) VALUES (?, ?, 1)').run(bugBoardId, 'Bug Triage')
-```
-
-**Fallback**: no código que busca o bug board (`BugReportPage`, `bug-triage.ts`), usar `WHERE name = 'Bug Triage'` — funciona independente de como foi criado.
-
-O board "Development" continua com `internal = 0`.
-
-### 3c. Backend — `/api/boards` filtra boards internos
+### 3c. Backend — Excluir bug board do GET /api/boards
 
 **Arquivo: `packages/api/src/routes/boards.ts`**
-
-No `GET /api/boards`, filtrar boards com `internal = 0`:
 
 ```typescript
 // De:
 const boards = db.prepare('SELECT * FROM boards ORDER BY created_at').all()
 // Para:
-const boards = db.prepare('SELECT * FROM boards WHERE internal = 0 ORDER BY created_at').all()
+const boards = db.prepare("SELECT * FROM boards WHERE id != 'bug-triage-board' ORDER BY created_at").all()
 ```
 
-Adicionar query param opcional `?includeInternal=true` para uso interno (ex: BugReportPage precisa buscar o bug board):
+Ou importar a constante:
+```typescript
+import { BUG_BOARD_ID } from '@gaud/shared'
+const boards = db.prepare('SELECT * FROM boards WHERE id != ? ORDER BY created_at').all(BUG_BOARD_ID)
+```
+
+O board ainda é acessível via `GET /api/boards/:id` se necessário — só não aparece na listagem.
+
+### 3d. Backend — Setup não cria mais o bug board
+
+**Arquivo: `packages/api/src/routes/setup.ts`**
+
+Remover a criação do board "Bug Triage" do setup (a migration já cria). Manter apenas o board "Development" no setup.
+
+### 3e. Frontend — BugReportPage usa ID fixo
 
 ```typescript
-app.get('/api/boards', async (req, reply) => {
-  const includeInternal = (req.query as any).includeInternal === 'true'
-  const sql = includeInternal
-    ? 'SELECT * FROM boards ORDER BY created_at'
-    : 'SELECT * FROM boards WHERE internal = 0 ORDER BY created_at'
-  const boards = db.prepare(sql).all()
-  return reply.send(toCamelCaseArray(boards as any[]))
-})
+import { BUG_BOARD_ID } from '@gaud/shared'
+
+// Em vez de buscar por nome:
+// api.boards.list().then(boards => boards.find(b => b.name === 'Bug Triage'))
+
+// Buscar direto pelo ID:
+fetchBoard(BUG_BOARD_ID)
+fetchCards(BUG_BOARD_ID)
 ```
 
-### 3d. Frontend — BugReportPage busca board internal
-
-Na `BugReportPage.tsx`, buscar o board "Bug Triage" usando `?includeInternal=true`:
+### 3f. Backend — bug-triage.ts usa ID fixo
 
 ```typescript
-// Mudar de:
-api.boards.list()
-// Para:
-fetch('/api/boards?includeInternal=true').then(r => r.json())
-// Ou adicionar ao api client:
-api.boards.listAll()
+import { BUG_BOARD_ID, BUG_COLUMNS } from '@gaud/shared'
+
+// Em vez de:
+// const bugBoard = this.db.prepare("SELECT id FROM boards WHERE name = 'Bug Triage'").get()
+
+// Usar direto:
+this.createBugCard(reportId, BUG_BOARD_ID, BUG_COLUMNS.TRIAGED)
 ```
 
-### 3e. Frontend — BugReportDetailPage filtra boards internos no select de "Move to Board"
+### 3g. Frontend — BugReportDetailPage "Move to Board"
 
-No select de boards para vincular, mostrar apenas boards NÃO internos:
+No select de boards, a listagem de `api.boards.list()` já não inclui o bug board (filtrado no backend). Então o select só mostra boards de usuário (Development, etc).
 
-```typescript
-const visibleBoards = boards.filter(b => !b.internal)
-```
+### 3h. Limpar boards duplicados existentes
 
-### 3f. Shared types — Adicionar `internal` ao Board
+Para o banco atual que já tem boards "Bug Triage" criados via setup, a migration deve lidar com isso. Usar `INSERT OR IGNORE` garante idempotência. Opcionalmente, deletar o board duplicado criado pelo setup:
 
-**Arquivo: `packages/shared/src/types/board.ts`**
-
-Adicionar campo:
-```typescript
-export interface Board {
-  // ...existing
-  internal?: boolean
-}
-```
-
-### 3g. Marcar board existente como internal
-
-Para o banco atual, rodar:
 ```sql
-UPDATE boards SET internal = 1 WHERE name = 'Bug Triage';
+-- Delete setup-created Bug Triage board (if exists and differs from fixed ID)
+DELETE FROM boards WHERE name = 'Bug Triage' AND id != 'bug-triage-board';
 ```
 
-### 3h. BackupService
-
-`card_tags` já foi adicionado. O campo `internal` da tabela `boards` é incluído automaticamente no dump.
+Mover cards órfãos para o board fixo se necessário.
 
 ## 4. API client updates
 
@@ -211,16 +205,14 @@ UPDATE boards SET internal = 1 WHERE name = 'Bug Triage';
 
 Adicionar:
 ```typescript
-boards: {
-  // ...existing
-  listAll: () => request<Board[]>('/boards?includeInternal=true'),
-},
 cards: {
   // ...existing
   moveToBoard: (cardId: string, data: { boardId: string; columnId: string }) =>
     request(`/cards/${cardId}/move-to-board`, { method: 'POST', body: JSON.stringify(data) }),
 },
 ```
+
+Não precisa de `listAll` — o bug board é buscado direto pelo ID fixo.
 
 ## Regras
 
@@ -242,8 +234,9 @@ pnpm --filter @gaud/api test         # todos passando
 Testar:
 1. Criar bug → conversa inline aparece imediatamente → user pode digitar contexto
 2. Start Triage no header da conversa → agent entra e responde
-3. Bug triaged → card criado no Bug Triage board (oculto do /boards)
-4. Na página do bug triaged → select de boards (só mostra Development e outros, não Bug Triage)
+3. Bug triaged → card criado automaticamente no bug board fixo (coluna Triaged)
+4. Na página do bug triaged → select de boards (só Development e outros)
 5. "Move to Board" → card aparece no board Development
-6. `/boards` não mostra "Bug Triage"
-7. `/bugs` mostra kanban do Bug Triage normalmente
+6. `/boards` NÃO mostra "Bug Triage"
+7. `/bugs` mostra kanban do bug board fixo via ID constante
+8. `BUG_BOARD_ID` e `BUG_COLUMNS` usados em todo o código (sem queries por nome)
