@@ -1,11 +1,15 @@
-import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useBoardStore } from '@/store/boards'
 import { CardDetail } from '@/components/cards/CardDetail'
+import { BUG_BOARD_ID } from '@gaud/shared'
+import { api } from '@/api/client'
 
 export function CardDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { selectedCard, fetchCard, activeBoard, fetchBoard } = useBoardStore()
+  const [checkedBugRedirect, setCheckedBugRedirect] = useState(false)
 
   useEffect(() => {
     if (id) fetchCard(id)
@@ -16,6 +20,19 @@ export function CardDetailPage() {
       fetchBoard(selectedCard.boardId)
     }
   }, [selectedCard, activeBoard, fetchBoard])
+
+  // Redirect bug cards to their bug report page
+  useEffect(() => {
+    if (selectedCard && !checkedBugRedirect) {
+      setCheckedBugRedirect(true)
+      if (selectedCard.type === 'bug' || selectedCard.boardId === BUG_BOARD_ID) {
+        api.bugReports.list().then(reports => {
+          const bugReport = reports.find((r: any) => r.cardId === selectedCard.id)
+          if (bugReport) navigate(`/bugs/${bugReport.id}`, { replace: true })
+        }).catch(() => {})
+      }
+    }
+  }, [selectedCard, checkedBugRedirect, navigate])
 
   if (!selectedCard) {
     return (
