@@ -55,7 +55,6 @@ export function createClaudeCliProvider(): AgentProvider & { buildArgs: (prompt:
           ...opts.env,
         },
         stdio: ['ignore', 'pipe', 'pipe'],
-        shell: true,
       })
 
       const session: Session = { id, process: proc, callbacks: [] }
