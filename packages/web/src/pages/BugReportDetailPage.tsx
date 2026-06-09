@@ -46,15 +46,19 @@ export function BugReportDetailPage() {
   const [error, setError] = useState<string | null>(null)
 
   const activeConversation = useConversationStore((s) => s.activeConversation)
-  const fetchConversation = useConversationStore((s) => s.fetchConversation)
+
+  // Track conversationId separately to avoid re-fetch loops
+  const [convId, setConvId] = useState<string | null>(null)
 
   useEffect(() => { loadData() }, [id])
 
+  // When report loads/updates with a conversationId, fetch it once
   useEffect(() => {
-    if (report?.conversationId) {
-      fetchConversation(report.conversationId)
+    if (report?.conversationId && report.conversationId !== convId) {
+      setConvId(report.conversationId)
+      useConversationStore.getState().fetchConversation(report.conversationId)
     }
-  }, [report?.conversationId])
+  }, [report?.conversationId, convId])
 
   async function loadData() {
     if (!id) return
