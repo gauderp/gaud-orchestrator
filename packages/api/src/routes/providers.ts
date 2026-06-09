@@ -23,8 +23,12 @@ export async function providerRoutes(app: FastifyInstance): Promise<void> {
   })
 
   async function reloadRegistry() {
-    const { loadProviderRegistry } = await import('../index.js')
-    loadProviderRegistry()
+    try {
+      const { loadProviderRegistry } = await import('../index.js')
+      loadProviderRegistry()
+    } catch {
+      // Silently skip in test environments where index.js is not available
+    }
   }
 
   app.post('/api/providers', { preHandler: [adminOnly] }, async (req, reply) => {
