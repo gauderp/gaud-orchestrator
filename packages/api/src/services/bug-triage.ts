@@ -82,30 +82,43 @@ export class BugTriageService {
 
     this.db.prepare('UPDATE bug_reports SET conversation_id = ? WHERE id = ?').run(convId, reportId)
 
-    const triagePrompt = `You are a bug triage agent. Analyze the following bug report from support and determine:
+    const triagePrompt = `You are a bug triage agent having a conversation with the person who reported this bug.
+Your goal is to gather enough information to classify the bug.
 
-1. **Severity**: critical (production down), high (major feature broken), medium (feature partially broken), low (cosmetic/minor)
-2. **Affected area**: which module/component/service is affected
-3. **Steps to reproduce**: extract or infer from the report
-4. **Root cause hypothesis**: based on the description and any logs/screenshots
-5. **Missing information**: what else do you need to properly diagnose this
+## Rules
+1. Ask ONE question at a time — do not ask multiple questions at once
+2. Use simple, non-technical language — the reporter may not be a developer
+3. When the question has common answers, provide options using [OPTIONS]...[/OPTIONS] format
+4. After each answer, either ask the next question or provide your triage result
+5. Be concise and friendly
 
 ## Bug Report
 
 **Title:** ${report.title}
-**Reporter:** ${report.reporter_name ?? 'Unknown'} (${report.reporter_email ?? 'no email'})
-**Reported at:** ${report.created_at}
-
+**Reporter:** ${report.reporter_name ?? 'Unknown'}
 **Description:**
 ${report.description}
 
 ${attachmentContext ? `## Attachments\n\n${attachmentContext}` : ''}
 
-## Response Format
+## Options Format
 
-Respond with ONE of:
+When a question has common answers, add clickable options:
 
-**If you have enough info to triage:**
+[OPTIONS]
+- Option text 1
+- Option text 2
+- Option text 3
+[/OPTIONS]
+
+The reporter can click an option or type a custom answer.
+
+## Start
+
+Analyze the bug report. If you already have enough information, respond with your triage.
+If you need more details, ask your first question with options if applicable.
+
+## When done, respond with:
 [TRIAGED]
 - Severity: critical|high|medium|low
 - Area: <affected module>
@@ -113,14 +126,9 @@ Respond with ONE of:
 - Root cause: <hypothesis>
 - Suggested fix: <brief approach>
 
-**If you need more information from the reporter:**
-[NEEDS_INFO]
-- Question 1: <specific question>
-- Question 2: <specific question>
-
-**If this is not a valid bug report:**
+## If this is not a valid bug:
 [REJECTED]
-- Reason: <why this is not a bug>`
+- Reason: <why>`
 
     this.db.prepare('INSERT INTO messages (id, conversation_id, sender_type, content, message_type) VALUES (?, ?, ?, ?, ?)')
       .run(randomUUID(), convId, 'system', triagePrompt, 'content')
@@ -141,15 +149,16 @@ Respond with ONE of:
         `).run(severityMatch?.[1]?.toLowerCase() ?? 'medium', response, reportId)
         broadcast('bug_report:triaged', { id: reportId, severity: severityMatch?.[1] })
 
-      } else if (response.includes('[NEEDS_INFO]')) {
-        this.db.prepare("UPDATE bug_reports SET status = 'needs_info', triage_summary = ?, updated_at = datetime('now') WHERE id = ?")
-          .run(response, reportId)
-        broadcast('bug_report:needs_info', { id: reportId })
-
       } else if (response.includes('[REJECTED]')) {
         this.db.prepare("UPDATE bug_reports SET status = 'rejected', triage_summary = ?, updated_at = datetime('now') WHERE id = ?")
           .run(response, reportId)
         broadcast('bug_report:rejected', { id: reportId })
+
+      } else {
+        // Agent asked a question — set needs_info and wait for user response
+        this.db.prepare("UPDATE bug_reports SET status = 'needs_info', updated_at = datetime('now') WHERE id = ?")
+          .run(reportId)
+        broadcast('bug_report:needs_info', { id: reportId })
       }
     } catch (err) {
       console.error('Triage failed:', err)

@@ -9,6 +9,7 @@ describe('parseAgentResponse', () => {
     expect(result.mentions).toEqual([])
     expect(result.questionForUser).toBeNull()
     expect(result.artifact).toBeNull()
+    expect(result.options).toEqual([])
   })
 
   it('detects agent mention', () => {
@@ -41,6 +42,58 @@ describe('parseAgentResponse', () => {
     expect(result.type).toBe('artifact')
     expect(result.content).toContain('Based on our discussion')
     expect(result.artifact).toContain('Spec')
+  })
+
+  it('parses [OPTIONS] block into options array', () => {
+    const raw = `Em qual navegador você está usando o sistema?
+
+[OPTIONS]
+- Google Chrome
+- Firefox
+- Safari
+- Microsoft Edge
+- Não sei
+[/OPTIONS]`
+    const result = parseAgentResponse(raw)
+    expect(result.options).toEqual([
+      'Google Chrome',
+      'Firefox',
+      'Safari',
+      'Microsoft Edge',
+      'Não sei',
+    ])
+  })
+
+  it('returns empty options when no [OPTIONS] block', () => {
+    const result = parseAgentResponse('Just a normal message without options.')
+    expect(result.options).toEqual([])
+  })
+
+  it('handles [OPTIONS] with extra whitespace and blank lines', () => {
+    const raw = `Pergunta aqui?
+
+[OPTIONS]
+
+- Opção A
+-   Opção B
+- Opção C
+
+[/OPTIONS]`
+    const result = parseAgentResponse(raw)
+    expect(result.options).toEqual(['Opção A', 'Opção B', 'Opção C'])
+  })
+
+  it('parses options case-insensitively', () => {
+    const raw = `Question?\n[options]\n- Yes\n- No\n[/options]`
+    const result = parseAgentResponse(raw)
+    expect(result.options).toEqual(['Yes', 'No'])
+  })
+
+  it('preserves options alongside other parsed types', () => {
+    const raw = `Analysis done.\n\n[QUESTION_FOR_USER] Which browser?\n[OPTIONS]\n- Chrome\n- Firefox\n[/OPTIONS]`
+    const result = parseAgentResponse(raw)
+    expect(result.type).toBe('question_for_user')
+    expect(result.options).toEqual(['Chrome', 'Firefox'])
   })
 })
 

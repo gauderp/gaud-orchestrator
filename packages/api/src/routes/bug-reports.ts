@@ -112,12 +112,13 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
           UPDATE bug_reports SET status = 'triaged', severity = ?, triage_summary = ?, updated_at = datetime('now')
           WHERE id = ?
         `).run(severityMatch?.[1]?.toLowerCase() ?? 'medium', response, req.params.id)
-      } else if (response.includes('[NEEDS_INFO]')) {
-        db.prepare("UPDATE bug_reports SET triage_summary = ?, updated_at = datetime('now') WHERE id = ?")
-          .run(response, req.params.id)
       } else if (response.includes('[REJECTED]')) {
         db.prepare("UPDATE bug_reports SET status = 'rejected', triage_summary = ?, updated_at = datetime('now') WHERE id = ?")
           .run(response, req.params.id)
+      } else {
+        // Agent asked another question — keep needs_info status
+        db.prepare("UPDATE bug_reports SET status = 'needs_info', updated_at = datetime('now') WHERE id = ?")
+          .run(req.params.id)
       }
     } catch (err) {
       console.error('Respond triage failed:', err)

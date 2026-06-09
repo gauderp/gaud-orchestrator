@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { MessageBubble } from './MessageBubble'
 import { UserQuestionBanner } from './UserQuestionBanner'
 import { ArtifactBlock } from './ArtifactBlock'
+import { OptionButtons, stripOptions } from './OptionButtons'
 import { useConversationStore } from '@/store/conversations'
 import type { ConversationWithMessages } from '@gaud/shared'
 
@@ -134,15 +135,30 @@ export function ConversationView({ conversation }: ConversationViewProps) {
 
       {/* Messages */}
       <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
-        {conversation.messages.map((msg) => {
-          const artifactMatch = msg.content.match(/\[ARTIFACT]\s*([\s\S]+)$/i)
+        {conversation.messages.map((msg, idx) => {
+          const isLastMessage = idx === conversation.messages.length - 1
+          const hasOptions = msg.content.includes('[OPTIONS]')
+          const isAgentMsg = msg.senderType === 'agent'
+          const displayContent = stripOptions(msg.content)
+          const artifactMatch = displayContent.match(/\[ARTIFACT]\s*([\s\S]+)$/i)
           return (
             <div key={msg.id}>
               <MessageBubble
-                message={msg}
+                message={{ ...msg, content: displayContent }}
                 agentName={msg.senderId ? agentNames[msg.senderId] : undefined}
                 agentColor={msg.senderId ? agentColors[msg.senderId] : undefined}
               />
+              {isAgentMsg && hasOptions && isLastMessage && conversation.status !== 'completed' && (
+                <div className="px-4 pb-2">
+                  <OptionButtons
+                    content={msg.content}
+                    onSelect={(option) => {
+                      sendMessage(conversation.id, option)
+                      setUserScrolled(false)
+                    }}
+                  />
+                </div>
+              )}
               {artifactMatch && (
                 <ArtifactBlock artifact={(artifactMatch[1] ?? '').trim()} />
               )}

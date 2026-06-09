@@ -16,6 +16,7 @@ export interface ParsedResponse {
   mentions: string[]
   questionForUser: string | null
   artifact: string | null
+  options: string[]
 }
 
 export function parseAgentResponse(raw: string): ParsedResponse {
@@ -24,6 +25,17 @@ export function parseAgentResponse(raw: string): ParsedResponse {
   let match: RegExpExecArray | null
   while ((match = mentionRegex.exec(raw)) !== null) {
     mentions.push(match[1]!)
+  }
+
+  // Parse [OPTIONS]...[/OPTIONS] blocks
+  const options: string[] = []
+  const optionsMatch = raw.match(/\[OPTIONS\]\s*([\s\S]*?)\s*\[\/OPTIONS\]/i)
+  if (optionsMatch) {
+    const optionsBlock = optionsMatch[1]!
+    for (const line of optionsBlock.split('\n')) {
+      const trimmed = line.trim().replace(/^-\s*/, '').trim()
+      if (trimmed) options.push(trimmed)
+    }
   }
 
   // Check for [QUESTION_FOR_USER]
@@ -37,6 +49,7 @@ export function parseAgentResponse(raw: string): ParsedResponse {
       mentions,
       questionForUser: questionText,
       artifact: null,
+      options,
     }
   }
 
@@ -51,6 +64,7 @@ export function parseAgentResponse(raw: string): ParsedResponse {
       mentions,
       questionForUser: null,
       artifact: artifactText,
+      options,
     }
   }
 
@@ -60,6 +74,7 @@ export function parseAgentResponse(raw: string): ParsedResponse {
     mentions,
     questionForUser: null,
     artifact: null,
+    options,
   }
 }
 
