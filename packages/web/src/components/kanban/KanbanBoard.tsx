@@ -56,7 +56,7 @@ export function KanbanBoard({ columns, cards, agents, onMoveCard, onAddCard }: K
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4 scroll-smooth">
+      <div className="flex h-full gap-4 overflow-x-auto px-4 pb-4 scroll-smooth">
         {columns
           .slice()
           .sort((a, b) => a.position - b.position)

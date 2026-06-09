@@ -28,7 +28,7 @@ export function KanbanColumn({ column, cards, agents, onAddCard }: KanbanColumnP
   }
 
   return (
-    <div className="flex min-w-[280px] max-w-[320px] flex-col">
+    <div className="flex min-w-[280px] max-w-[320px] flex-col h-full">
       {/* Column header */}
       <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
         <span
@@ -47,7 +47,7 @@ export function KanbanColumn({ column, cards, agents, onAddCard }: KanbanColumnP
       </div>
 
       {/* Cards */}
-      <div ref={setNodeRef} className="flex flex-1 flex-col gap-1.5 min-h-[60px]">
+      <div ref={setNodeRef} className="flex flex-1 flex-col gap-1.5 min-h-[60px] overflow-y-auto">
         <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
             <KanbanCard
