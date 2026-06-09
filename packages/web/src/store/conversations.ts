@@ -7,6 +7,9 @@ interface ConversationState {
   activeConversation: ConversationWithMessages | null
   loading: boolean
   autoRun: boolean // auto-trigger next turns
+  typingAgents: Record<string, string[]> // conversationId → list of typing agentIds
+  messageQueue: Record<string, string[]> // conversationId → queued messages
+  processing: Record<string, boolean> // conversationId → is agent processing
 
   fetchForCard: (cardId: string) => Promise<void>
   fetchConversation: (id: string) => Promise<void>
@@ -20,6 +23,7 @@ interface ConversationState {
   // WebSocket handlers
   onMessage: (conversationId: string, message: Message) => void
   onStatusChange: (conversationId: string, status: string) => void
+  onTyping: (conversationId: string, agentId: string, typing: boolean) => void
 }
 
 export const useConversationStore = create<ConversationState>((set, get) => ({
@@ -27,6 +31,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   activeConversation: null,
   loading: false,
   autoRun: true,
+  typingAgents: {},
+  messageQueue: {},
+  processing: {},
 
   fetchForCard: async (cardId) => {
     const conversations = await api.conversations.listForCard(cardId)
@@ -46,6 +53,19 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   },
 
   sendMessage: async (id, content) => {
+    const { processing, messageQueue } = get()
+
+    if (processing[id]) {
+      // Agent is working — queue the message
+      set((s) => ({
+        messageQueue: {
+          ...s.messageQueue,
+          [id]: [...(s.messageQueue[id] ?? []), content],
+        },
+      }))
+      return
+    }
+
     const msg = await api.conversations.sendMessage(id, content)
     set((s) => {
       if (!s.activeConversation || s.activeConversation.id !== id) return s
@@ -121,5 +141,32 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         ? { ...s.activeConversation, status: status as any }
         : s.activeConversation,
     }))
+  },
+
+  onTyping: (conversationId, agentId, typing) => {
+    set((s) => {
+      const current = s.typingAgents[conversationId] ?? []
+      const updated = typing
+        ? [...new Set([...current, agentId])]
+        : current.filter(id => id !== agentId)
+      return {
+        typingAgents: { ...s.typingAgents, [conversationId]: updated },
+        processing: { ...s.processing, [conversationId]: updated.length > 0 },
+      }
+    })
+
+    // When agent stops typing, send queued messages
+    if (!typing) {
+      const { messageQueue } = get()
+      const queue = messageQueue[conversationId] ?? []
+      if (queue.length > 0) {
+        // Clear queue first
+        set((s) => ({
+          messageQueue: { ...s.messageQueue, [conversationId]: [] },
+        }))
+        // Send first queued message (rest will queue again if agent starts typing)
+        get().sendMessage(conversationId, queue[0]!)
+      }
+    }
   },
 }))

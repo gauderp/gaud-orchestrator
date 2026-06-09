@@ -278,27 +278,33 @@ export async function runConversationTurn(
   const provider = providerRegistry.get(agentRow.provider_id ?? 'claude-cli')
   if (!provider) throw new Error(`Provider not found: ${agentRow.provider_id}`)
 
-  let responseText = ''
-  const session = await provider.spawn({
-    prompt,
-    systemPrompt,
-    cwd: cardContext.repos[0] ?? process.cwd(),
-    model: agentRow.model ?? undefined,
-  })
+  broadcast('conversation:typing', { conversationId, agentId: nextAgent.agentId, typing: true })
 
-  // Collect output
-  await new Promise<void>((resolve) => {
-    provider.onOutput(session.id, (event: any) => {
-      if (event.type === 'stdout') responseText += event.content
+  let responseText = ''
+  try {
+    const session = await provider.spawn({
+      prompt,
+      systemPrompt,
+      cwd: cardContext.repos[0] ?? process.cwd(),
+      model: agentRow.model ?? undefined,
     })
-    const check = setInterval(() => {
-      if (responseText.length > 0) {
-        clearInterval(check)
-        resolve()
-      }
-    }, 500)
-    setTimeout(() => { clearInterval(check); resolve() }, 120_000)
-  })
+
+    // Collect output
+    await new Promise<void>((resolve) => {
+      provider.onOutput(session.id, (event: any) => {
+        if (event.type === 'stdout') responseText += event.content
+      })
+      const check = setInterval(() => {
+        if (responseText.length > 0) {
+          clearInterval(check)
+          resolve()
+        }
+      }, 500)
+      setTimeout(() => { clearInterval(check); resolve() }, 120_000)
+    })
+  } finally {
+    broadcast('conversation:typing', { conversationId, agentId: nextAgent.agentId, typing: false })
+  }
 
   if (!responseText.trim()) {
     responseText = '[No response from agent]'

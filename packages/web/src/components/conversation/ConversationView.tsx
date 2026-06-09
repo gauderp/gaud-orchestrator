@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Send, Pause, Play, Zap, ZapOff, Plus } from 'lucide-react'
+import { Send, Pause, Play, Zap, ZapOff, Plus, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { MessageBubble } from './MessageBubble'
 import { UserQuestionBanner } from './UserQuestionBanner'
 import { ArtifactBlock } from './ArtifactBlock'
 import { OptionButtons, stripOptions } from './OptionButtons'
+import { TypingIndicator } from './TypingIndicator'
 import { useConversationStore } from '@/store/conversations'
 import type { ConversationWithMessages } from '@gaud/shared'
 
@@ -23,6 +24,9 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [userScrolled, setUserScrolled] = useState(false)
   const { sendMessage, triggerNextTurn, pauseConversation, resumeConversation, autoRun, setAutoRun } = useConversationStore()
+  const typingAgentIds = useConversationStore((s) => s.typingAgents[conversation.id] ?? [])
+  const messageQueue = useConversationStore((s) => s.messageQueue[conversation.id] ?? [])
+  const isProcessing = useConversationStore((s) => s.processing[conversation.id] ?? false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-scroll unless user scrolled up
@@ -165,6 +169,10 @@ export function ConversationView({ conversation }: ConversationViewProps) {
             </div>
           )
         })}
+        <TypingIndicator
+          agentNames={typingAgentIds.map(id => agentNames[id] ?? 'Agent')}
+          agentColors={agentColors}
+        />
         <div ref={messagesEndRef} />
       </div>
 
@@ -184,7 +192,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
               ref={textareaRef}
               value={input}
               onChange={handleTextareaChange}
-              placeholder="Type a message..."
+              placeholder={isProcessing ? "Type a message (will be queued)..." : "Type a message..."}
               rows={1}
               className="flex-1 resize-none rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)] dark:placeholder:text-[var(--color-muted-dark)]"
               style={{ maxHeight: '120px' }}
@@ -196,7 +204,7 @@ export function ConversationView({ conversation }: ConversationViewProps) {
               }}
             />
             <Button onClick={handleSend} disabled={!input.trim()}>
-              <Send size={14} />
+              {isProcessing ? <Clock size={14} /> : <Send size={14} />}
             </Button>
             {!autoRun && conversation.status === 'active' && (
               <Button variant="secondary" onClick={() => triggerNextTurn(conversation.id)} title="Trigger next agent turn">
@@ -204,6 +212,13 @@ export function ConversationView({ conversation }: ConversationViewProps) {
               </Button>
             )}
           </div>
+          {messageQueue.length > 0 && (
+            <div className="mt-2">
+              <p className="text-[11px] text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+                {messageQueue.length} message{messageQueue.length > 1 ? 's' : ''} queued — will send when agent finishes
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

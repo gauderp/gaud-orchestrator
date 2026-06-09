@@ -72,6 +72,13 @@ export function AppRoutes() {
           case 'conversation:status':
             useConversationStore.getState().onStatusChange(msg.payload.conversationId, msg.payload.status)
             break
+          case 'conversation:typing':
+            useConversationStore.getState().onTyping(
+              msg.payload.conversationId,
+              msg.payload.agentId,
+              msg.payload.typing
+            )
+            break
           case 'conversation:question':
             useToastStore.getState().addToast('warning', 'An agent needs your input', 5000)
             break
