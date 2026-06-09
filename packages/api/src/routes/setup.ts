@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { randomUUID } from 'crypto'
+import { readdirSync, readFileSync } from 'fs'
+import { join } from 'path'
 import bcrypt from 'bcryptjs'
 import { getDb } from '../db/connection.js'
 import { signAccessToken, signRefreshToken } from '../middleware/auth.js'
@@ -13,6 +15,35 @@ export async function setupRoutes(app: FastifyInstance): Promise<void> {
     return reply.send({ completed: row?.value === 'true' })
   })
 
+  // Return available agent templates parsed from agents/*.md files
+  app.get('/api/setup/agent-templates', async (_req, reply) => {
+    const agentsDir = process.env['AGENTS_DIR'] ?? 'agents'
+    let files: string[]
+    try {
+      files = readdirSync(agentsDir).filter(f => f.endsWith('.md'))
+    } catch {
+      return reply.send([])
+    }
+
+    const templates = files.map(file => {
+      const content = readFileSync(join(agentsDir, file), 'utf-8')
+      const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+      if (!match?.[1] || !match[2]) return null
+
+      const frontmatter = match[1]
+      const body = match[2].trim()
+
+      const name = frontmatter.match(/^name:\s*(.+)$/m)?.[1]?.trim() ?? file.replace('.md', '')
+      const description = frontmatter.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? ''
+      const model = frontmatter.match(/^model:\s*(.+)$/m)?.[1]?.trim() ?? 'claude-sonnet-4-6'
+      const color = frontmatter.match(/^color:\s*(.+)$/m)?.[1]?.trim() ?? 'gray'
+
+      return { name, description, model, color, instructions: body }
+    }).filter(Boolean)
+
+    return reply.send(templates)
+  })
+
   // Complete setup — creates admin user, providers, and optionally GitHub token
   app.post('/api/setup/complete', async (req, reply) => {
     // Check not already completed
@@ -21,10 +52,11 @@ export async function setupRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(400).send({ error: 'Setup already completed' })
     }
 
-    const { admin, providers, githubToken } = req.body as {
+    const { admin, providers, githubToken, agents } = req.body as {
       admin: { name: string; email: string; password: string }
       providers?: Array<{ name: string; type: string; configJson: Record<string, unknown> }>
       githubToken?: string
+      agents?: Array<{ name: string; role: string; instructions: string; model: string }>
     }
 
     // Validate admin
@@ -57,6 +89,21 @@ export async function setupRoutes(app: FastifyInstance): Promise<void> {
       if (githubToken) {
         db.prepare("INSERT OR REPLACE INTO setup_state (key, value) VALUES ('github_token', ?)")
           .run(githubToken)
+      }
+
+      // Create agents if any
+      if (agents?.length) {
+        // Use the first provider created (if any) as default
+        const firstProvider = providers?.length
+          ? db.prepare('SELECT id FROM providers ORDER BY created_at DESC LIMIT 1').get() as any
+          : null
+
+        for (const a of agents) {
+          db.prepare(`
+            INSERT INTO agents (id, name, role, instructions, provider_id, model)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(randomUUID(), a.name, a.role, a.instructions, firstProvider?.id ?? null, a.model)
+        }
       }
 
       // Mark setup complete

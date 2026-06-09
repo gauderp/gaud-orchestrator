@@ -20,6 +20,7 @@ const PUBLIC_ROUTES = [
   'POST /api/setup/complete',
   'GET /api/health',
   'POST /api/slack-webhook',
+  'GET /api/setup/agent-templates',
 ]
 
 export function signAccessToken(payload: JwtPayload): string {
@@ -34,7 +35,7 @@ export function verifyToken(token: string): JwtPayload {
   return jwt.verify(token, JWT_SECRET) as JwtPayload
 }
 
-export async function authPlugin(app: FastifyInstance): Promise<void> {
+export function registerAuthHook(app: FastifyInstance): void {
   app.addHook('onRequest', async (req: FastifyRequest, reply: FastifyReply) => {
     const routeKey = `${req.method} ${(req.routeOptions as any)?.url ?? req.url.split('?')[0]}`
 
