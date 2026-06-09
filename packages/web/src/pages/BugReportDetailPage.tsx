@@ -1,22 +1,34 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Bug, Send, Kanban, Trash2, RefreshCw, AlertTriangle, CheckCircle2, HelpCircle, XCircle, Clock, Paperclip } from 'lucide-react'
+import { ArrowLeft, Bug, Kanban, Trash2, RefreshCw, AlertTriangle, CheckCircle2, HelpCircle, XCircle, Clock, Paperclip } from 'lucide-react'
 import type { BugReportWithAttachments, Agent, Board, BoardWithColumns } from '@gaud/shared'
 import { api } from '@/api/client'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import { ConversationView } from '@/components/conversation/ConversationView'
+import { useConversationStore } from '@/store/conversations'
 
-const statusConfig: Record<string, { label: string; bg: string; text: string; icon: any }> = {
-  new: { label: 'New', bg: '#dbeafe', text: '#1e40af', icon: Clock },
-  triaging: { label: 'Triaging...', bg: '#fef9c3', text: '#854d0e', icon: RefreshCw },
-  needs_info: { label: 'Needs Info', bg: '#fef3c7', text: '#92400e', icon: HelpCircle },
-  triaged: { label: 'Triaged', bg: '#dcfce7', text: '#166534', icon: CheckCircle2 },
-  rejected: { label: 'Rejected', bg: '#fecaca', text: '#991b1b', icon: XCircle },
+const statusConfig: Record<string, { label: string; icon: any }> = {
+  new: { label: 'New', icon: Clock },
+  triaging: { label: 'Triaging...', icon: RefreshCw },
+  needs_info: { label: 'Needs Info', icon: HelpCircle },
+  triaged: { label: 'Triaged', icon: CheckCircle2 },
+  rejected: { label: 'Rejected', icon: XCircle },
 }
 
-const severityConfig: Record<string, { bg: string; text: string }> = {
-  critical: { bg: '#fecaca', text: '#991b1b' },
-  high: { bg: '#fed7aa', text: '#9a3412' },
-  medium: { bg: '#fef9c3', text: '#854d0e' },
-  low: { bg: '#e0e7ff', text: '#3730a3' },
+const statusBadgeVariant: Record<string, 'neutral' | 'warning' | 'success' | 'error' | 'info'> = {
+  new: 'info',
+  triaging: 'warning',
+  needs_info: 'warning',
+  triaged: 'success',
+  rejected: 'error',
+}
+
+const severityBadgeVariant: Record<string, 'error' | 'warning' | 'neutral' | 'info'> = {
+  critical: 'error',
+  high: 'error',
+  medium: 'warning',
+  low: 'info',
 }
 
 export function BugReportDetailPage() {
@@ -28,14 +40,20 @@ export function BugReportDetailPage() {
   const [selectedBoard, setSelectedBoard] = useState<BoardWithColumns | null>(null)
   const [selectedColumnId, setSelectedColumnId] = useState('')
   const [triageAgentId, setTriageAgentId] = useState('')
-  const [response, setResponse] = useState('')
   const [loading, setLoading] = useState(true)
   const [triaging, setTriaging] = useState(false)
-  const [responding, setResponding] = useState(false)
   const [creatingCard, setCreatingCard] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const { activeConversation, fetchConversation } = useConversationStore()
+
   useEffect(() => { loadData() }, [id])
+
+  useEffect(() => {
+    if (report?.conversationId) {
+      fetchConversation(report.conversationId)
+    }
+  }, [report?.conversationId, fetchConversation])
 
   async function loadData() {
     if (!id) return
@@ -66,7 +84,6 @@ export function BugReportDetailPage() {
     setError(null)
     try {
       await api.bugReports.triage(id, triageAgentId)
-      // Poll for update
       setTimeout(loadData, 2000)
       setTimeout(loadData, 5000)
       setTimeout(loadData, 10000)
@@ -74,21 +91,6 @@ export function BugReportDetailPage() {
       setError(err.message)
     } finally {
       setTriaging(false)
-    }
-  }
-
-  async function handleRespond() {
-    if (!id || !response.trim()) return
-    setResponding(true)
-    setError(null)
-    try {
-      await api.bugReports.respond(id, response)
-      setResponse('')
-      await loadData()
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setResponding(false)
     }
   }
 
@@ -119,110 +121,74 @@ export function BugReportDetailPage() {
     if (board.columns?.length) setSelectedColumnId(board.columns[0]!.id)
   }
 
-  if (loading) return <div style={{ padding: '24px', color: '#6b7280' }}>Loading...</div>
-  if (!report) return <div style={{ padding: '24px', color: '#991b1b' }}>Bug report not found</div>
+  if (loading) return <div className="p-6 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Loading...</div>
+  if (!report) return <div className="p-6 text-[var(--color-destructive)]">Bug report not found</div>
 
-  const status = (statusConfig[report.status] ?? statusConfig['new'])!
-  const severity = report.severity ? severityConfig[report.severity]! : null
+  const status = statusConfig[report.status] ?? statusConfig['new']!
   const StatusIcon = status.icon
 
   return (
-    <div style={{ padding: '24px', maxWidth: '800px', margin: '0 auto' }}>
+    <div className="mx-auto max-w-3xl p-6">
       {/* Header */}
       <button
         onClick={() => navigate('/bugs')}
-        style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
-          padding: '0', border: 'none', background: 'none',
-          fontSize: '13px', color: '#6b7280', cursor: 'pointer', marginBottom: '16px',
-        }}
+        className="mb-4 flex items-center gap-1.5 border-none bg-transparent p-0 text-[13px] text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)] cursor-pointer"
       >
         <ArrowLeft size={14} /> Back to Bug Reports
       </button>
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Bug size={20} style={{ color: '#dc2626' }} />
-          <h1 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>{report.title}</h1>
+      <div className="mb-5 flex items-start justify-between">
+        <div className="flex items-center gap-2.5">
+          <Bug size={20} className="text-[var(--color-destructive)]" />
+          <h1 className="text-xl font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{report.title}</h1>
         </div>
-        <button
-          onClick={handleDelete}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '4px',
-            padding: '6px 10px', borderRadius: '6px', border: '1px solid #fecaca',
-            cursor: 'pointer', background: '#fff', color: '#dc2626', fontSize: '12px',
-          }}
-        >
-          <Trash2 size={12} /> Delete
-        </button>
+        <Button variant="destructive" size="sm" onClick={handleDelete}>
+          <Trash2 size={12} className="mr-1" /> Delete
+        </Button>
       </div>
 
       {error && (
-        <div style={{
-          padding: '10px 14px', borderRadius: '8px', marginBottom: '16px',
-          background: '#fef2f2', color: '#991b1b', fontSize: '13px',
-        }}>
+        <div className="mb-4 rounded-[var(--radius-lg)] bg-[var(--color-destructive)]/10 px-3.5 py-2.5 text-[13px] text-[var(--color-destructive)]">
           {error}
         </div>
       )}
 
-      {/* Meta */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
-        <span style={{
-          display: 'flex', alignItems: 'center', gap: '4px',
-          fontSize: '12px', padding: '4px 10px', borderRadius: '4px',
-          background: status.bg, color: status.text, fontWeight: 500,
-        }}>
-          <StatusIcon size={12} /> {status.label}
-        </span>
-        {severity && (
-          <span style={{
-            fontSize: '12px', padding: '4px 10px', borderRadius: '4px',
-            background: severity.bg, color: severity.text, fontWeight: 500,
-          }}>
+      {/* Meta badges */}
+      <div className="mb-5 flex flex-wrap gap-2">
+        <Badge variant={statusBadgeVariant[report.status] ?? 'neutral'}>
+          <StatusIcon size={12} className="mr-1" />
+          {status.label}
+        </Badge>
+        {report.severity && (
+          <Badge variant={severityBadgeVariant[report.severity] ?? 'neutral'}>
             {report.severity}
-          </span>
+          </Badge>
         )}
-        <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '4px', background: '#f3f4f6', color: '#6b7280' }}>
-          Source: {report.source}
-        </span>
+        <Badge variant="neutral">Source: {report.source}</Badge>
         {report.reporterName && (
-          <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '4px', background: '#f3f4f6', color: '#6b7280' }}>
-            Reporter: {report.reporterName}
-          </span>
+          <Badge variant="neutral">Reporter: {report.reporterName}</Badge>
         )}
-        <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '4px', background: '#f3f4f6', color: '#6b7280' }}>
-          {new Date(report.createdAt).toLocaleString()}
-        </span>
+        <Badge variant="neutral">{new Date(report.createdAt).toLocaleString()}</Badge>
       </div>
 
       {/* Description */}
-      <div style={{
-        padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb',
-        background: '#fff', marginBottom: '20px',
-      }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Description</h3>
-        <div style={{ fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{report.description}</div>
+      <div className="mb-5 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+        <h3 className="mb-2 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Description</h3>
+        <div className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{report.description}</div>
       </div>
 
       {/* Attachments */}
       {report.attachments.length > 0 && (
-        <div style={{
-          padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb',
-          background: '#fff', marginBottom: '20px',
-        }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="mb-5 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+          <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             <Paperclip size={14} /> Attachments
           </h3>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap gap-2">
             {report.attachments.map(att => (
-              <div key={att.id} style={{
-                padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb',
-                fontSize: '12px', color: '#374151', background: '#f9fafb',
-              }}>
+              <div key={att.id} className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]">
                 {att.filename}
                 {att.fileType && (
-                  <span style={{ marginLeft: '6px', color: '#9ca3af' }}>({att.fileType})</span>
+                  <span className="ml-1.5 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">({att.fileType})</span>
                 )}
               </div>
             ))}
@@ -232,145 +198,79 @@ export function BugReportDetailPage() {
 
       {/* Triage Summary */}
       {report.triageSummary && (
-        <div style={{
-          padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb',
-          background: '#f0fdf4', marginBottom: '20px',
-        }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Triage Summary</h3>
-          <div style={{ fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{report.triageSummary}</div>
+        <div className="mb-5 rounded-[var(--radius-lg)] border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 p-4">
+          <h3 className="mb-2 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Triage Summary</h3>
+          <div className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{report.triageSummary}</div>
         </div>
       )}
 
-      {/* Conversation link */}
-      {report.conversationId && (
-        <div style={{ marginBottom: '20px' }}>
-          <button
-            onClick={() => navigate(`/conversations/${report.conversationId}`)}
-            style={{
-              padding: '8px 14px', borderRadius: '6px', border: '1px solid #e5e7eb',
-              fontSize: '13px', cursor: 'pointer', background: '#f9fafb', color: '#374151',
-            }}
-          >
-            View Triage Conversation
-          </button>
+      {/* Inline Triage Conversation */}
+      {report.conversationId && activeConversation && (
+        <div className="mb-5 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
+          <div className="h-[400px]">
+            <ConversationView conversation={activeConversation} />
+          </div>
         </div>
       )}
 
       {/* Card link */}
       {report.cardId && (
-        <div style={{
-          padding: '12px 16px', borderRadius: '8px', border: '1px solid #dcfce7',
-          background: '#f0fdf4', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px',
-        }}>
-          <CheckCircle2 size={14} style={{ color: '#166534' }} />
-          <span style={{ fontSize: '13px', color: '#166534' }}>Bug card created.</span>
-          <button
-            onClick={() => navigate(`/cards/${report.cardId}`)}
-            style={{
-              padding: '4px 10px', borderRadius: '4px', border: '1px solid #bbf7d0',
-              fontSize: '12px', cursor: 'pointer', background: '#fff', color: '#166534',
-            }}
-          >
+        <div className="mb-5 flex items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-4 py-3">
+          <CheckCircle2 size={14} className="text-[var(--color-accent)]" />
+          <span className="text-[13px] text-[var(--color-accent)]">Bug card created.</span>
+          <Button variant="secondary" size="sm" onClick={() => navigate(`/cards/${report.cardId}`)}>
             View Card
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Actions */}
-      <div style={{
-        padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb',
-        background: '#fff',
-      }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>Actions</h3>
+      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+        <h3 className="mb-3 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Actions</h3>
 
         {/* Triage action */}
         {(report.status === 'new' || report.status === 'rejected') && (
           agents.length === 0 ? (
-            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
-              No agents configured. <a href="/agents" style={{ color: '#2563eb' }}>Create an agent</a> to enable triage.
+            <p className="mb-3 text-[13px] text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+              No agents configured. <a href="/agents" className="text-[var(--color-primary)] hover:underline">Create an agent</a> to enable triage.
             </p>
           ) : (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
+            <div className="mb-3 flex items-center gap-2">
               <select
                 value={triageAgentId}
                 onChange={e => setTriageAgentId(e.target.value)}
-                style={{
-                  padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb',
-                  fontSize: '13px', background: '#fff',
-                }}
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-[13px] text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
               >
                 {agents.map(a => (
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
-              <button
-                onClick={handleTriage}
-                disabled={triaging || !triageAgentId}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 14px', borderRadius: '6px', border: 'none',
-                  background: '#2563eb', color: '#fff', fontSize: '13px',
-                  cursor: 'pointer', fontWeight: 500,
-                  opacity: triaging ? 0.5 : 1,
-                }}
-              >
-                <AlertTriangle size={14} />
+              <Button onClick={handleTriage} disabled={triaging || !triageAgentId} loading={triaging}>
+                <AlertTriangle size={14} className="mr-1.5" />
                 {triaging ? 'Triaging...' : 'Start Triage'}
-              </button>
+              </Button>
             </div>
           )
         )}
 
-        {/* Respond action (needs_info) */}
-        {report.status === 'needs_info' && (
-          <div style={{ marginBottom: '12px' }}>
-            <p style={{ fontSize: '13px', color: '#92400e', marginBottom: '8px' }}>
-              The triage agent needs more information. Please respond below:
-            </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <textarea
-                value={response}
-                onChange={e => setResponse(e.target.value)}
-                placeholder="Provide additional information..."
-                rows={3}
-                style={{
-                  flex: 1, padding: '8px 12px', borderRadius: '6px',
-                  border: '1px solid #e5e7eb', fontSize: '13px', resize: 'vertical',
-                  fontFamily: 'inherit',
-                }}
-              />
-              <button
-                onClick={handleRespond}
-                disabled={responding || !response.trim()}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 14px', borderRadius: '6px', border: 'none',
-                  background: '#2563eb', color: '#fff', fontSize: '13px',
-                  cursor: 'pointer', alignSelf: 'flex-end',
-                  opacity: responding || !response.trim() ? 0.5 : 1,
-                }}
-              >
-                <Send size={14} />
-                {responding ? 'Sending...' : 'Respond'}
-              </button>
-            </div>
-          </div>
+        {/* Needs info hint — conversation inline handles responses */}
+        {report.status === 'needs_info' && !report.conversationId && (
+          <p className="mb-3 text-[13px] text-[var(--color-warning)]">
+            The triage agent needs more information. Please respond in the conversation above.
+          </p>
         )}
 
         {/* Create card action (triaged) */}
         {report.status === 'triaged' && !report.cardId && (
           <div>
-            <p style={{ fontSize: '13px', color: '#166534', marginBottom: '8px' }}>
+            <p className="mb-2 text-[13px] text-[var(--color-accent)]">
               Bug triaged successfully. Create a card on a board:
             </p>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div className="flex items-center gap-2">
               <select
                 value={selectedBoard?.id ?? ''}
                 onChange={e => handleBoardSelect(e.target.value)}
-                style={{
-                  padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb',
-                  fontSize: '13px', background: '#fff',
-                }}
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-[13px] text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
               >
                 <option value="">Select board...</option>
                 {boards.map(b => (
@@ -381,30 +281,22 @@ export function BugReportDetailPage() {
                 <select
                   value={selectedColumnId}
                   onChange={e => setSelectedColumnId(e.target.value)}
-                  style={{
-                    padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb',
-                    fontSize: '13px', background: '#fff',
-                  }}
+                  className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-[13px] text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
                 >
                   {selectedBoard.columns.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               )}
-              <button
+              <Button
                 onClick={handleCreateCard}
                 disabled={creatingCard || !selectedBoard || !selectedColumnId}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 14px', borderRadius: '6px', border: 'none',
-                  background: '#16a34a', color: '#fff', fontSize: '13px',
-                  cursor: 'pointer', fontWeight: 500,
-                  opacity: creatingCard || !selectedBoard || !selectedColumnId ? 0.5 : 1,
-                }}
+                loading={creatingCard}
+                className="bg-[var(--color-accent)] text-[var(--color-on-accent)] hover:opacity-90"
               >
-                <Kanban size={14} />
+                <Kanban size={14} className="mr-1.5" />
                 {creatingCard ? 'Creating...' : 'Create Bug Card'}
-              </button>
+              </Button>
             </div>
           </div>
         )}
