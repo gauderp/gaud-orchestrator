@@ -128,7 +128,7 @@ export function BugReportDetailPage() {
   const StatusIcon = status.icon
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="w-full max-w-4xl mx-auto p-6">
       {/* Header */}
       <button
         onClick={() => navigate('/bugs')}
@@ -137,12 +137,12 @@ export function BugReportDetailPage() {
         <ArrowLeft size={14} /> Back to Bug Reports
       </button>
 
-      <div className="mb-5 flex items-start justify-between">
-        <div className="flex items-center gap-2.5">
-          <Bug size={20} className="text-[var(--color-destructive)]" />
-          <h1 className="text-xl font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{report.title}</h1>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Bug size={20} className="shrink-0 text-[var(--color-destructive)]" />
+          <h1 className="text-xl font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] break-words">{report.title}</h1>
         </div>
-        <Button variant="destructive" size="sm" onClick={handleDelete}>
+        <Button variant="destructive" size="sm" onClick={handleDelete} className="shrink-0">
           <Trash2 size={12} className="mr-1" /> Delete
         </Button>
       </div>
@@ -224,18 +224,15 @@ export function BugReportDetailPage() {
         </div>
       )}
 
-      {/* Actions */}
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
-        <h3 className="mb-3 text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Actions</h3>
-
-        {/* Triage action */}
-        {(report.status === 'new' || report.status === 'rejected') && (
-          agents.length === 0 ? (
-            <p className="mb-3 text-[13px] text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+      {/* Triage / Retry action */}
+      {(report.status === 'new' || report.status === 'rejected' || report.status === 'triaging') && (
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+          {agents.length === 0 ? (
+            <p className="text-[13px] text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
               No agents configured. <a href="/agents" className="text-[var(--color-primary)] hover:underline">Create an agent</a> to enable triage.
             </p>
           ) : (
-            <div className="mb-3 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <select
                 value={triageAgentId}
                 onChange={e => setTriageAgentId(e.target.value)}
@@ -247,60 +244,62 @@ export function BugReportDetailPage() {
               </select>
               <Button onClick={handleTriage} disabled={triaging || !triageAgentId} loading={triaging}>
                 <AlertTriangle size={14} className="mr-1.5" />
-                {triaging ? 'Triaging...' : 'Start Triage'}
+                {report.status === 'triaging' ? 'Retry Triage' : triaging ? 'Triaging...' : 'Start Triage'}
               </Button>
             </div>
-          )
-        )}
+          )}
+        </div>
+      )}
 
-        {/* Needs info hint — conversation inline handles responses */}
-        {report.status === 'needs_info' && !report.conversationId && (
-          <p className="mb-3 text-[13px] text-[var(--color-warning)]">
+      {/* Needs info hint — conversation inline handles responses */}
+      {report.status === 'needs_info' && !report.conversationId && (
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-4">
+          <p className="text-[13px] text-[var(--color-warning)]">
             The triage agent needs more information. Please respond in the conversation above.
           </p>
-        )}
+        </div>
+      )}
 
-        {/* Create card action (triaged) */}
-        {report.status === 'triaged' && !report.cardId && (
-          <div>
-            <p className="mb-2 text-[13px] text-[var(--color-accent)]">
-              Bug triaged successfully. Create a card on a board:
-            </p>
-            <div className="flex items-center gap-2">
+      {/* Create card action (triaged) */}
+      {report.status === 'triaged' && !report.cardId && (
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
+          <p className="mb-2 text-[13px] text-[var(--color-accent)]">
+            Bug triaged successfully. Create a card on a board:
+          </p>
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedBoard?.id ?? ''}
+              onChange={e => handleBoardSelect(e.target.value)}
+              className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-[13px] text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
+            >
+              <option value="">Select board...</option>
+              {boards.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            {selectedBoard?.columns && (
               <select
-                value={selectedBoard?.id ?? ''}
-                onChange={e => handleBoardSelect(e.target.value)}
+                value={selectedColumnId}
+                onChange={e => setSelectedColumnId(e.target.value)}
                 className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-[13px] text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
               >
-                <option value="">Select board...</option>
-                {boards.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
+                {selectedBoard.columns.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              {selectedBoard?.columns && (
-                <select
-                  value={selectedColumnId}
-                  onChange={e => setSelectedColumnId(e.target.value)}
-                  className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-[13px] text-[var(--color-ink)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
-                >
-                  {selectedBoard.columns.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              )}
-              <Button
-                onClick={handleCreateCard}
-                disabled={creatingCard || !selectedBoard || !selectedColumnId}
-                loading={creatingCard}
-                className="bg-[var(--color-accent)] text-[var(--color-on-accent)] hover:opacity-90"
-              >
-                <Kanban size={14} className="mr-1.5" />
-                {creatingCard ? 'Creating...' : 'Create Bug Card'}
-              </Button>
-            </div>
+            )}
+            <Button
+              onClick={handleCreateCard}
+              disabled={creatingCard || !selectedBoard || !selectedColumnId}
+              loading={creatingCard}
+              className="bg-[var(--color-accent)] text-[var(--color-on-accent)] hover:opacity-90"
+            >
+              <Kanban size={14} className="mr-1.5" />
+              {creatingCard ? 'Creating...' : 'Create Bug Card'}
+            </Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
