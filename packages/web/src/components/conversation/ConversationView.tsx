@@ -14,6 +14,8 @@ interface ConversationViewProps {
   conversation: ConversationWithMessages
 }
 
+const EMPTY_ARRAY: string[] = []
+
 const AGENT_COLORS = [
   '#059669', '#2563EB', '#7C3AED', '#DB2777', '#EA580C', '#0891B2',
 ]
@@ -23,10 +25,18 @@ export function ConversationView({ conversation }: ConversationViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [userScrolled, setUserScrolled] = useState(false)
-  const { sendMessage, triggerNextTurn, pauseConversation, resumeConversation, autoRun, setAutoRun } = useConversationStore()
-  const typingAgentIds = useConversationStore((s) => s.typingAgents[conversation.id] ?? [])
-  const messageQueue = useConversationStore((s) => s.messageQueue[conversation.id] ?? [])
-  const isProcessing = useConversationStore((s) => s.processing[conversation.id] ?? false)
+  const sendMessage = useConversationStore((s) => s.sendMessage)
+  const triggerNextTurn = useConversationStore((s) => s.triggerNextTurn)
+  const pauseConversation = useConversationStore((s) => s.pauseConversation)
+  const resumeConversation = useConversationStore((s) => s.resumeConversation)
+  const autoRun = useConversationStore((s) => s.autoRun)
+  const setAutoRun = useConversationStore((s) => s.setAutoRun)
+  const typingAgents = useConversationStore((s) => s.typingAgents)
+  const typingAgentIds = typingAgents[conversation.id] ?? EMPTY_ARRAY
+  const allMessageQueues = useConversationStore((s) => s.messageQueue)
+  const messageQueue = allMessageQueues[conversation.id] ?? EMPTY_ARRAY
+  const allProcessing = useConversationStore((s) => s.processing)
+  const isProcessing = allProcessing[conversation.id] ?? false
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-scroll unless user scrolled up
