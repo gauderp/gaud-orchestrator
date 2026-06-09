@@ -18,36 +18,82 @@ Leia os arquivos referenciados antes de editar.
 
 **IMPORTANTE: esta página ainda usa inline styles. Migrar para Tailwind v4 com `[var(--color-*)]` syntax e componentes UI (`Button`, `Input`, `Badge`, `Textarea`, `Modal`) ao fazer as mudanças.**
 
-**1a) Importar e renderizar ConversationView inline:**
+**1a) Importar e renderizar ConversationView inline SEMPRE:**
 
 ```tsx
 import { ConversationView } from '@/components/conversation/ConversationView'
 import { useConversationStore } from '@/store/conversations'
 ```
 
-Quando `report.conversationId` existe, buscar a conversa e renderizar o `ConversationView` diretamente na página, substituindo o botão "View Triage Conversation":
+A conversa deve aparecer **sempre** na página do bug — sem depender de clique.
+- Se `report.conversationId` existe → mostrar ConversationView com as mensagens
+- Se não existe → mostrar um estado vazio com a ação de Start Triage inline (select de agent + botão)
+
+Remover completamente o botão "View Triage Conversation" e o bloco separado de "Actions". O layout fica:
+
+```
+┌─────────────────────────────────────┐
+│ Header (title, status, severity)    │
+├─────────────────────────────────────┤
+│ Description                         │
+├─────────────────────────────────────┤
+│ Attachments (se houver)             │
+├─────────────────────────────────────┤
+│ Triage Conversation                 │
+│ ┌─────────────────────────────────┐ │
+│ │ (mensagens do agent + user)     │ │
+│ │ ...                             │ │
+│ │ [input para responder]          │ │
+│ └─────────────────────────────────┘ │
+│ OU se não tem conversa:             │
+│ ┌─────────────────────────────────┐ │
+│ │ Select agent + Start Triage btn │ │
+│ └─────────────────────────────────┘ │
+├─────────────────────────────────────┤
+│ Card link / Create Card (se triaged)│
+└─────────────────────────────────────┘
+```
 
 ```tsx
-// Substituir o bloco:
-{report.conversationId && (
-  <button onClick={() => navigate(`/conversations/${report.conversationId}`)}>
-    View Triage Conversation
-  </button>
-)}
+{/* Triage Conversation — always visible */}
+<div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)] overflow-hidden">
+  <div className="border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-4 py-2 bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)] flex items-center justify-between">
+    <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+      Triage Conversation
+    </h3>
+    <Badge variant={statusBadgeVariant[report.status] ?? 'neutral'}>
+      {statusConfig[report.status]?.label ?? report.status}
+    </Badge>
+  </div>
 
-// Por:
-{report.conversationId && (
-  <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)] overflow-hidden">
-    <div className="border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-4 py-2 bg-[var(--color-surface)] dark:bg-[var(--color-surface-dark)]">
-      <h3 className="text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
-        Triage Conversation
-      </h3>
-    </div>
+  {report.conversationId && activeConversation ? (
     <div className="h-[400px]">
       <ConversationView conversation={activeConversation} />
     </div>
-  </div>
-)}
+  ) : (
+    <div className="p-6 flex flex-col items-center gap-3 text-center">
+      {agents.length === 0 ? (
+        <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+          No agents configured. <a href="/agents" className="text-[var(--color-primary)] hover:underline">Create an agent</a> to enable triage.
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+            Start a triage conversation to analyze this bug report.
+          </p>
+          <div className="flex gap-2 items-center">
+            <select value={triageAgentId} onChange={...} className="...">
+              {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            <Button onClick={handleTriage} loading={triaging}>
+              Start Triage
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  )}
+</div>
 ```
 
 **1b) Carregar conversa quando report tem conversationId:**
@@ -62,11 +108,12 @@ useEffect(() => {
 }, [report?.conversationId, fetchConversation])
 ```
 
-**1c) Remover o botão "View Triage Conversation"** — a conversa já está inline.
+**1c) Remover completamente:**
+- O botão "View Triage Conversation"
+- O bloco separado "Actions" com o select de agent e Start Triage (movido para dentro da seção da conversa)
+- O textarea separado de "respond" para needs_info (o ConversationView já tem input)
 
-**1d) O textarea de "respond" para needs_info pode ser removido** — o ConversationView já tem input para enviar mensagens. Ou manter ambos se preferir UX dedicada para o reporter.
-
-**1e) Após clicar "Start Triage"**, a conversa deve aparecer automaticamente quando o `conversationId` é setado no bug report (o polling existente com `setTimeout(loadData, 2000/5000/10000)` já cuida disso).
+**1d) Após clicar "Start Triage"**, a conversa aparece automaticamente quando o `conversationId` é setado no bug report (o polling existente com `setTimeout(loadData, 2000/5000/10000)` já cuida disso).
 
 ### 2. Verificar `ConversationView` aceita height constraints
 
