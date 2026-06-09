@@ -52,17 +52,24 @@ export class BugTriageService {
       .all(reportId) as any[]
 
     const { readFileSync, existsSync } = await import('fs')
+    const textFileTypes = new Set(['log', 'other'])
     const attachmentContext = attachments.map(att => {
       if (existsSync(att.path)) {
-        try {
-          const content = readFileSync(att.path, 'utf-8')
-          if (content.length < 8000) return `### ${att.filename}\n\`\`\`\n${content}\n\`\`\``
-          return `### ${att.filename}\n\`\`\`\n${content.substring(0, 8000)}\n[truncated]\n\`\`\``
-        } catch {
-          return `### ${att.filename}\n[Binary file at: ${att.path}]`
+        // Only read text-based files; skip binary (screenshots, videos)
+        if (textFileTypes.has(att.file_type ?? '')) {
+          try {
+            const content = readFileSync(att.path, 'utf-8')
+            // Reject if contains null bytes (binary disguised as text)
+            if (content.includes('\0')) return `### ${att.filename}\n[Binary file — ${att.file_type}]`
+            if (content.length < 8000) return `### ${att.filename}\n\`\`\`\n${content}\n\`\`\``
+            return `### ${att.filename}\n\`\`\`\n${content.substring(0, 8000)}\n[truncated]\n\`\`\``
+          } catch {
+            return `### ${att.filename}\n[Could not read file]`
+          }
         }
+        return `### ${att.filename}\n[${att.file_type ?? 'file'}: ${att.filename}]`
       }
-      return `### ${att.filename}\n[File at: ${att.path}]`
+      return `### ${att.filename}\n[File not found: ${att.path}]`
     }).join('\n\n')
 
     // Create triage conversation
