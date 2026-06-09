@@ -181,33 +181,36 @@ Analyze this bug report. If you have enough information, provide your triage res
   }
 
   private parseStreamJsonOutput(raw: string): string {
-    // Claude CLI with --output-format stream-json emits JSON lines
-    // Extract text content from the stream
+    // Claude CLI stream-json emits JSON lines. Key types:
+    // {"type":"assistant","message":{"content":[{"type":"text","text":"..."}]}}
+    // {"type":"result","result":"full text response"}
     const lines = raw.split('\n').filter(l => l.trim())
-    const texts: string[] = []
+    let resultText = ''
+
     for (const line of lines) {
       try {
         const obj = JSON.parse(line)
-        // stream-json format: {"type":"assistant","subtype":"text","content":"..."}
-        if (obj.type === 'assistant' && obj.content) {
-          texts.push(obj.content)
-        }
-        // Also handle result type
+
+        // Best source: result object has the complete response
         if (obj.type === 'result' && obj.result) {
-          texts.push(obj.result)
+          resultText = obj.result
         }
-        // Handle content_block_delta from streaming
-        if (obj.type === 'content_block_delta' && obj.delta?.text) {
-          texts.push(obj.delta.text)
+
+        // Fallback: assistant message with content array
+        if (obj.type === 'assistant' && obj.message?.content) {
+          const texts = (obj.message.content as any[])
+            .filter((c: any) => c.type === 'text')
+            .map((c: any) => c.text)
+          if (texts.length > 0 && !resultText) {
+            resultText = texts.join('')
+          }
         }
       } catch {
-        // Not JSON — might be raw text, include it
-        if (line.trim() && !line.startsWith('{')) {
-          texts.push(line)
-        }
+        // Not JSON — skip
       }
     }
-    return texts.join('') || raw
+
+    return resultText || raw
   }
 
   createBugCard(reportId: string, boardId: string, columnId: string): Record<string, unknown> {
