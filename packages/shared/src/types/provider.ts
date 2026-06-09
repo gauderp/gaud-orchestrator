@@ -3,6 +3,7 @@ export interface SpawnOpts {
   cwd: string
   env?: Record<string, string>
   model?: string
+  systemPrompt?: string
 }
 
 export interface OutputEvent {

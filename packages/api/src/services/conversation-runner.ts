@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3'
 import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
-import { buildAgentTurnPrompt, summarizeMessages } from './prompt-builder.js'
+import { buildAgentTurnPrompt, buildAgentSystemPrompt, summarizeMessages } from './prompt-builder.js'
 import { AgentMemory } from './memory.js'
 import { createEmbeddingRegistry } from './embeddings.js'
 import { detectLearnings } from './learning-detector.js'
@@ -253,7 +253,7 @@ export async function runConversationTurn(
   const availableTools = formatToolsForPrompt(getAvailableToolsForAgent(db, nextAgent.agentId))
 
   // 11. Build prompt
-  const prompt = buildAgentTurnPrompt({
+  const promptOpts = {
     agent: {
       name: agentRow.agent_name,
       instructions: agentRow.instructions,
@@ -270,7 +270,9 @@ export async function runConversationTurn(
     codebaseAnalysis,
     attachments,
     availableTools,
-  })
+  }
+  const prompt = buildAgentTurnPrompt(promptOpts)
+  const systemPrompt = buildAgentSystemPrompt(promptOpts)
 
   // 11. Call provider
   const provider = providerRegistry.get(agentRow.provider_id ?? 'claude-cli')
@@ -279,6 +281,7 @@ export async function runConversationTurn(
   let responseText = ''
   const session = await provider.spawn({
     prompt,
+    systemPrompt,
     cwd: cardContext.repos[0] ?? process.cwd(),
     model: agentRow.model ?? undefined,
   })

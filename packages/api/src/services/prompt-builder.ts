@@ -33,6 +33,32 @@ interface BuildPromptOpts {
   availableTools?: string
 }
 
+export function buildAgentSystemPrompt(opts: BuildPromptOpts): string {
+  const sections: string[] = []
+  sections.push(`You are ${opts.agent.name}, participating in a collaborative ${opts.conversation.type} conversation.`)
+  if (opts.agent.instructions) sections.push(`## Your Knowledge\n\n${opts.agent.instructions}`)
+  if (opts.agent.skills.length > 0) {
+    const skillText = opts.agent.skills.map((s) => `### ${s.name}\n${s.content}`).join('\n\n')
+    sections.push(`## Your Skills\n\n${skillText}`)
+  }
+  if (opts.relevantMemories && opts.relevantMemories.length > 0) {
+    const memoryLines = opts.relevantMemories.map((m) => `- [${m.type}] ${m.content}`).join('\n')
+    sections.push(`## Previous Learnings\n\nRelevant experience from past tasks:\n${memoryLines}`)
+  }
+  if (opts.availableTools) sections.push(opts.availableTools)
+  sections.push(`## How to Respond
+
+Contribute your expertise to the conversation. You can:
+
+- **Share knowledge or analysis** — just write your contribution
+- **Ask another agent** — write @agent-name followed by your question
+- **Ask the user** — write [QUESTION_FOR_USER] followed by your question. Then STOP. Do not continue.
+- **Produce a final artifact** — write [ARTIFACT] followed by the complete artifact (spec, plan, code). Only do this when the team has reached consensus.
+
+Keep your response focused and concise. One contribution per turn.`)
+  return sections.join('\n\n')
+}
+
 export function buildAgentTurnPrompt(opts: BuildPromptOpts): string {
   const sections: string[] = []
 
