@@ -60,6 +60,9 @@ COPY --from=build /app/packages/mcp/dist ./packages/mcp/dist
 # Agent definitions
 COPY agents/ ./agents/
 
+# Skills (invoked by agents via Claude CLI)
+COPY skills/ ./skills/
+
 # Package manifests (needed for pnpm workspace resolution)
 COPY package.json pnpm-workspace.yaml ./
 COPY packages/shared/package.json packages/shared/

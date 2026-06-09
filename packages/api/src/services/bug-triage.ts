@@ -82,17 +82,22 @@ export class BugTriageService {
 
     this.db.prepare('UPDATE bug_reports SET conversation_id = ? WHERE id = ?').run(convId, reportId)
 
-    const triagePrompt = `You are a bug triage agent having a conversation with the person who reported this bug.
-Your goal is to gather enough information to classify the bug.
+    // Load triage skill content
+    const { readFileSync: readSkill } = await import('fs')
+    const { join: joinPath } = await import('path')
+    let skillContent = ''
+    try {
+      const skillPath = joinPath(process.cwd(), 'skills', 'triage', 'SKILL.md')
+      const raw = readSkill(skillPath, 'utf-8')
+      const match = raw.match(/^---[\s\S]*?---\n([\s\S]*)$/)
+      skillContent = match ? match[1]!.trim() : raw
+    } catch { /* skill file not found — use inline fallback */ }
 
-## Rules
-1. Ask ONE question at a time — do not ask multiple questions at once
-2. Use simple, non-technical language — the reporter may not be a developer
-3. When the question has common answers, provide options using [OPTIONS]...[/OPTIONS] format
-4. After each answer, either ask the next question or provide your triage result
-5. Be concise and friendly
+    const triageSystemPrompt = skillContent || `You are a bug triage agent. Analyze bug reports and produce structured triage results or ask clarifying questions.
+Ask ONE question at a time in simple language. When the question has common answers, use [OPTIONS]...[/OPTIONS] format.
+Respond with [TRIAGED] (severity, area, steps, root cause, fix) or [REJECTED] (reason) when done.`
 
-## Bug Report
+    const triagePrompt = `## Bug Report
 
 **Title:** ${report.title}
 **Reporter:** ${report.reporter_name ?? 'Unknown'}
@@ -101,45 +106,53 @@ ${report.description}
 
 ${attachmentContext ? `## Attachments\n\n${attachmentContext}` : ''}
 
-## Options Format
+Analyze this bug report. If you have enough information, provide your triage result. Otherwise, ask ONE clarifying question with options if applicable.`
 
-When a question has common answers, add clickable options:
-
-[OPTIONS]
-- Option text 1
-- Option text 2
-- Option text 3
-[/OPTIONS]
-
-The reporter can click an option or type a custom answer.
-
-## Start
-
-Analyze the bug report. If you already have enough information, respond with your triage.
-If you need more details, ask your first question with options if applicable.
-
-## When done, respond with:
-[TRIAGED]
-- Severity: critical|high|medium|low
-- Area: <affected module>
-- Steps to reproduce: <numbered list>
-- Root cause: <hypothesis>
-- Suggested fix: <brief approach>
-
-## If this is not a valid bug:
-[REJECTED]
-- Reason: <why>`
-
+    // Store bug report context as system message in conversation
     this.db.prepare('INSERT INTO messages (id, conversation_id, sender_type, content, message_type) VALUES (?, ?, ?, ?, ?)')
       .run(randomUUID(), convId, 'system', triagePrompt, 'content')
 
     broadcast('bug_report:triaging', { id: reportId, conversationId: convId })
 
     try {
-      const { runConversationTurn } = await import('./conversation-runner.js')
-      const result = await runConversationTurn(this.db, convId, providerRegistry)
+      // Get agent's provider
+      const agent = this.db.prepare('SELECT * FROM agents WHERE id = ?').get(triageAgentId) as any
+      const provider = providerRegistry.get(agent?.provider_id ?? 'claude-cli')
+      if (!provider) throw new Error(`Provider not found: ${agent?.provider_id}`)
 
-      const response = (result.message as any)?.content ?? ''
+      // Call provider directly with skill as system prompt
+      let responseText = ''
+      const session = await provider.spawn({
+        prompt: triagePrompt,
+        systemPrompt: triageSystemPrompt,
+        cwd: process.cwd(),
+        model: agent?.model ?? undefined,
+      })
+
+      // Collect output with timeout
+      await new Promise<void>((resolve) => {
+        let resolved = false
+        provider.onOutput(session.id, (event: any) => {
+          if (event.type === 'stdout') responseText += event.content
+        })
+        // Resolve after receiving content or timeout
+        const check = setInterval(() => {
+          if (responseText.length > 50 && !resolved) {
+            // Wait a bit more for completion
+            setTimeout(() => { if (!resolved) { resolved = true; clearInterval(check); resolve() } }, 3000)
+          }
+        }, 1000)
+        setTimeout(() => { if (!resolved) { resolved = true; clearInterval(check); provider.kill(session.id); resolve() } }, 120_000)
+      })
+
+      // Parse stream-json output to extract text
+      const response = this.parseStreamJsonOutput(responseText)
+
+      // Store agent response as message
+      this.db.prepare('INSERT INTO messages (id, conversation_id, sender_type, sender_id, content, message_type) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(randomUUID(), convId, 'agent', triageAgentId, response, 'content')
+
+      broadcast('conversation:message', { conversationId: convId, message: { senderType: 'agent', senderId: triageAgentId, content: response } })
 
       if (response.includes('[TRIAGED]')) {
         const severityMatch = response.match(/Severity:\s*(critical|high|medium|low)/i)
@@ -165,6 +178,36 @@ If you need more details, ask your first question with options if applicable.
       this.db.prepare("UPDATE bug_reports SET status = 'new', updated_at = datetime('now') WHERE id = ?")
         .run(reportId)
     }
+  }
+
+  private parseStreamJsonOutput(raw: string): string {
+    // Claude CLI with --output-format stream-json emits JSON lines
+    // Extract text content from the stream
+    const lines = raw.split('\n').filter(l => l.trim())
+    const texts: string[] = []
+    for (const line of lines) {
+      try {
+        const obj = JSON.parse(line)
+        // stream-json format: {"type":"assistant","subtype":"text","content":"..."}
+        if (obj.type === 'assistant' && obj.content) {
+          texts.push(obj.content)
+        }
+        // Also handle result type
+        if (obj.type === 'result' && obj.result) {
+          texts.push(obj.result)
+        }
+        // Handle content_block_delta from streaming
+        if (obj.type === 'content_block_delta' && obj.delta?.text) {
+          texts.push(obj.delta.text)
+        }
+      } catch {
+        // Not JSON — might be raw text, include it
+        if (line.trim() && !line.startsWith('{')) {
+          texts.push(line)
+        }
+      }
+    }
+    return texts.join('') || raw
   }
 
   createBugCard(reportId: string, boardId: string, columnId: string): Record<string, unknown> {
