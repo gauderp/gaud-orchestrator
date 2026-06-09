@@ -56,7 +56,7 @@ export async function setupRoutes(app: FastifyInstance): Promise<void> {
       admin: { name: string; email: string; password: string }
       providers?: Array<{ name: string; type: string; configJson: Record<string, unknown> }>
       githubToken?: string
-      agents?: Array<{ name: string; role: string; instructions: string; model: string }>
+      agents?: Array<{ name: string; role: string; instructions: string; model: string; parentName?: string | null }>
     }
 
     // Validate admin
@@ -98,11 +98,24 @@ export async function setupRoutes(app: FastifyInstance): Promise<void> {
           ? db.prepare('SELECT id FROM providers ORDER BY created_at DESC LIMIT 1').get() as any
           : null
 
-        for (const a of agents) {
+        // Map to track name → generated ID for hierarchy resolution
+        const nameToId = new Map<string, string>()
+
+        // Sort: agents without parentName first (roots), then children
+        const sorted = [...agents].sort((a, b) => {
+          if (!a.parentName && b.parentName) return -1
+          if (a.parentName && !b.parentName) return 1
+          return 0
+        })
+
+        for (const a of sorted) {
+          const agentId = randomUUID()
+          const parentId = a.parentName ? nameToId.get(a.parentName) ?? null : null
           db.prepare(`
-            INSERT INTO agents (id, name, role, instructions, provider_id, model)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `).run(randomUUID(), a.name, a.role, a.instructions, firstProvider?.id ?? null, a.model)
+            INSERT INTO agents (id, name, role, instructions, provider_id, model, parent_agent_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `).run(agentId, a.name, a.role, a.instructions, firstProvider?.id ?? null, a.model, parentId)
+          nameToId.set(a.name, agentId)
         }
       }
 
@@ -110,6 +123,12 @@ export async function setupRoutes(app: FastifyInstance): Promise<void> {
       db.prepare("UPDATE setup_state SET value = 'true' WHERE key = 'setup_completed'").run()
     })
     tx()
+
+    // Reload provider registry so newly created providers are available immediately
+    if (providers?.length) {
+      const { loadProviderRegistry } = await import('../index.js')
+      loadProviderRegistry()
+    }
 
     // Return tokens so user is immediately logged in
     const payload = { userId, email: admin.email, role: 'admin' as const }

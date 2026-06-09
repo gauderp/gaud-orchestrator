@@ -114,6 +114,8 @@ export const api = {
     create: (data: { name: string; description?: string; content: string }) => request<Skill>('/skills', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: { name: string; description?: string; content: string }) => request<Skill>(`/skills/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/skills/${id}`, { method: 'DELETE' }),
+    importFromGithub: (url: string) => request<{ imported: Array<{ id: string; name: string; action: string }> }>('/skills/import', { method: 'POST', body: JSON.stringify({ url }) }),
+    previewImport: (url: string) => request<{ skills: Array<{ name: string; description: string; contentPreview: string; exists: boolean }> }>('/skills/import/preview', { method: 'POST', body: JSON.stringify({ url }) }),
   },
 
   providers: {

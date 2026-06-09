@@ -285,34 +285,40 @@ export function BugReportDetailPage() {
 
         {/* Triage action */}
         {(report.status === 'new' || report.status === 'rejected') && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
-            <select
-              value={triageAgentId}
-              onChange={e => setTriageAgentId(e.target.value)}
-              style={{
-                padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb',
-                fontSize: '13px', background: '#fff',
-              }}
-            >
-              {agents.map(a => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-            <button
-              onClick={handleTriage}
-              disabled={triaging || !triageAgentId}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '8px 14px', borderRadius: '6px', border: 'none',
-                background: '#2563eb', color: '#fff', fontSize: '13px',
-                cursor: 'pointer', fontWeight: 500,
-                opacity: triaging ? 0.5 : 1,
-              }}
-            >
-              <AlertTriangle size={14} />
-              {triaging ? 'Triaging...' : 'Start Triage'}
-            </button>
-          </div>
+          agents.length === 0 ? (
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
+              No agents configured. <a href="/agents" style={{ color: '#2563eb' }}>Create an agent</a> to enable triage.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
+              <select
+                value={triageAgentId}
+                onChange={e => setTriageAgentId(e.target.value)}
+                style={{
+                  padding: '8px 12px', borderRadius: '6px', border: '1px solid #e5e7eb',
+                  fontSize: '13px', background: '#fff',
+                }}
+              >
+                {agents.map(a => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleTriage}
+                disabled={triaging || !triageAgentId}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 14px', borderRadius: '6px', border: 'none',
+                  background: '#2563eb', color: '#fff', fontSize: '13px',
+                  cursor: 'pointer', fontWeight: 500,
+                  opacity: triaging ? 0.5 : 1,
+                }}
+              >
+                <AlertTriangle size={14} />
+                {triaging ? 'Triaging...' : 'Start Triage'}
+              </button>
+            </div>
+          )
         )}
 
         {/* Respond action (needs_info) */}

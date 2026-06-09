@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+packages/api/data
+packages/web/dist
+packages/api/dist
+packages/mcp/dist
+.git
+tmp_*

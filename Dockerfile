@@ -13,6 +13,9 @@ RUN apk add --no-cache github-cli 2>/dev/null || \
 # Claude Code CLI (optional — for claude-cli provider)
 RUN npm install -g @anthropic-ai/claude-code 2>/dev/null || true
 
+# tsx — needed to run .ts imports from shared/providers at runtime
+RUN npm install -g tsx
+
 # === Install all dependencies ===
 FROM cli-tools AS deps
 WORKDIR /app
@@ -74,4 +77,4 @@ ENV ATTACHMENTS_DIR=/app/data/attachments
 ENV REPOS_DIR=/app/data/repos
 EXPOSE 3001
 
-CMD ["node", "packages/api/dist/index.js"]
+CMD ["tsx", "packages/api/dist/index.js"]

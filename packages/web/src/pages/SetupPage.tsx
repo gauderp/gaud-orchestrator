@@ -12,6 +12,20 @@ interface AgentTemplate {
   instructions: string
 }
 
+const HIERARCHY: Record<string, string> = {
+  'backend-lead': 'tech-lead',
+  'frontend-lead': 'tech-lead',
+  'qa-lead': 'tech-lead',
+  'devops-agent': 'tech-lead',
+  'triage-agent': 'tech-lead',
+  'api-agent': 'backend-lead',
+  'database-agent': 'backend-lead',
+  'integration-agent': 'backend-lead',
+  'ui-agent': 'frontend-lead',
+  'test-agent': 'qa-lead',
+  'security-agent': 'qa-lead',
+}
+
 const TIERS = [
   {
     label: 'Core Team',
@@ -106,6 +120,9 @@ export function SetupPage({ onComplete }: Props) {
             role: a.description,
             instructions: a.instructions,
             model: a.model,
+            parentName: HIERARCHY[a.name] && selectedAgents.has(HIERARCHY[a.name]!)
+              ? HIERARCHY[a.name]!
+              : null,
           }))
       }
       await setupComplete(data)
@@ -284,6 +301,11 @@ export function SetupPage({ onComplete }: Props) {
                             <p className="text-[11px] text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] truncate">
                               {agent.description}
                             </p>
+                            {HIERARCHY[agent.name] && (
+                              <span className="text-[10px] text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+                                → reports to {HIERARCHY[agent.name]}
+                              </span>
+                            )}
                           </div>
                           <span className="text-[10px] font-mono text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] shrink-0">
                             {agent.model}

@@ -59,9 +59,20 @@ export const useAuthStore = create<AuthState>()(
       },
 
       fetchMe: async () => {
-        const { accessToken } = get()
+        let { accessToken } = get()
         if (!accessToken) return
-        const res = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } })
+
+        let res = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } })
+
+        // Token expired — try refresh
+        if (res.status === 401) {
+          const refreshed = await get().refresh()
+          if (!refreshed) return
+          accessToken = get().accessToken
+          if (!accessToken) return
+          res = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } })
+        }
+
         if (!res.ok) { get().logout(); return }
         const user = await res.json()
         set({ user, isAuthenticated: true })

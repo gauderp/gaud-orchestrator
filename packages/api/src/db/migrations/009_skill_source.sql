@@ -1,0 +1,3 @@
+ALTER TABLE skills ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';
+ALTER TABLE skills ADD COLUMN source_url TEXT;
+ALTER TABLE skills ADD COLUMN source_ref TEXT;

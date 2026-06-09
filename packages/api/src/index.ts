@@ -8,7 +8,7 @@ import { runMigrations } from './db/migrate.js'
 import { getDb } from './db/connection.js'
 import { createRegistryFromConfigs } from './services/provider-loader.js'
 import { addClient } from './ws/broadcast.js'
-import { authPlugin } from './middleware/auth.js'
+import { registerAuthHook } from './middleware/auth.js'
 import { verifyToken } from './middleware/auth.js'
 import { authRoutes } from './routes/auth.js'
 import { setupRoutes } from './routes/setup.js'
@@ -36,15 +36,24 @@ mkdirSync(dirname(dbPath), { recursive: true })
 
 runMigrations()
 
-// Load configured providers from DB
-const providerRows = getDb().prepare('SELECT * FROM providers').all() as any[]
-const providerConfigs = providerRows.map((p: any) => ({
-  id: p.id,
-  type: p.type,
-  configJson: JSON.parse(p.config_json),
-}))
-const providerRegistry = createRegistryFromConfigs(providerConfigs)
-console.log(`Loaded ${providerRegistry.list().length} providers: ${providerRegistry.list().map(p => p.id).join(', ') || '(none)'}`)
+// Load configured providers from DB (reloadable)
+let providerRegistry = createRegistryFromConfigs([])
+
+function loadProviderRegistry() {
+  const rows = getDb().prepare('SELECT * FROM providers').all() as any[]
+  const configs = rows.map((p: any) => ({
+    id: p.id,
+    type: p.type,
+    configJson: JSON.parse(p.config_json),
+  }))
+  providerRegistry = createRegistryFromConfigs(configs)
+  console.log(`Loaded ${providerRegistry.list().length} providers: ${providerRegistry.list().map(p => p.id).join(', ') || '(none)'}`)
+}
+
+loadProviderRegistry()
+
+// Export reload function for use by routes (setup, providers CRUD)
+export { loadProviderRegistry }
 
 const server = Fastify({
   logger: {
@@ -78,8 +87,8 @@ server.register(async (app) => {
   })
 })
 
-// Auth middleware (MUST be before other routes)
-await server.register(authPlugin)
+// Auth hook (called directly on server, not via register, to avoid Fastify encapsulation)
+registerAuthHook(server)
 await server.register(authRoutes)
 await server.register(setupRoutes)
 await server.register(userRoutes)

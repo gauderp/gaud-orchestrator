@@ -22,12 +22,18 @@ export async function providerRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(parseProvider(p))
   })
 
+  async function reloadRegistry() {
+    const { loadProviderRegistry } = await import('../index.js')
+    loadProviderRegistry()
+  }
+
   app.post('/api/providers', { preHandler: [adminOnly] }, async (req, reply) => {
     const { name, type, configJson } = req.body as { name: string; type: string; configJson: Record<string, unknown> }
     const id = randomUUID()
     db.prepare(
       'INSERT INTO providers (id, name, type, config_json) VALUES (?, ?, ?, ?)'
     ).run(id, name, type, JSON.stringify(configJson))
+    await reloadRegistry()
     const p = db.prepare('SELECT * FROM providers WHERE id = ?').get(id) as any
     return reply.status(201).send(parseProvider(p))
   })
@@ -38,12 +44,14 @@ export async function providerRoutes(app: FastifyInstance): Promise<void> {
       'UPDATE providers SET name = ?, type = ?, config_json = ? WHERE id = ?'
     ).run(name, type, JSON.stringify(configJson), req.params.id)
     if (result.changes === 0) return reply.status(404).send({ error: 'Provider not found' })
+    await reloadRegistry()
     const p = db.prepare('SELECT * FROM providers WHERE id = ?').get(req.params.id) as any
     return reply.send(parseProvider(p))
   })
 
   app.delete<{ Params: { id: string } }>('/api/providers/:id', { preHandler: [adminOnly] }, async (req, reply) => {
     db.prepare('DELETE FROM providers WHERE id = ?').run(req.params.id)
+    await reloadRegistry()
     return reply.status(204).send()
   })
 
