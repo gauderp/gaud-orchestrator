@@ -7,6 +7,6 @@
 services:
   gaud-orchestrator:
     volumes:
-      - ${HOME}/.claude:/root/.claude:ro
+      - ${HOME}/.claude:/root/.claude
       - ${HOME}/.cursor:/root/.cursor:ro
       - ${HOME}/.config/gh:/root/.config/gh:ro
