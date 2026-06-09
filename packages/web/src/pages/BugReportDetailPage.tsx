@@ -45,7 +45,8 @@ export function BugReportDetailPage() {
   const [creatingCard, setCreatingCard] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { activeConversation, fetchConversation } = useConversationStore()
+  const activeConversation = useConversationStore((s) => s.activeConversation)
+  const fetchConversation = useConversationStore((s) => s.fetchConversation)
 
   useEffect(() => { loadData() }, [id])
 
@@ -53,7 +54,7 @@ export function BugReportDetailPage() {
     if (report?.conversationId) {
       fetchConversation(report.conversationId)
     }
-  }, [report?.conversationId, fetchConversation])
+  }, [report?.conversationId])
 
   async function loadData() {
     if (!id) return
