@@ -175,6 +175,16 @@ Analyze this bug report. If you have enough information, provide your triage res
           UPDATE bug_reports SET status = 'triaged', severity = ?, triage_summary = ?, updated_at = datetime('now')
           WHERE id = ?
         `).run(severityMatch?.[1]?.toLowerCase() ?? 'medium', response, reportId)
+
+        // Auto-create card on Bug Triage board → "Triaged" column
+        const bugBoard = this.db.prepare("SELECT id FROM boards WHERE name = 'Bug Triage'").get() as any
+        if (bugBoard) {
+          const triagedCol = this.db.prepare("SELECT id FROM columns WHERE board_id = ? AND name = 'Triaged'").get(bugBoard.id) as any
+          if (triagedCol) {
+            this.createBugCard(reportId, bugBoard.id, triagedCol.id)
+          }
+        }
+
         broadcast('bug_report:triaged', { id: reportId, severity: severityMatch?.[1] })
 
       } else if (response.includes('[REJECTED]')) {
