@@ -26,11 +26,14 @@ export function createClaudeCliProvider(): AgentProvider & { buildArgs: (prompt:
   const sessions = new Map<string, Session>()
   const hasRtk = detectRtk()
 
-  function buildArgs(prompt: string, model?: string, systemPrompt?: string): string[] {
+  function buildArgs(prompt: string, model?: string, systemPrompt?: string, addDirs?: string[]): string[] {
     const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose']
     if (model) args.push('--model', model)
     if (systemPrompt) {
       args.push('--append-system-prompt', systemPrompt)
+    }
+    if (addDirs?.length) {
+      for (const dir of addDirs) args.push('--add-dir', dir)
     }
     return args
   }
@@ -43,7 +46,7 @@ export function createClaudeCliProvider(): AgentProvider & { buildArgs: (prompt:
     async spawn(opts: SpawnOpts): Promise<AgentSession> {
       const id = `claude-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       const claudePath = platform() === 'win32' ? 'claude.cmd' : 'claude'
-      const args = buildArgs(opts.prompt, opts.model, opts.systemPrompt)
+      const args = buildArgs(opts.prompt, opts.model, opts.systemPrompt, opts.addDirs)
 
       const proc = spawn(claudePath, args, {
         cwd: opts.cwd,

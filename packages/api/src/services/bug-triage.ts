@@ -52,24 +52,30 @@ export class BugTriageService {
       .all(reportId) as any[]
 
     const { readFileSync, existsSync } = await import('fs')
+    const { resolve: resolvePath } = await import('path')
     const textFileTypes = new Set(['log', 'other'])
+    const imageFileTypes = new Set(['screenshot'])
     const attachmentContext = attachments.map(att => {
-      if (existsSync(att.path)) {
-        // Only read text-based files; skip binary (screenshots, videos)
-        if (textFileTypes.has(att.file_type ?? '')) {
-          try {
-            const content = readFileSync(att.path, 'utf-8')
-            // Reject if contains null bytes (binary disguised as text)
-            if (content.includes('\0')) return `### ${att.filename}\n[Binary file — ${att.file_type}]`
-            if (content.length < 8000) return `### ${att.filename}\n\`\`\`\n${content}\n\`\`\``
-            return `### ${att.filename}\n\`\`\`\n${content.substring(0, 8000)}\n[truncated]\n\`\`\``
-          } catch {
-            return `### ${att.filename}\n[Could not read file]`
-          }
-        }
-        return `### ${att.filename}\n[${att.file_type ?? 'file'}: ${att.filename}]`
+      const absPath = resolvePath(att.path)
+      if (!existsSync(absPath)) return `### ${att.filename}\n[File not found]`
+
+      if (imageFileTypes.has(att.file_type ?? '')) {
+        // Screenshots/images: include absolute path so the agent can use Read tool to view them
+        return `### ${att.filename}\n[Screenshot — use Read tool to view: ${absPath}]`
       }
-      return `### ${att.filename}\n[File not found: ${att.path}]`
+
+      if (textFileTypes.has(att.file_type ?? '')) {
+        try {
+          const content = readFileSync(absPath, 'utf-8')
+          if (content.includes('\0')) return `### ${att.filename}\n[Binary file — ${att.file_type}]`
+          if (content.length < 8000) return `### ${att.filename}\n\`\`\`\n${content}\n\`\`\``
+          return `### ${att.filename}\n\`\`\`\n${content.substring(0, 8000)}\n[truncated]\n\`\`\``
+        } catch {
+          return `### ${att.filename}\n[Could not read file]`
+        }
+      }
+
+      return `### ${att.filename}\n[${att.file_type ?? 'file'}: ${absPath}]`
     }).join('\n\n')
 
     // Create triage conversation
@@ -120,30 +126,38 @@ Analyze this bug report. If you have enough information, provide your triage res
       const provider = providerRegistry.get(agent?.provider_id ?? 'claude-cli')
       if (!provider) throw new Error(`Provider not found: ${agent?.provider_id}`)
 
-      // Call provider directly with skill as system prompt
-      let responseText = ''
-      const session = await provider.spawn({
-        prompt: triagePrompt,
-        systemPrompt: triageSystemPrompt,
-        cwd: process.cwd(),
-        model: agent?.model ?? undefined,
-      })
+      broadcast('conversation:typing', { conversationId: convId, agentId: triageAgentId, typing: true })
 
-      // Collect output with timeout
-      await new Promise<void>((resolve) => {
-        let resolved = false
-        provider.onOutput(session.id, (event: any) => {
-          if (event.type === 'stdout') responseText += event.content
+      let responseText = ''
+      try {
+        // Call provider directly with skill as system prompt
+        const attachmentsDir = process.env['ATTACHMENTS_DIR'] ?? 'data/attachments'
+        const session = await provider.spawn({
+          prompt: triagePrompt,
+          systemPrompt: triageSystemPrompt,
+          cwd: process.cwd(),
+          model: agent?.model ?? undefined,
+          addDirs: attachments.length > 0 ? [resolvePath(attachmentsDir)] : undefined,
         })
-        // Resolve after receiving content or timeout
-        const check = setInterval(() => {
-          if (responseText.length > 50 && !resolved) {
-            // Wait a bit more for completion
-            setTimeout(() => { if (!resolved) { resolved = true; clearInterval(check); resolve() } }, 3000)
-          }
-        }, 1000)
-        setTimeout(() => { if (!resolved) { resolved = true; clearInterval(check); provider.kill(session.id); resolve() } }, 120_000)
-      })
+
+        // Collect output with timeout
+        await new Promise<void>((resolve) => {
+          let resolved = false
+          provider.onOutput(session.id, (event: any) => {
+            if (event.type === 'stdout') responseText += event.content
+          })
+          // Resolve after receiving content or timeout
+          const check = setInterval(() => {
+            if (responseText.length > 50 && !resolved) {
+              // Wait a bit more for completion
+              setTimeout(() => { if (!resolved) { resolved = true; clearInterval(check); resolve() } }, 3000)
+            }
+          }, 1000)
+          setTimeout(() => { if (!resolved) { resolved = true; clearInterval(check); provider.kill(session.id); resolve() } }, 120_000)
+        })
+      } finally {
+        broadcast('conversation:typing', { conversationId: convId, agentId: triageAgentId, typing: false })
+      }
 
       // Parse stream-json output to extract text
       const response = this.parseStreamJsonOutput(responseText)

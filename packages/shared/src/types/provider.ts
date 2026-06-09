@@ -4,6 +4,7 @@ export interface SpawnOpts {
   env?: Record<string, string>
   model?: string
   systemPrompt?: string
+  addDirs?: string[]
 }
 
 export interface OutputEvent {
