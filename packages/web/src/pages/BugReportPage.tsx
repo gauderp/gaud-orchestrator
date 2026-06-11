@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bug, Plus, Upload, AlertTriangle, CheckCircle2, HelpCircle, XCircle, Clock, Kanban, List } from 'lucide-react'
-import type { BugReport, Board } from '@gaud/shared'
+import { Bug, Plus, Upload, AlertTriangle, Kanban, List } from 'lucide-react'
+import type { BugReport } from '@gaud/shared'
+import { BOARD_IDS } from '@gaud/shared'
 import { api } from '@/api/client'
 import { useBoardStore } from '@/store/boards'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
@@ -9,14 +10,6 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-
-const statusConfig: Record<string, { label: string; variant: 'info' | 'warning' | 'success' | 'error' | 'neutral'; icon: any }> = {
-  new: { label: 'New', variant: 'info', icon: Clock },
-  triaging: { label: 'Triaging', variant: 'warning', icon: Clock },
-  needs_info: { label: 'Needs Info', variant: 'warning', icon: HelpCircle },
-  triaged: { label: 'Triaged', variant: 'success', icon: CheckCircle2 },
-  rejected: { label: 'Rejected', variant: 'error', icon: XCircle },
-}
 
 const severityConfig: Record<string, { variant: 'error' | 'warning' | 'info' | 'neutral' }> = {
   critical: { variant: 'error' },
@@ -33,7 +26,7 @@ export function BugReportPage() {
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [bugBoardId, setBugBoardId] = useState<string | null>(null)
+  const bugBoardId = BOARD_IDS.TRIAGE
   const navigate = useNavigate()
 
   const { activeBoard, cards, fetchBoard, fetchCards, moveCard } = useBoardStore()
@@ -46,15 +39,9 @@ export function BugReportPage() {
 
   useEffect(() => {
     loadReports()
-    // Find Bug Triage board
-    api.boards.list().then((boards: Board[]) => {
-      const bugBoard = boards.find(b => b.name === 'Bug Triage')
-      if (bugBoard) {
-        setBugBoardId(bugBoard.id)
-        fetchBoard(bugBoard.id)
-        fetchCards(bugBoard.id)
-      }
-    })
+    // Fetch fixed Bug Triage board directly by ID
+    fetchBoard(bugBoardId)
+    fetchCards(bugBoardId)
   }, [])
 
   async function loadReports() {
@@ -83,7 +70,7 @@ export function BugReportPage() {
       setFiles([])
       setShowForm(false)
       await loadReports()
-      if (bugBoardId) fetchCards(bugBoardId)
+      fetchCards(bugBoardId)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -196,9 +183,7 @@ export function BugReportPage() {
           ) : (
             <div className="flex flex-col gap-2">
               {reports.map(report => {
-                const status = statusConfig[report.status] ?? statusConfig['new']!
                 const severity = report.severity ? severityConfig[report.severity] : null
-                const StatusIcon = status.icon
                 return (
                   <div
                     key={report.id}
@@ -218,9 +203,6 @@ export function BugReportPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {severity && <Badge variant={severity.variant}>{report.severity}</Badge>}
-                      <Badge variant={status.variant}>
-                        <StatusIcon size={12} className="mr-1" />{status.label}
-                      </Badge>
                     </div>
                   </div>
                 )
