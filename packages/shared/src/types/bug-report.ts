@@ -8,6 +8,9 @@ export interface BugReport {
   reporterEmail: string | null
   source: string
   severity: BugSeverity | null
+  sourceId: string | null
+  externalId: string | null
+  externalUrl: string | null
   cardId: string | null
   conversationId: string | null
   triageSummary: string | null

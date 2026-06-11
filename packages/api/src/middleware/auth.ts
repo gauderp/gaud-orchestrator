@@ -21,6 +21,9 @@ const PUBLIC_ROUTES = [
   'GET /api/health',
   'POST /api/slack-webhook',
   'GET /api/setup/agent-templates',
+  'POST /api/intake/bugs/',
+  'HEAD /api/intake/bugs/',
+  'GET /api/intake/bugs/',
 ]
 
 export function signAccessToken(payload: JwtPayload): string {

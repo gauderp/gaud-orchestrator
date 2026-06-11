@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, CardTag, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, SpecRepo, Execution, Repository, BugReport, BugReportWithAttachments } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, CardTag, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, SpecRepo, Execution, Repository, BugReport, BugReportWithAttachments, BugSource } from '@gaud/shared'
 import { useAuthStore } from '@/store/auth'
 
 const API_BASE = '/api'
@@ -214,6 +214,16 @@ export const api = {
     triage: (id: string, agentId: string) => request(`/bug-reports/${id}/triage`, { method: 'POST', body: JSON.stringify({ agentId }) }),
     respond: (id: string, content: string) => request(`/bug-reports/${id}/respond`, { method: 'POST', body: JSON.stringify({ content }) }),
     delete: (id: string) => request<void>(`/bug-reports/${id}`, { method: 'DELETE' }),
+  },
+
+  bugSources: {
+    list: () => request<BugSource[]>('/bug-sources'),
+    create: (data: { name: string; type: string; configJson?: string }) =>
+      request<BugSource>('/bug-sources', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: { enabled: boolean }) =>
+      request<BugSource>(`/bug-sources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) =>
+      request<void>(`/bug-sources/${id}`, { method: 'DELETE' }),
   },
 
   backup: {

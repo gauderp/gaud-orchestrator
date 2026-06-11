@@ -28,6 +28,8 @@ import { dashboardRoutes } from './routes/dashboard.js'
 import { githubRoutes } from './routes/github.js'
 import { bugReportRoutes } from './routes/bug-reports.js'
 import { slackWebhookRoutes } from './routes/slack-webhook.js'
+import { intakeRoutes } from './routes/intake.js'
+import { bugSourceRoutes } from './routes/bug-sources.js'
 import { backupRoutes } from './routes/backup.js'
 import multipart from '@fastify/multipart'
 
@@ -108,6 +110,8 @@ await server.register(dashboardRoutes)
 await server.register(githubRoutes)
 await server.register(bugReportRoutes)
 await server.register(slackWebhookRoutes)
+await server.register(intakeRoutes)
+await server.register(bugSourceRoutes)
 await server.register(backupRoutes)
 
 // Serve frontend in production
