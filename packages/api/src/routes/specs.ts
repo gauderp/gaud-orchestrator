@@ -3,18 +3,20 @@ import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
 import { requireRole } from '../middleware/auth.js'
+import { BOARD_IDS, SPEC_COLUMNS, DEV_COLUMNS } from '@gaud/shared'
 
 export async function specRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
   const editorPlus = requireRole('editor')
 
-  // List specs (optional status filter)
-  app.get<{ Querystring: { status?: string } }>('/api/specs', async (req, reply) => {
-    let sql = 'SELECT * FROM specs'
-    const params: any[] = []
-    if (req.query.status) { sql += ' WHERE status = ?'; params.push(req.query.status) }
-    sql += ' ORDER BY updated_at DESC'
-    const specs = db.prepare(sql).all(...params)
+  // List specs — join with cards to get column info
+  app.get('/api/specs', async (req, reply) => {
+    const specs = db.prepare(`
+      SELECT s.*, c.column_id, c.board_id
+      FROM specs s
+      LEFT JOIN cards c ON c.id = s.card_id
+      ORDER BY s.updated_at DESC
+    `).all()
     return reply.send(toCamelCaseArray(specs as any[]))
   })
 
@@ -31,17 +33,27 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
     })
   })
 
-  // Create spec (manual)
+  // Create spec (manual) — also creates a card on the Spec board
   app.post('/api/specs', { preHandler: [editorPlus] }, async (req, reply) => {
-    const { title, content, sourceCardId, createdByType, createdById } = req.body as any
+    const { title, content, createdByType, createdById } = req.body as any
     const id = randomUUID()
+    const cardId = randomUUID()
     const now = new Date().toISOString()
+
+    // Create card on Spec board: Ideas
+    const maxPos = db.prepare('SELECT MAX(position) as mp FROM cards WHERE column_id = ?').get(SPEC_COLUMNS.IDEAS) as any
+    const position = (maxPos?.mp ?? -1) + 1
+    db.prepare('INSERT INTO cards (id, board_id, column_id, type, title, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(cardId, BOARD_IDS.SPEC, SPEC_COLUMNS.IDEAS, 'task', title, position, now, now)
+
     db.prepare(`
-      INSERT INTO specs (id, title, content, source_card_id, created_by_type, created_by_id, created_at, updated_at)
+      INSERT INTO specs (id, title, content, card_id, created_by_type, created_by_id, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, title, content, sourceCardId ?? null, createdByType ?? 'user', createdById ?? null, now, now)
+    `).run(id, title, content ?? '', cardId, createdByType ?? 'user', createdById ?? null, now, now)
+
     const spec = toCamelCase(db.prepare('SELECT * FROM specs WHERE id = ?').get(id) as any)
     broadcast('spec:updated', spec)
+    broadcast('card:created', { id: cardId, boardId: BOARD_IDS.SPEC })
     return reply.status(201).send(spec)
   })
 
@@ -60,25 +72,31 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(spec)
   })
 
-  // Submit review (approve/reject/comment)
+  // Submit review (approve/reject/comment) — moves card column instead of updating status
   app.post<{ Params: { id: string } }>('/api/specs/:id/review', { preHandler: [editorPlus] }, async (req, reply) => {
     const { reviewerType, reviewerId, verdict, comment } = req.body as any
+    const spec = db.prepare('SELECT * FROM specs WHERE id = ?').get(req.params.id) as any
+    if (!spec) return reply.status(404).send({ error: 'Spec not found' })
+
     const reviewId = randomUUID()
     db.prepare(`
       INSERT INTO spec_reviews (id, spec_id, reviewer_type, reviewer_id, verdict, comment)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(reviewId, req.params.id, reviewerType, reviewerId ?? null, verdict, comment ?? null)
 
-    // If verdict is approve or reject, update spec status
-    if (verdict === 'approve') {
-      db.prepare("UPDATE specs SET status = ?, updated_at = datetime('now') WHERE id = ?")
-        .run('approved', req.params.id)
-      broadcast('spec:updated', toCamelCase(db.prepare('SELECT * FROM specs WHERE id = ?').get(req.params.id) as any))
-    } else if (verdict === 'reject') {
-      db.prepare("UPDATE specs SET status = ?, updated_at = datetime('now') WHERE id = ?")
-        .run('rejected', req.params.id)
-      broadcast('spec:updated', toCamelCase(db.prepare('SELECT * FROM specs WHERE id = ?').get(req.params.id) as any))
+    // Move card based on verdict
+    if (verdict === 'approve' && spec.card_id) {
+      db.prepare("UPDATE cards SET column_id = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(SPEC_COLUMNS.APPROVED, spec.card_id)
+      broadcast('card:moved', { id: spec.card_id, columnId: SPEC_COLUMNS.APPROVED })
+    } else if (verdict === 'reject' && spec.card_id) {
+      db.prepare("UPDATE cards SET column_id = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(SPEC_COLUMNS.DRAFTING, spec.card_id)
+      broadcast('card:moved', { id: spec.card_id, columnId: SPEC_COLUMNS.DRAFTING })
     }
+
+    db.prepare("UPDATE specs SET updated_at = datetime('now') WHERE id = ?").run(req.params.id)
+    broadcast('spec:updated', toCamelCase(db.prepare('SELECT * FROM specs WHERE id = ?').get(req.params.id) as any))
 
     const review = toCamelCase(db.prepare('SELECT * FROM spec_reviews WHERE id = ?').get(reviewId) as any)
     return reply.status(201).send(review)
@@ -91,18 +109,30 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(400).send({ error: 'At least one agent is required' })
     }
 
-    // 1. Create a draft spec
+    // 1. Create or reuse a card on the Spec board: Drafting
     const specId = randomUUID()
     const now = new Date().toISOString()
+
+    let specCardId = cardId
+    if (!specCardId) {
+      specCardId = randomUUID()
+      db.prepare('INSERT INTO cards (id, board_id, column_id, type, title, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)')
+        .run(specCardId, BOARD_IDS.SPEC, SPEC_COLUMNS.DRAFTING, 'task', title, now, now)
+    } else {
+      // Move existing card to Drafting
+      db.prepare("UPDATE cards SET board_id = ?, column_id = ?, updated_at = ? WHERE id = ?")
+        .run(BOARD_IDS.SPEC, SPEC_COLUMNS.DRAFTING, now, specCardId)
+    }
+
     db.prepare(`
-      INSERT INTO specs (id, title, content, status, source_card_id, created_by_type, created_at, updated_at)
-      VALUES (?, ?, ?, 'draft', ?, 'agent', ?, ?)
-    `).run(specId, title, `Generating spec for: ${description}`, cardId ?? null, now, now)
+      INSERT INTO specs (id, title, content, card_id, created_by_type, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'agent', ?, ?)
+    `).run(specId, title, `Generating spec for: ${description}`, specCardId, now, now)
 
     // 2. Create a conversation (type: spec) linked to the card
     const convId = randomUUID()
     db.prepare('INSERT INTO conversations (id, card_id, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-      .run(convId, cardId ?? null, 'spec', now, now)
+      .run(convId, specCardId, 'spec', now, now)
     for (const agentId of agentIds) {
       db.prepare('INSERT INTO conversation_participants (conversation_id, agent_id) VALUES (?, ?)').run(convId, agentId)
     }
@@ -153,10 +183,12 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
 
   // Decompose approved spec into cards
   app.post<{ Params: { id: string } }>('/api/specs/:id/decompose', { preHandler: [editorPlus] }, async (req, reply) => {
-    const { boardId, columnId } = req.body as { boardId: string; columnId: string }
     const spec = db.prepare('SELECT * FROM specs WHERE id = ?').get(req.params.id) as any
     if (!spec) return reply.status(404).send({ error: 'Spec not found' })
-    if (spec.status !== 'approved') {
+
+    // Check spec's card is in Approved column
+    const specCard = db.prepare('SELECT * FROM cards WHERE id = ?').get(spec.card_id) as any
+    if (!specCard || specCard.column_id !== SPEC_COLUMNS.APPROVED) {
       return reply.status(400).send({ error: 'Spec must be approved before decomposition' })
     }
 
@@ -191,7 +223,7 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
 
       const tasks = parseDecomposition(responseText)
 
-      // Create cards from tasks
+      // Create cards from tasks on the Dev board: Todo
       const createdCards: any[] = []
       const titleToId = new Map<string, string>()
 
@@ -199,9 +231,9 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
         const cardId = randomUUID()
         const now = new Date().toISOString()
         db.prepare(`
-          INSERT INTO cards (id, board_id, column_id, type, title, description, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(cardId, boardId, columnId, task.type, task.title, task.description, now, now)
+          INSERT INTO cards (id, board_id, column_id, parent_card_id, type, title, description, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(cardId, BOARD_IDS.DEV, DEV_COLUMNS.TODO, spec.card_id, task.type, task.title, task.description, now, now)
         titleToId.set(task.title, cardId)
         createdCards.push({ id: cardId, title: task.title, type: task.type, agent: task.agent })
       }
@@ -227,7 +259,7 @@ export async function specRoutes(app: FastifyInstance): Promise<void> {
         }
       }
 
-      return reply.send({ specId: req.params.id, boardId, cards: createdCards })
+      return reply.send({ specId: req.params.id, boardId: BOARD_IDS.DEV, cards: createdCards })
     } catch (err: any) {
       return reply.status(500).send({ error: `Decomposition failed: ${err.message}` })
     }
