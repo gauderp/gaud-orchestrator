@@ -121,7 +121,7 @@ export default function BugSourcesPage() {
       )}
 
       {showCreate && (
-        <Modal title="Add Bug Source" onClose={() => setShowCreate(false)}>
+        <Modal open={showCreate} title="Add Bug Source" onClose={() => setShowCreate(false)}>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">Name</label>

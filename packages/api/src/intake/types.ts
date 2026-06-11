@@ -1,4 +1,4 @@
-import { FastifyRequest } from 'fastify'
+import type { FastifyRequest } from 'fastify'
 import type { NormalizedBugIntake } from '@gaud/shared'
 
 export interface BugSourceRow {
