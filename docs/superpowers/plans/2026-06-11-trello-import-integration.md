@@ -208,7 +208,7 @@ export class TrelloImportService {
 ```
 
 Regras:
-- **Dedup** por `(integration_id, external_id)` em `cards`; para bugs, também aproveitar o dedup existente de `bug_reports (source_id? não — usar cards)`. Para target bugs o card criado carrega `integration_id`/`external_id` igual.
+- **Dedup SEMPRE via `cards(integration_id, external_id)`** — para ambos os targets. ATENÇÃO (target bugs): `bug_reports.source_id` tem FK para `bug_sources`, NÃO para `trello_integrations` — não usar `bug_reports(source_id, external_id)` para dedup nem tentar gravar o id da integração em `source_id` (violaria a FK). O fluxo correto: card criado em Triage: New carrega `integration_id`/`external_id`/`external_url`; o bug_report é criado com `source = 'trello'`, `source_id = NULL`, `external_id`/`external_url` preenchidos (campos informativos) e linkado via `card_id`. No reimport/backfill: buscar card por `(integration_id, external_id)` → se existe, atualizar descrição do bug_report via `card_id` e retornar 'updated'.
 - **Target dev:** coluna destino = `configJson.listMapping[idList]`; sem mapeamento → `ignored`. Card criado com `type='task'`, posição = MAX(position)+1 na coluna.
 - **Target bugs:** lista em `configJson.captureListIds` → cria via fluxo de bug report (replicar o que `intake.ts` faz: conversation + card Triage New + bug_report com external_id). Reusar/extrair função compartilhada se trivial; senão duplicar consciente (são ~20 linhas).
 - **Move (dev):** comentário automático `author_type='system'`: "Moved on Trello: <listBefore> → <listAfter>". `broadcast('card:moved', ...)`.
