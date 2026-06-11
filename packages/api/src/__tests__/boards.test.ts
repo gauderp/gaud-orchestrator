@@ -1,29 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import Fastify from 'fastify'
 import { boardRoutes } from '../routes/boards.js'
-import Database from 'better-sqlite3'
-import { readFileSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
+import type Database from 'better-sqlite3'
+import { createTestDb } from './helpers/test-db.js'
 
 describe('Boards API', () => {
   const app = Fastify()
   let db: Database.Database
 
   beforeAll(async () => {
-    db = new Database(':memory:')
-    db.pragma('foreign_keys = ON')
-    db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '001_initial.sql'), 'utf-8'))
-
-    // Seed with fixed boards matching migration 011
-    db.prepare("INSERT INTO boards (id, name) VALUES ('triage-board', 'Triage')").run()
-    db.prepare("INSERT INTO boards (id, name) VALUES ('spec-board', 'Spec')").run()
-    db.prepare("INSERT INTO boards (id, name) VALUES ('dev-board', 'Dev')").run()
-    db.prepare("INSERT INTO columns (id, board_id, name, color, position) VALUES ('triage-col-new', 'triage-board', 'New', '#3B82F6', 0)").run()
-    db.prepare("INSERT INTO columns (id, board_id, name, color, position) VALUES ('triage-col-interviewing', 'triage-board', 'Interviewing', '#F59E0B', 1)").run()
-
+    db = createTestDb()
     app.decorate('db', db)
     await app.register(boardRoutes)
     await app.ready()
@@ -42,10 +28,10 @@ describe('Boards API', () => {
     const res = await app.inject({ method: 'GET', url: '/api/boards/triage-board' })
     const body = JSON.parse(res.payload)
     expect(body.name).toBe('Triage')
-    expect(body.columns).toBeDefined()
     expect(Array.isArray(body.columns)).toBe(true)
-    expect(body.columns.length).toBe(2)
+    expect(body.columns.length).toBe(4)
     expect(body.columns[0].name).toBe('New')
+    expect(body.columns[0].boardId).toBe('triage-board')
   })
 
   it('GET /api/boards/:id returns 404 for unknown board', async () => {
