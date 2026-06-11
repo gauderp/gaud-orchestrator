@@ -12,7 +12,6 @@ interface BoardState {
   fetchBoard: (id: string) => Promise<void>
   fetchCards: (boardId: string) => Promise<void>
   fetchCard: (id: string) => Promise<void>
-  createBoard: (name: string) => Promise<Board>
   createCard: (data: any) => Promise<Card>
   moveCard: (cardId: string, columnId: string, position: number) => Promise<void>
   updateCard: (id: string, data: any) => Promise<void>
@@ -46,11 +45,6 @@ export const useBoardStore = create<BoardState>((set) => ({
   fetchCard: async (id) => {
     const card = await api.cards.get(id)
     set({ selectedCard: card })
-  },
-  createBoard: async (name) => {
-    const board = await api.boards.create({ name })
-    set((s) => ({ boards: [...s.boards, board] }))
-    return board
   },
   createCard: async (data) => {
     const card = await api.cards.create(data)

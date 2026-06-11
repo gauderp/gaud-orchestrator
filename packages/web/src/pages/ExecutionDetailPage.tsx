@@ -1,28 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useExecutionStore } from '@/store/executions'
-import { ExecutionStatus } from '@/components/executions/ExecutionStatus'
-import { ExecutionTaskList } from '@/components/executions/ExecutionTaskList'
-import { ExecutionLogs } from '@/components/executions/ExecutionLogs'
-import { ExecutionGaps } from '@/components/executions/ExecutionGaps'
-import { ExecutionPRs } from '@/components/executions/ExecutionPRs'
-import { Button } from '@/components/ui/Button'
-import { ArrowLeft, Play, XCircle } from 'lucide-react'
-
-type Tab = 'tasks' | 'logs' | 'gaps' | 'prs'
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'tasks', label: 'Tasks' },
-  { id: 'logs', label: 'Logs' },
-  { id: 'gaps', label: 'Gaps' },
-  { id: 'prs', label: 'Pull Requests' },
-]
+import { Badge } from '@/components/ui/Badge'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
 
 export function ExecutionDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { selectedExecution, fetchExecution, executeExecution, cancelExecution, resolveGap } = useExecutionStore()
-  const [activeTab, setActiveTab] = useState<Tab>('tasks')
-  const [executing, setExecuting] = useState(false)
+  const { selectedExecution, fetchExecution } = useExecutionStore()
 
   useEffect(() => {
     if (id) fetchExecution(id)
@@ -33,26 +17,12 @@ export function ExecutionDetailPage() {
   }
 
   const exec = selectedExecution
-  const tasksDone = exec.tasks?.filter((t) => t.status === 'done').length ?? 0
-  const tasksTotal = exec.tasks?.length ?? 0
-  const pendingGaps = exec.gaps?.filter((g) => g.status === 'pending').length ?? 0
 
-  const handleExecute = async () => {
-    setExecuting(true)
-    try {
-      await executeExecution(exec.id)
-    } finally {
-      setExecuting(false)
-    }
-  }
-
-  const handleCancel = async () => {
-    await cancelExecution(exec.id)
-  }
-
-  const handleResolveGap = async (gapId: string, response: string) => {
-    await resolveGap(exec.id, gapId, response)
-  }
+  const outcomeBadge = exec.outcome === 'success'
+    ? <Badge variant="success">Success</Badge>
+    : exec.outcome === 'failed'
+      ? <Badge variant="error">Failed</Badge>
+      : <Badge variant="neutral">In Progress</Badge>
 
   return (
     <div className="mx-auto max-w-6xl p-6">
@@ -64,54 +34,52 @@ export function ExecutionDetailPage() {
         Back to Executions
       </Link>
 
-      <div className="mb-6 flex items-center justify-between">
-        <div>
+      <div className="mb-6">
+        <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
             Execution {exec.id.slice(0, 8)}
           </h1>
-          <ExecutionStatus status={exec.status} tasksDone={tasksDone} tasksTotal={tasksTotal} />
-        </div>
-        <div className="flex items-center gap-2">
-          {exec.status === 'planning' && (
-            <Button onClick={handleExecute} loading={executing}>
-              <Play className="mr-1 h-4 w-4" />
-              Execute
-            </Button>
-          )}
-          {(exec.status === 'executing' || exec.status === 'approving') && (
-            <Button variant="destructive" onClick={handleCancel}>
-              <XCircle className="mr-1 h-4 w-4" />
-              Cancel
-            </Button>
-          )}
+          {outcomeBadge}
         </div>
       </div>
 
-      <div className="mb-4 flex gap-1 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === tab.id
-                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
-                : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
-            }`}
-          >
-            {tab.label}
-            {tab.id === 'gaps' && pendingGaps > 0 && (
-              <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-warning)] px-1 text-[0.625rem] text-white">
-                {pendingGaps}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="space-y-4 rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] p-4">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Started</span>
+            <p className="text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+              {new Date(exec.startedAt).toLocaleString()}
+            </p>
+          </div>
+          {exec.finishedAt && (
+            <div>
+              <span className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Finished</span>
+              <p className="text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
+                {new Date(exec.finishedAt).toLocaleString()}
+              </p>
+            </div>
+          )}
+          {exec.branch && (
+            <div>
+              <span className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Branch</span>
+              <p className="font-mono text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{exec.branch}</p>
+            </div>
+          )}
+          {exec.prUrl && (
+            <div>
+              <span className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">Pull Request</span>
+              <a
+                href={exec.prUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[var(--color-primary)] hover:underline"
+              >
+                View PR <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          )}
+        </div>
       </div>
-
-      {activeTab === 'tasks' && <ExecutionTaskList tasks={exec.tasks ?? []} />}
-      {activeTab === 'logs' && <ExecutionLogs tasks={exec.tasks ?? []} />}
-      {activeTab === 'gaps' && <ExecutionGaps gaps={exec.gaps ?? []} onResolve={handleResolveGap} />}
-      {activeTab === 'prs' && <ExecutionPRs tasks={exec.tasks ?? []} />}
     </div>
   )
 }

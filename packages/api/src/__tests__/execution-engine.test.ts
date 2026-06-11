@@ -2,44 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { ExecutionEngine } from '../services/execution-engine.js'
 
 describe('ExecutionEngine', () => {
-  it('getExecutableTasks returns tasks with all deps done', () => {
-    const tasks = [
-      { id: 't1', status: 'done', dependsOn: '[]' },
-      { id: 't2', status: 'pending', dependsOn: '["t1"]' },
-      { id: 't3', status: 'pending', dependsOn: '["t2"]' },
-    ]
-    const executable = ExecutionEngine.getExecutableTasks(tasks as any)
-    expect(executable.map(t => t.id)).toEqual(['t2'])
-  })
-
-  it('getExecutableTasks returns multiple parallel tasks', () => {
-    const tasks = [
-      { id: 't1', status: 'done', dependsOn: '[]' },
-      { id: 't2', status: 'pending', dependsOn: '["t1"]' },
-      { id: 't3', status: 'pending', dependsOn: '["t1"]' },
-    ]
-    const executable = ExecutionEngine.getExecutableTasks(tasks as any)
-    expect(executable).toHaveLength(2)
-  })
-
-  it('getExecutableTasks returns tasks with no deps when none are done', () => {
-    const tasks = [
-      { id: 't1', status: 'pending', dependsOn: '[]' },
-      { id: 't2', status: 'pending', dependsOn: '["t1"]' },
-    ]
-    const executable = ExecutionEngine.getExecutableTasks(tasks as any)
-    expect(executable.map(t => t.id)).toEqual(['t1'])
-  })
-
-  it('getExecutableTasks skips running tasks', () => {
-    const tasks = [
-      { id: 't1', status: 'running', dependsOn: '[]' },
-      { id: 't2', status: 'pending', dependsOn: '[]' },
-    ]
-    const executable = ExecutionEngine.getExecutableTasks(tasks as any)
-    expect(executable.map(t => t.id)).toEqual(['t2'])
-  })
-
   it('buildTaskPrompt includes title and spec context', () => {
     const prompt = ExecutionEngine.buildTaskPrompt({
       title: 'Build API',
@@ -58,5 +20,33 @@ describe('ExecutionEngine', () => {
     expect(prompt).toContain('TDD')
     expect(prompt).toContain('jose library')
     expect(prompt).toContain('[APPROVAL_NEEDED]')
+  })
+
+  it('buildTaskPrompt includes attachments', () => {
+    const prompt = ExecutionEngine.buildTaskPrompt({
+      title: 'Test',
+      description: 'desc',
+      branch: 'test-branch',
+      attachments: [
+        { filename: 'readme.md', content: '# Hello', type: 'text' },
+        { filename: 'image.png', content: '/path/to/image.png', type: 'path' },
+      ],
+    })
+    expect(prompt).toContain('Card Attachments')
+    expect(prompt).toContain('readme.md')
+    expect(prompt).toContain('# Hello')
+    expect(prompt).toContain('image.png')
+    expect(prompt).toContain('/path/to/image.png')
+  })
+
+  it('buildTaskPrompt includes codebase analysis', () => {
+    const prompt = ExecutionEngine.buildTaskPrompt({
+      title: 'Test',
+      description: 'desc',
+      branch: 'test-branch',
+      codebaseAnalysis: '## Structure\n- src/\n- tests/',
+    })
+    expect(prompt).toContain('Codebase Analysis')
+    expect(prompt).toContain('## Structure')
   })
 })

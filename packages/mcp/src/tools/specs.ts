@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type Database from 'better-sqlite3'
 import { z } from 'zod'
+import { BOARD_IDS, SPEC_COLUMNS } from '@gaud/shared'
 
 function toCamelCase(row: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {}
@@ -14,13 +15,15 @@ export function registerSpecTools(server: McpServer, db: Database.Database): voi
 
   server.tool(
     'gaud_specs_list',
-    'List specs with optional status filter',
-    { status: z.enum(['draft', 'review', 'approved', 'rejected']).optional().describe('Filter by status') },
-    async ({ status }) => {
-      const query = status
-        ? 'SELECT * FROM specs WHERE status = ? ORDER BY updated_at DESC'
-        : 'SELECT * FROM specs ORDER BY updated_at DESC'
-      const specs = (status ? db.prepare(query).all(status) : db.prepare(query).all()) as Record<string, unknown>[]
+    'List specs (joined with card to show board position)',
+    {},
+    async () => {
+      const specs = db.prepare(`
+        SELECT s.*, c.column_id, c.board_id
+        FROM specs s
+        LEFT JOIN cards c ON c.id = s.card_id
+        ORDER BY s.updated_at DESC
+      `).all() as Record<string, unknown>[]
       return { content: [{ type: 'text' as const, text: JSON.stringify(specs.map(toCamelCase), null, 2) }] }
     }
   )
@@ -42,20 +45,29 @@ export function registerSpecTools(server: McpServer, db: Database.Database): voi
 
   server.tool(
     'gaud_specs_create',
-    'Create a new spec',
+    'Create a new spec (also creates a card on the Spec board)',
     {
       title: z.string().describe('Spec title'),
       content: z.string().describe('Spec content (markdown)'),
-      sourceCardId: z.string().optional().describe('Card ID this spec is for'),
+      cardId: z.string().optional().describe('Existing card ID to link (if omitted, a new card is created)'),
     },
-    async ({ title, content, sourceCardId }) => {
+    async ({ title, content, cardId }) => {
       const { randomUUID } = await import('crypto')
       const id = randomUUID()
       const now = new Date().toISOString()
+
+      let specCardId = cardId
+      if (!specCardId) {
+        specCardId = randomUUID()
+        db.prepare(
+          'INSERT INTO cards (id, board_id, column_id, type, title, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)'
+        ).run(specCardId, BOARD_IDS.SPEC, SPEC_COLUMNS.IDEAS, 'task', title, now, now)
+      }
+
       db.prepare(`
-        INSERT INTO specs (id, title, content, status, source_card_id, created_by_type, created_at, updated_at)
-        VALUES (?, ?, ?, 'draft', ?, 'user', ?, ?)
-      `).run(id, title, content, sourceCardId ?? null, now, now)
+        INSERT INTO specs (id, title, content, card_id, created_by_type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'user', ?, ?)
+      `).run(id, title, content, specCardId, now, now)
       const spec = db.prepare('SELECT * FROM specs WHERE id = ?').get(id) as Record<string, unknown>
       return { content: [{ type: 'text' as const, text: JSON.stringify(toCamelCase(spec), null, 2) }] }
     }
@@ -63,7 +75,7 @@ export function registerSpecTools(server: McpServer, db: Database.Database): voi
 
   server.tool(
     'gaud_specs_review',
-    'Submit a review for a spec (approve, reject, or comment)',
+    'Submit a review for a spec (approve, reject, or comment) — moves the card column accordingly',
     {
       specId: z.string().describe('Spec ID'),
       verdict: z.enum(['approve', 'reject', 'comment']).describe('Review verdict'),
@@ -78,11 +90,18 @@ export function registerSpecTools(server: McpServer, db: Database.Database): voi
         VALUES (?, ?, 'user', ?, ?, ?)
       `).run(id, specId, verdict, comment ?? null, now)
 
-      if (verdict === 'approve') {
-        db.prepare("UPDATE specs SET status = 'approved', updated_at = ? WHERE id = ?").run(now, specId)
-      } else if (verdict === 'reject') {
-        db.prepare("UPDATE specs SET status = 'rejected', updated_at = ? WHERE id = ?").run(now, specId)
+      const spec = db.prepare('SELECT * FROM specs WHERE id = ?').get(specId) as Record<string, unknown> | undefined
+      if (spec && spec['card_id']) {
+        if (verdict === 'approve') {
+          db.prepare("UPDATE cards SET column_id = ?, updated_at = ? WHERE id = ?")
+            .run(SPEC_COLUMNS.APPROVED, now, spec['card_id'])
+        } else if (verdict === 'reject') {
+          db.prepare("UPDATE cards SET column_id = ?, updated_at = ? WHERE id = ?")
+            .run(SPEC_COLUMNS.DRAFTING, now, spec['card_id'])
+        }
       }
+
+      db.prepare("UPDATE specs SET updated_at = ? WHERE id = ?").run(now, specId)
 
       const review = db.prepare('SELECT * FROM spec_reviews WHERE id = ?').get(id) as Record<string, unknown>
       return { content: [{ type: 'text' as const, text: JSON.stringify(toCamelCase(review), null, 2) }] }

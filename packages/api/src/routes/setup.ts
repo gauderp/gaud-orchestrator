@@ -119,37 +119,6 @@ export async function setupRoutes(app: FastifyInstance): Promise<void> {
         }
       }
 
-      // Create default boards
-      const bugBoardId = randomUUID()
-      db.prepare('INSERT INTO boards (id, name) VALUES (?, ?)').run(bugBoardId, 'Bug Triage')
-      const bugColumns = [
-        { name: 'New', color: '#3B82F6', position: 0 },
-        { name: 'Triaging', color: '#F59E0B', position: 1 },
-        { name: 'Triaged', color: '#8B5CF6', position: 2 },
-        { name: 'In Progress', color: '#06B6D4', position: 3 },
-        { name: 'Testing', color: '#EC4899', position: 4 },
-        { name: 'Reopened', color: '#EF4444', position: 5 },
-        { name: 'Done', color: '#10B981', position: 6 },
-      ]
-      for (const col of bugColumns) {
-        db.prepare('INSERT INTO columns (id, board_id, name, color, position) VALUES (?, ?, ?, ?, ?)')
-          .run(randomUUID(), bugBoardId, col.name, col.color, col.position)
-      }
-
-      const devBoardId = randomUUID()
-      db.prepare('INSERT INTO boards (id, name) VALUES (?, ?)').run(devBoardId, 'Development')
-      const devColumns = [
-        { name: 'Backlog', color: '#64748B', position: 0 },
-        { name: 'To Do', color: '#3B82F6', position: 1 },
-        { name: 'In Progress', color: '#F59E0B', position: 2 },
-        { name: 'Review', color: '#8B5CF6', position: 3 },
-        { name: 'Done', color: '#10B981', position: 4 },
-      ]
-      for (const col of devColumns) {
-        db.prepare('INSERT INTO columns (id, board_id, name, color, position) VALUES (?, ?, ?, ?, ?)')
-          .run(randomUUID(), devBoardId, col.name, col.color, col.position)
-      }
-
       // Mark setup complete
       db.prepare("UPDATE setup_state SET value = 'true' WHERE key = 'setup_completed'").run()
     })

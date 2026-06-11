@@ -28,7 +28,6 @@ describe('SQLite migrations', () => {
     expect(tableNames).toContain('skills')
     expect(tableNames).toContain('specs')
     expect(tableNames).toContain('executions')
-    expect(tableNames).toContain('execution_tasks')
     expect(tableNames).toContain('providers')
     expect(tableNames).toContain('conversations')
     expect(tableNames).toContain('messages')

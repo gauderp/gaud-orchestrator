@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Zap } from 'lucide-react'
 import type { Column, Card, Agent } from '@gaud/shared'
 import { KanbanCard } from './KanbanCard'
 
@@ -41,9 +40,6 @@ export function KanbanColumn({ column, cards, agents, onAddCard }: KanbanColumnP
         <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] tabular-nums">
           {cards.length}
         </span>
-        {column.agentActionPrompt && (
-          <Zap size={12} className="text-[var(--color-warning)] shrink-0" />
-        )}
       </div>
 
       {/* Cards */}

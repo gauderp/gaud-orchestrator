@@ -10,9 +10,6 @@ export interface Column {
   name: string
   color: string
   position: number
-  agentActionPrompt: string | null
-  autoMove: boolean
-  roleRequired: string | null
   createdAt: string
 }
 

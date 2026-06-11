@@ -14,16 +14,16 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
     const cardTotal = (db.prepare('SELECT COUNT(*) as c FROM cards').get() as any).c
     const cardsByType = db.prepare('SELECT type, COUNT(*) as c FROM cards GROUP BY type').all() as any[]
 
-    // Specs
-    const specsDraft = (db.prepare("SELECT COUNT(*) as c FROM specs WHERE status = 'draft'").get() as any).c
-    const specsReview = (db.prepare("SELECT COUNT(*) as c FROM specs WHERE status = 'review'").get() as any).c
-    const specsApproved = (db.prepare("SELECT COUNT(*) as c FROM specs WHERE status = 'approved'").get() as any).c
+    // Specs (count by card column position)
     const specsTotal = (db.prepare('SELECT COUNT(*) as c FROM specs').get() as any).c
+    const specsDrafting = (db.prepare("SELECT COUNT(*) as c FROM specs s JOIN cards c ON c.id = s.card_id WHERE c.column_id IN ('spec-col-ideas', 'spec-col-drafting')").get() as any).c
+    const specsReview = (db.prepare("SELECT COUNT(*) as c FROM specs s JOIN cards c ON c.id = s.card_id WHERE c.column_id = 'spec-col-review'").get() as any).c
+    const specsApproved = (db.prepare("SELECT COUNT(*) as c FROM specs s JOIN cards c ON c.id = s.card_id WHERE c.column_id = 'spec-col-approved'").get() as any).c
 
     // Executions
-    const execActive = (db.prepare("SELECT COUNT(*) as c FROM executions WHERE status IN ('planning', 'approving', 'executing')").get() as any).c
-    const execDone = (db.prepare("SELECT COUNT(*) as c FROM executions WHERE status = 'done'").get() as any).c
-    const execFailed = (db.prepare("SELECT COUNT(*) as c FROM executions WHERE status = 'failed'").get() as any).c
+    const execActive = (db.prepare("SELECT COUNT(*) as c FROM executions WHERE finished_at IS NULL").get() as any).c
+    const execDone = (db.prepare("SELECT COUNT(*) as c FROM executions WHERE outcome = 'success'").get() as any).c
+    const execFailed = (db.prepare("SELECT COUNT(*) as c FROM executions WHERE outcome = 'failed'").get() as any).c
     const execTotal = (db.prepare('SELECT COUNT(*) as c FROM executions').get() as any).c
 
     // Cost this month
@@ -63,7 +63,7 @@ export async function dashboardRoutes(app: FastifyInstance): Promise<void> {
         total: cardTotal,
         byType: Object.fromEntries(cardsByType.map((r: any) => [r.type, r.c])),
       },
-      specs: { total: specsTotal, draft: specsDraft, review: specsReview, approved: specsApproved, pending: specsDraft + specsReview },
+      specs: { total: specsTotal, draft: specsDrafting, review: specsReview, approved: specsApproved, pending: specsDrafting + specsReview },
       executions: { total: execTotal, active: execActive, done: execDone, failed: execFailed },
       cost: {
         totalThisMonth: costThisMonth,

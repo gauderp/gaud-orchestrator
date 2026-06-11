@@ -1,15 +1,12 @@
-export type BugReportStatus = 'new' | 'triaging' | 'needs_info' | 'triaged' | 'rejected'
 export type BugSeverity = 'critical' | 'high' | 'medium' | 'low'
-export type BugSource = 'ui' | 'slack' | 'mcp'
 
 export interface BugReport {
   id: string
   title: string
-  description: string
+  description: string | null
   reporterName: string | null
   reporterEmail: string | null
-  source: BugSource
-  status: BugReportStatus
+  source: string
   severity: BugSeverity | null
   cardId: string | null
   conversationId: string | null

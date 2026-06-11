@@ -1,13 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import Fastify from 'fastify'
 import { specRoutes } from '../routes/specs.js'
-import Database from 'better-sqlite3'
-import { readFileSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import type Database from 'better-sqlite3'
+import { createTestDb } from './helpers/test-db.js'
 import { setupTestAuth } from './helpers/auth.js'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
+import { SPEC_COLUMNS } from '@gaud/shared'
 
 describe('Specs API', () => {
   const app = Fastify()
@@ -15,17 +12,7 @@ describe('Specs API', () => {
   let specId: string
 
   beforeAll(async () => {
-    db = new Database(':memory:')
-    db.pragma('foreign_keys = ON')
-    db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '001_initial.sql'), 'utf-8'))
-    db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '004_github_repos.sql'), 'utf-8'))
-    db.exec(readFileSync(join(__dirname, '..', 'db', 'migrations', '006_spec_repos.sql'), 'utf-8'))
-
-    // Seed board + column + card for linking
-    db.prepare("INSERT INTO boards (id, name) VALUES ('b1', 'Board')").run()
-    db.prepare("INSERT INTO columns (id, board_id, name, position) VALUES ('col1', 'b1', 'Backlog', 0)").run()
-    db.prepare("INSERT INTO cards (id, board_id, column_id, type, title) VALUES ('c1', 'b1', 'col1', 'task', 'NFS-e')").run()
-
+    db = createTestDb()
     ;(app as any).db = db
     await setupTestAuth(app)
     await app.register(specRoutes)
@@ -34,27 +21,30 @@ describe('Specs API', () => {
 
   afterAll(async () => { await app.close(); db.close() })
 
-  it('POST /api/specs creates a spec', async () => {
+  it('POST /api/specs creates a spec with a card on the Spec board', async () => {
     const res = await app.inject({
       method: 'POST', url: '/api/specs',
-      payload: { title: 'NFS-e Catalao', content: '# Spec\n\nBuild NFS-e.', sourceCardId: 'c1', createdByType: 'user' },
+      payload: { title: 'NFS-e Catalao', content: '# Spec\n\nBuild NFS-e.', createdByType: 'user' },
     })
     expect(res.statusCode).toBe(201)
     const body = JSON.parse(res.payload)
     expect(body.title).toBe('NFS-e Catalao')
-    expect(body.status).toBe('draft')
     expect(body.version).toBe(1)
+    expect(body.cardId).toBeDefined()
     specId = body.id
+
+    // Card created in Spec: Ideas — column is the source of truth
+    const card = db.prepare('SELECT board_id, column_id FROM cards WHERE id = ?').get(body.cardId) as any
+    expect(card.board_id).toBe('spec-board')
+    expect(card.column_id).toBe(SPEC_COLUMNS.IDEAS)
   })
 
-  it('GET /api/specs lists specs', async () => {
+  it('GET /api/specs lists specs with card column info', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/specs' })
-    expect(JSON.parse(res.payload).length).toBe(1)
-  })
-
-  it('GET /api/specs?status=draft filters by status', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/specs?status=draft' })
-    expect(JSON.parse(res.payload).length).toBe(1)
+    const specs = JSON.parse(res.payload)
+    expect(specs.length).toBe(1)
+    expect(specs[0].columnId).toBe(SPEC_COLUMNS.IDEAS)
+    expect(specs[0].boardId).toBe('spec-board')
   })
 
   it('GET /api/specs/:id returns spec', async () => {
@@ -84,28 +74,36 @@ describe('Specs API', () => {
     expect(JSON.parse(res.payload).verdict).toBe('comment')
   })
 
-  it('POST /api/specs/:id/review approve changes status', async () => {
+  it('POST /api/specs/:id/review approve moves card to Approved', async () => {
     const res = await app.inject({
       method: 'POST', url: `/api/specs/${specId}/review`,
       payload: { reviewerType: 'user', verdict: 'approve', comment: 'LGTM' },
     })
     expect(res.statusCode).toBe(201)
-    // Check spec status changed
-    const spec = await app.inject({ method: 'GET', url: `/api/specs/${specId}` })
-    expect(JSON.parse(spec.payload).status).toBe('approved')
+    // Column is the source of truth — card must be in Approved
+    const list = await app.inject({ method: 'GET', url: '/api/specs' })
+    const spec = JSON.parse(list.payload).find((s: any) => s.id === specId)
+    expect(spec.columnId).toBe(SPEC_COLUMNS.APPROVED)
   })
 
-  it('POST /api/specs/:id/decompose rejects unapproved spec', async () => {
-    // Create a draft spec to test the guard
+  it('POST /api/specs/:id/review reject moves card back to Drafting', async () => {
+    const res = await app.inject({
+      method: 'POST', url: `/api/specs/${specId}/review`,
+      payload: { reviewerType: 'user', verdict: 'reject', comment: 'Missing edge cases' },
+    })
+    expect(res.statusCode).toBe(201)
+    const list = await app.inject({ method: 'GET', url: '/api/specs' })
+    const spec = JSON.parse(list.payload).find((s: any) => s.id === specId)
+    expect(spec.columnId).toBe(SPEC_COLUMNS.DRAFTING)
+  })
+
+  it('POST /api/specs/:id/decompose rejects spec whose card is not in Approved', async () => {
     const createRes = await app.inject({
       method: 'POST', url: '/api/specs',
       payload: { title: 'Draft spec', content: '# Draft', createdByType: 'user' },
     })
     const draftId = JSON.parse(createRes.payload).id
-    const res = await app.inject({
-      method: 'POST', url: `/api/specs/${draftId}/decompose`,
-      payload: { boardId: 'b1', columnId: 'col1' },
-    })
+    const res = await app.inject({ method: 'POST', url: `/api/specs/${draftId}/decompose`, payload: {} })
     expect(res.statusCode).toBe(400)
     expect(JSON.parse(res.payload).error).toContain('approved')
   })

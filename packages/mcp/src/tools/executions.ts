@@ -14,68 +14,59 @@ export function registerExecutionTools(server: McpServer, db: Database.Database)
 
   server.tool(
     'gaud_executions_list',
-    'List executions with optional status filter',
-    { status: z.enum(['planning', 'approving', 'executing', 'done', 'failed']).optional().describe('Filter by status') },
-    async ({ status }) => {
-      const query = status
-        ? 'SELECT * FROM executions WHERE status = ? ORDER BY updated_at DESC'
-        : 'SELECT * FROM executions ORDER BY updated_at DESC'
-      const execs = (status ? db.prepare(query).all(status) : db.prepare(query).all()) as Record<string, unknown>[]
+    'List execution runs, optionally filtered by card',
+    { cardId: z.string().optional().describe('Filter by card ID') },
+    async ({ cardId }) => {
+      const query = cardId
+        ? 'SELECT * FROM executions WHERE card_id = ? ORDER BY started_at DESC'
+        : 'SELECT * FROM executions ORDER BY started_at DESC LIMIT 50'
+      const execs = (cardId ? db.prepare(query).all(cardId) : db.prepare(query).all()) as Record<string, unknown>[]
       return { content: [{ type: 'text' as const, text: JSON.stringify(execs.map(toCamelCase), null, 2) }] }
     }
   )
 
   server.tool(
     'gaud_executions_get',
-    'Get execution details with tasks, gaps, and logs',
+    'Get execution details',
     { executionId: z.string().describe('Execution ID') },
     async ({ executionId }) => {
       const exec = db.prepare('SELECT * FROM executions WHERE id = ?').get(executionId) as Record<string, unknown> | undefined
       if (!exec) return { content: [{ type: 'text' as const, text: 'Execution not found' }] }
-      const tasks = db.prepare('SELECT * FROM execution_tasks WHERE execution_id = ? ORDER BY created_at').all(executionId) as Record<string, unknown>[]
-      const gaps = db.prepare('SELECT * FROM execution_gaps WHERE execution_id = ?').all(executionId) as Record<string, unknown>[]
-      const taskIds = tasks.map(t => t['id'] as string)
-      let logs: Record<string, unknown>[] = []
-      if (taskIds.length > 0) {
-        const placeholders = taskIds.map(() => '?').join(',')
-        logs = db.prepare(`SELECT * FROM execution_logs WHERE execution_task_id IN (${placeholders}) ORDER BY created_at DESC LIMIT 50`).all(...taskIds) as Record<string, unknown>[]
-      }
-      return { content: [{ type: 'text' as const, text: JSON.stringify({
-        ...toCamelCase(exec),
-        tasks: tasks.map(toCamelCase),
-        gaps: gaps.map(toCamelCase),
-        recentLogs: logs.map(toCamelCase),
-      }, null, 2) }] }
+      return { content: [{ type: 'text' as const, text: JSON.stringify(toCamelCase(exec), null, 2) }] }
     }
   )
 
   server.tool(
     'gaud_executions_create',
-    'Create a new execution from a card and spec',
+    'Create a new execution run for a card',
     {
       cardId: z.string().describe('Card ID'),
-      specId: z.string().describe('Spec ID'),
+      branch: z.string().optional().describe('Git branch name'),
     },
-    async ({ cardId, specId }) => {
+    async ({ cardId, branch }) => {
       const { randomUUID } = await import('crypto')
       const id = randomUUID()
-      const now = new Date().toISOString()
       db.prepare(`
-        INSERT INTO executions (id, card_id, spec_id, status, created_at, updated_at)
-        VALUES (?, ?, ?, 'planning', ?, ?)
-      `).run(id, cardId, specId, now, now)
+        INSERT INTO executions (id, card_id, branch, started_at)
+        VALUES (?, ?, ?, datetime('now'))
+      `).run(id, cardId, branch ?? null)
       const exec = db.prepare('SELECT * FROM executions WHERE id = ?').get(id) as Record<string, unknown>
       return { content: [{ type: 'text' as const, text: JSON.stringify(toCamelCase(exec), null, 2) }] }
     }
   )
 
   server.tool(
-    'gaud_executions_cancel',
-    'Cancel an execution',
-    { executionId: z.string().describe('Execution ID') },
-    async ({ executionId }) => {
-      const now = new Date().toISOString()
-      db.prepare("UPDATE executions SET status = 'failed', updated_at = ? WHERE id = ?").run(now, executionId)
+    'gaud_executions_complete',
+    'Complete an execution with outcome',
+    {
+      executionId: z.string().describe('Execution ID'),
+      outcome: z.enum(['success', 'failed']).describe('Execution outcome'),
+      prUrl: z.string().optional().describe('Pull request URL'),
+    },
+    async ({ executionId, outcome, prUrl }) => {
+      db.prepare(
+        "UPDATE executions SET finished_at = datetime('now'), outcome = ?, pr_url = ? WHERE id = ?"
+      ).run(outcome, prUrl ?? null, executionId)
       const exec = db.prepare('SELECT * FROM executions WHERE id = ?').get(executionId) as Record<string, unknown>
       return { content: [{ type: 'text' as const, text: JSON.stringify(toCamelCase(exec), null, 2) }] }
     }

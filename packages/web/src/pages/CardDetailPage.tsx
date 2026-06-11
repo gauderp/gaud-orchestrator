@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBoardStore } from '@/store/boards'
 import { CardDetail } from '@/components/cards/CardDetail'
-import { BUG_BOARD_ID } from '@gaud/shared'
+import { BOARD_IDS } from '@gaud/shared'
 import { api } from '@/api/client'
 
 export function CardDetailPage() {
@@ -25,7 +25,7 @@ export function CardDetailPage() {
   useEffect(() => {
     if (selectedCard && !checkedBugRedirect) {
       setCheckedBugRedirect(true)
-      if (selectedCard.type === 'bug' || selectedCard.boardId === BUG_BOARD_ID) {
+      if (selectedCard.type === 'bug' || selectedCard.boardId === BOARD_IDS.TRIAGE) {
         api.bugReports.list().then(reports => {
           const bugReport = reports.find((r: any) => r.cardId === selectedCard.id)
           if (bugReport) navigate(`/bugs/${bugReport.id}`, { replace: true })

@@ -4,54 +4,32 @@ import { FileText } from 'lucide-react'
 import { useSpecStore } from '@/store/specs'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import type { SpecStatus } from '@gaud/shared'
+import { SPEC_COLUMNS } from '@gaud/shared'
 
-const STATUS_TABS: { label: string; value: SpecStatus | null }[] = [
-  { label: 'All', value: null },
-  { label: 'Draft', value: 'draft' },
-  { label: 'Review', value: 'review' },
-  { label: 'Approved', value: 'approved' },
-  { label: 'Rejected', value: 'rejected' },
-]
+const columnLabels: Record<string, string> = {
+  [SPEC_COLUMNS.IDEAS]: 'Ideas',
+  [SPEC_COLUMNS.DRAFTING]: 'Drafting',
+  [SPEC_COLUMNS.REVIEW]: 'Review',
+  [SPEC_COLUMNS.APPROVED]: 'Approved',
+}
 
-const statusBadgeVariant: Record<string, 'neutral' | 'warning' | 'success' | 'error'> = {
-  draft: 'neutral',
-  review: 'warning',
-  approved: 'success',
-  rejected: 'error',
+const columnBadgeVariant: Record<string, 'neutral' | 'warning' | 'success' | 'info'> = {
+  [SPEC_COLUMNS.IDEAS]: 'neutral',
+  [SPEC_COLUMNS.DRAFTING]: 'info',
+  [SPEC_COLUMNS.REVIEW]: 'warning',
+  [SPEC_COLUMNS.APPROVED]: 'success',
 }
 
 export function SpecReviewPage() {
-  const { specs, loading, statusFilter, fetchSpecs, setStatusFilter } = useSpecStore()
+  const { specs, loading, fetchSpecs } = useSpecStore()
 
   useEffect(() => {
     fetchSpecs()
   }, [fetchSpecs])
 
-  const handleTabClick = (status: SpecStatus | null) => {
-    setStatusFilter(status)
-    fetchSpecs(status ?? undefined)
-  }
-
   return (
     <div className="mx-auto max-w-6xl p-6">
       <h1 className="text-lg font-semibold mb-4 text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Specs</h1>
-
-      <div className="flex gap-1 mb-6 border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)]">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.label}
-            onClick={() => handleTabClick(tab.value)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
-              statusFilter === tab.value
-                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
-                : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:text-[var(--color-ink-dark)]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       {loading ? (
         <div className="space-y-2">
@@ -79,28 +57,33 @@ export function SpecReviewPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {specs.map((spec) => (
-            <div
-              key={spec.id}
-              className="rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] p-4 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <Link
-                  to={`/specs/${spec.id}`}
-                  className="text-[var(--color-primary)] hover:underline font-medium"
-                >
-                  {spec.title}
-                </Link>
-                <Badge variant={statusBadgeVariant[spec.status] ?? 'neutral'}>
-                  {spec.status}
-                </Badge>
+          {specs.map((spec) => {
+            const colId = (spec as any).columnId as string | undefined
+            const label = colId ? (columnLabels[colId] ?? colId) : 'Unknown'
+            const variant = colId ? (columnBadgeVariant[colId] ?? 'neutral') : 'neutral'
+            return (
+              <div
+                key={spec.id}
+                className="rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] p-4 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <Link
+                    to={`/specs/${spec.id}`}
+                    className="text-[var(--color-primary)] hover:underline font-medium"
+                  >
+                    {spec.title}
+                  </Link>
+                  <Badge variant={variant}>
+                    {label}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+                  <span>v{spec.version}</span>
+                  <span>{new Date(spec.updatedAt).toLocaleDateString()}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-4 text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-                <span>v{spec.version}</span>
-                <span>{new Date(spec.updatedAt).toLocaleDateString()}</span>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Settings, BarChart3, Plus } from 'lucide-react'
+import { BarChart3, Plus } from 'lucide-react'
 import { useBoardStore } from '@/store/boards'
 import { useAgentStore } from '@/store/agents'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
@@ -91,14 +91,7 @@ export function BoardViewPage() {
             <BarChart3 size={16} />
             Gantt
           </Link>
-          <Link
-            to={`/boards/${id}/settings`}
-            className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] dark:text-[var(--color-muted-dark)] dark:hover:bg-[var(--color-surface-dark)] dark:hover:text-[var(--color-ink-dark)]"
-          >
-            <Settings size={16} />
-            Settings
-          </Link>
-          <Button onClick={() => setShowNewCard(true)}>
+<Button onClick={() => setShowNewCard(true)}>
             <Plus size={16} className="mr-1.5" />
             New Card
           </Button>

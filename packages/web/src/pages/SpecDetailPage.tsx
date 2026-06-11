@@ -8,13 +8,6 @@ import { DecomposeModal } from '@/components/specs/DecomposeModal'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 
-const statusBadgeVariant: Record<string, 'neutral' | 'warning' | 'success' | 'error'> = {
-  draft: 'neutral',
-  review: 'warning',
-  approved: 'success',
-  rejected: 'error',
-}
-
 type Tab = 'content' | 'reviews' | 'versions'
 
 export function SpecDetailPage() {
@@ -54,20 +47,15 @@ export function SpecDetailPage() {
         <h1 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">
           {selectedSpec.title}
         </h1>
-        <Badge variant={statusBadgeVariant[selectedSpec.status] ?? 'neutral'}>
-          {selectedSpec.status}
-        </Badge>
         <Badge variant="neutral">v{selectedSpec.version}</Badge>
-        {selectedSpec.status === 'approved' && (
-          <Button
-            variant="primary"
-            size="sm"
-            className="ml-auto"
-            onClick={() => setDecomposeOpen(true)}
-          >
-            Decompose to Board
-          </Button>
-        )}
+        <Button
+          variant="primary"
+          size="sm"
+          className="ml-auto"
+          onClick={() => setDecomposeOpen(true)}
+        >
+          Decompose to Board
+        </Button>
       </div>
 
       {selectedSpec.repos && selectedSpec.repos.length > 0 && (
