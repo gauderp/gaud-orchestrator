@@ -41,31 +41,33 @@ export async function trelloWebhookRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(401).send({ error: 'Invalid token' })
       }
 
-      // 3. Optional HMAC-SHA1 verification (if api_secret is configured)
+      // 3. HMAC-SHA1 verification — MANDATORY when api_secret is configured.
+      // If skipping were allowed on a missing header, an attacker holding the
+      // webhook URL could bypass HMAC entirely by simply not sending it.
       if (integration.api_secret) {
         const signature = req.headers['x-trello-webhook'] as string | undefined
-        if (signature) {
-          const rawBody = (req as any).rawBody as string | undefined
-          if (rawBody) {
-            // Trello signs: rawBody + callbackURL
-            const publicBaseUrl = process.env.PUBLIC_BASE_URL
-            const callbackURL = publicBaseUrl
-              ? `${publicBaseUrl}${req.url}`
-              : `${req.protocol}://${req.hostname}${req.url}`
+        const rawBody = (req as any).rawBody as string | undefined
+        if (!signature || !rawBody) {
+          return reply.status(401).send({ error: 'HMAC signature required' })
+        }
 
-            const expected = crypto
-              .createHmac('sha1', integration.api_secret)
-              .update(rawBody + callbackURL)
-              .digest('base64')
+        // Trello signs: rawBody + callbackURL
+        const publicBaseUrl = process.env.PUBLIC_BASE_URL
+        const callbackURL = publicBaseUrl
+          ? `${publicBaseUrl}${req.url}`
+          : `${req.protocol}://${req.hostname}${req.url}`
 
-            try {
-              if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
-                return reply.status(401).send({ error: 'HMAC verification failed' })
-              }
-            } catch {
-              return reply.status(401).send({ error: 'HMAC verification failed' })
-            }
+        const expected = crypto
+          .createHmac('sha1', integration.api_secret)
+          .update(rawBody + callbackURL)
+          .digest('base64')
+
+        try {
+          if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+            return reply.status(401).send({ error: 'HMAC verification failed' })
           }
+        } catch {
+          return reply.status(401).send({ error: 'HMAC verification failed' })
         }
       }
 

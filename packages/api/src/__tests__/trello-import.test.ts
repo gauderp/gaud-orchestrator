@@ -273,6 +273,30 @@ describe('TrelloImportService', () => {
       expect(children[2].title).toBe('Step 3')
     })
 
+    it('completed items of a bug card stay in the parent column (never Rejected)', () => {
+      const integration = makeBugsIntegration()
+      service.importCard(integration, {
+        id: 'tb-parent', idList: 'tlist-bugs', name: 'Bug with checklist', desc: '', shortUrl: '', closed: false,
+      })
+      const parentCard = db.prepare('SELECT * FROM cards WHERE external_id = ?').get('tb-parent') as any
+      expect(parentCard.board_id).toBe(BOARD_IDS.TRIAGE)
+
+      const checklists = [{
+        id: 'cl-bug', name: 'Repro steps',
+        checkItems: [
+          { id: 'ci-b1', name: 'Reproduced locally', state: 'complete' as const },
+          { id: 'ci-b2', name: 'Check logs', state: 'incomplete' as const },
+        ],
+      }]
+
+      service.importChecklists(integration, parentCard.id, checklists)
+      const children = db.prepare('SELECT * FROM cards WHERE parent_card_id = ? ORDER BY position').all(parentCard.id) as any[]
+      expect(children).toHaveLength(2)
+      // The last column of the Triage board is Rejected — completed items must NOT land there
+      expect(children[0].column_id).toBe(TRIAGE_COLUMNS.NEW)
+      expect(children[1].column_id).toBe(TRIAGE_COLUMNS.NEW)
+    })
+
     it('does not duplicate on second run (dedup)', () => {
       const integration = makeIntegration()
       service.importCard(integration, {

@@ -81,10 +81,9 @@ export class TrelloImportService {
     const parentCard = this.db.prepare('SELECT * FROM cards WHERE id = ?').get(parentCardId) as any
     if (!parentCard) return { created, updated }
 
-    // Find the last column of the board for "complete" items
-    const lastColumn = this.db.prepare(
-      'SELECT id FROM columns WHERE board_id = ? ORDER BY position DESC LIMIT 1'
-    ).get(parentCard.board_id) as any
+    // Completed items land in Done — only meaningful on the Dev board.
+    // On other boards (e.g. Triage, whose last column is Rejected) children stay with the parent.
+    const doneColumnId = parentCard.board_id === BOARD_IDS.DEV ? DEV_COLUMNS.DONE : null
 
     for (const checklist of checklists) {
       for (const item of checklist.checkItems) {
@@ -93,8 +92,8 @@ export class TrelloImportService {
           'SELECT id FROM cards WHERE integration_id = ? AND external_id = ?'
         ).get(integration.id, externalId) as any
 
-        const columnId = item.state === 'complete' && lastColumn
-          ? lastColumn.id
+        const columnId = item.state === 'complete' && doneColumnId
+          ? doneColumnId
           : parentCard.column_id
 
         if (existing) {
@@ -242,10 +241,10 @@ export class TrelloImportService {
       this.db.prepare(
         "UPDATE cards SET title = ?, description = ?, updated_at = datetime('now') WHERE id = ?"
       ).run(trelloCard.name, trelloCard.desc || null, existing.id)
-      // Also update the bug_report description
+      // Also update the bug_report description (NOT NULL column — empty string, never null)
       this.db.prepare(
         "UPDATE bug_reports SET description = ?, updated_at = datetime('now') WHERE card_id = ?"
-      ).run(trelloCard.desc || null, existing.id)
+      ).run(trelloCard.desc || '', existing.id)
       return 'updated'
     }
 
@@ -273,7 +272,7 @@ export class TrelloImportService {
     this.db.prepare(`
       INSERT INTO bug_reports (id, title, description, source, source_id, card_id, conversation_id, external_id, external_url, created_at, updated_at)
       VALUES (?, ?, ?, 'trello', NULL, ?, ?, ?, ?, datetime('now'), datetime('now'))
-    `).run(reportId, trelloCard.name, trelloCard.desc || null, cardId, conversationId, trelloCard.id, trelloCard.shortUrl || null)
+    `).run(reportId, trelloCard.name, trelloCard.desc || '', cardId, conversationId, trelloCard.id, trelloCard.shortUrl || null)
 
     return 'created'
   }
