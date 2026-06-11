@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3'
 import { randomUUID } from 'crypto'
 import { broadcast } from '../ws/broadcast.js'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
-import { BUG_BOARD_ID, BUG_COLUMNS } from '@gaud/shared'
+import { BOARD_IDS, TRIAGE_COLUMNS } from '@gaud/shared'
 
 export class BugTriageService {
   constructor(private db: Database.Database) {}
@@ -46,14 +46,11 @@ export class BugTriageService {
     const report = this.db.prepare('SELECT * FROM bug_reports WHERE id = ?').get(reportId) as any
     if (!report) throw new Error('Bug report not found')
 
-    this.db.prepare("UPDATE bug_reports SET status = 'triaging', updated_at = datetime('now') WHERE id = ?")
-      .run(reportId)
-
-    // Move card to "Triaging" column
+    // Move card to "Interviewing" column
     if (report.card_id) {
       this.db.prepare("UPDATE cards SET column_id = ?, updated_at = datetime('now') WHERE id = ?")
-        .run(BUG_COLUMNS.TRIAGING, report.card_id)
-      broadcast('card:updated', { id: report.card_id, columnId: BUG_COLUMNS.TRIAGING })
+        .run(TRIAGE_COLUMNS.INTERVIEWING, report.card_id)
+      broadcast('card:updated', { id: report.card_id, columnId: TRIAGE_COLUMNS.INTERVIEWING })
     }
 
     const attachments = this.db.prepare('SELECT * FROM bug_report_attachments WHERE bug_report_id = ?')
@@ -186,7 +183,7 @@ Analyze this bug report. If you have enough information, provide your triage res
       if (response.includes('[TRIAGED]')) {
         const severityMatch = response.match(/Severity:\s*(critical|high|medium|low)/i)
         this.db.prepare(`
-          UPDATE bug_reports SET status = 'triaged', severity = ?, triage_summary = ?, updated_at = datetime('now')
+          UPDATE bug_reports SET severity = ?, triage_summary = ?, updated_at = datetime('now')
           WHERE id = ?
         `).run(severityMatch?.[1]?.toLowerCase() ?? 'medium', response, reportId)
 
@@ -194,27 +191,36 @@ Analyze this bug report. If you have enough information, provide your triage res
         const bugReport = this.db.prepare('SELECT card_id FROM bug_reports WHERE id = ?').get(reportId) as any
         if (bugReport?.card_id) {
           this.db.prepare('UPDATE cards SET column_id = ?, description = ?, updated_at = datetime(\'now\') WHERE id = ?')
-            .run(BUG_COLUMNS.TRIAGED, `## Original Report\n\n${report.description}\n\n## Triage Summary\n\n${response}`, bugReport.card_id)
-          broadcast('card:updated', { id: bugReport.card_id, columnId: BUG_COLUMNS.TRIAGED })
+            .run(TRIAGE_COLUMNS.TRIAGED, `## Original Report\n\n${report.description}\n\n## Triage Summary\n\n${response}`, bugReport.card_id)
+          broadcast('card:updated', { id: bugReport.card_id, columnId: TRIAGE_COLUMNS.TRIAGED })
         }
 
         broadcast('bug_report:triaged', { id: reportId, severity: severityMatch?.[1] })
 
       } else if (response.includes('[REJECTED]')) {
-        this.db.prepare("UPDATE bug_reports SET status = 'rejected', triage_summary = ?, updated_at = datetime('now') WHERE id = ?")
+        this.db.prepare("UPDATE bug_reports SET triage_summary = ?, updated_at = datetime('now') WHERE id = ?")
           .run(response, reportId)
+        // Move card to Rejected column
+        const bugReport2 = this.db.prepare('SELECT card_id FROM bug_reports WHERE id = ?').get(reportId) as any
+        if (bugReport2?.card_id) {
+          this.db.prepare("UPDATE cards SET column_id = ?, updated_at = datetime('now') WHERE id = ?")
+            .run(TRIAGE_COLUMNS.REJECTED, bugReport2.card_id)
+          broadcast('card:updated', { id: bugReport2.card_id, columnId: TRIAGE_COLUMNS.REJECTED })
+        }
         broadcast('bug_report:rejected', { id: reportId })
 
       } else {
-        // Agent asked a question — set needs_info and wait for user response
-        this.db.prepare("UPDATE bug_reports SET status = 'needs_info', updated_at = datetime('now') WHERE id = ?")
-          .run(reportId)
+        // Agent asked a question — card stays in INTERVIEWING, needs_info is derived from conversation
         broadcast('bug_report:needs_info', { id: reportId })
       }
     } catch (err) {
       console.error('Triage failed:', err)
-      this.db.prepare("UPDATE bug_reports SET status = 'new', updated_at = datetime('now') WHERE id = ?")
-        .run(reportId)
+      // Move card back to New on error
+      const bugReport3 = this.db.prepare('SELECT card_id FROM bug_reports WHERE id = ?').get(reportId) as any
+      if (bugReport3?.card_id) {
+        this.db.prepare("UPDATE cards SET column_id = ?, updated_at = datetime('now') WHERE id = ?")
+          .run(TRIAGE_COLUMNS.NEW, bugReport3.card_id)
+      }
     }
   }
 
@@ -275,12 +281,8 @@ Analyze this bug report. If you have enough information, provide your triage res
     return card
   }
 
-  listReports(status?: string): Array<Record<string, unknown>> {
-    let sql = 'SELECT * FROM bug_reports'
-    const params: any[] = []
-    if (status) { sql += ' WHERE status = ?'; params.push(status) }
-    sql += ' ORDER BY created_at DESC'
-    const rows = this.db.prepare(sql).all(...params) as any[]
+  listReports(): Array<Record<string, unknown>> {
+    const rows = this.db.prepare('SELECT * FROM bug_reports ORDER BY created_at DESC').all() as any[]
     return toCamelCaseArray(rows)
   }
 
