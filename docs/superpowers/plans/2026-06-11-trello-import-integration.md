@@ -30,6 +30,8 @@ O adapter `trello` de `bug_sources` tem três limitações estruturais para uma 
 | Card arquivado/deletado no Trello | Card local **permanece** (import não destrutivo); comentário automático "Archived on Trello" |
 | Card do Trello em lista não mapeada | Ignorado (target dev); para target bugs, só listas em `capture_list_ids` capturam |
 | Rename/edição de descrição no Trello | Atualiza título/descrição do card local |
+| Checklists nativas do Trello | Importadas como cards filhos (`parent_card_id`); item marcado → card filho na última coluna ("Done" ou equivalente) |
+| Power-up Subtasks do Trello | Cards reais vinculados via attachment tipo `card` → detectados no backfill e linkados como `parent_card_id` |
 | Membros, anexos, comentários, due dates do Trello | Fora de escopo nesta fase |
 | Escrita de volta no Trello (two-way) | Fora de escopo — registrado como evolução futura |
 
@@ -41,7 +43,7 @@ O adapter `trello` de `bug_sources` tem três limitações estruturais para uma 
 |--------|------|----------------|
 | Create | `packages/api/src/db/migrations/013_trello_integrations.sql` | Tabela trello_integrations + colunas externas em cards + desabilitar bug_sources type trello |
 | Create | `packages/shared/src/types/trello.ts` | TrelloIntegration, TrelloListMapping types |
-| Create | `packages/api/src/services/trello-client.ts` | Cliente REST do Trello (validate, lists, cards, webhooks) |
+| Create | `packages/api/src/services/trello-client.ts` | Cliente REST do Trello (validate, lists, cards, checklists, attachments, webhooks) |
 | Create | `packages/api/src/services/trello-import.ts` | TrelloImportService: backfill + handleWebhookEvent (targets bugs/dev) |
 | Create | `packages/api/src/routes/trello-integrations.ts` | CRUD + GET lists helper + POST backfill |
 | Create | `packages/api/src/routes/trello-webhook.ts` | Endpoint público HEAD/GET/POST /api/intake/trello/:id |
@@ -54,6 +56,7 @@ O adapter `trello` de `bug_sources` tem três limitações estruturais para uma 
 | Modify | `packages/api/src/__tests__/adapters.test.ts` | Remover bloco trelloAdapter |
 | Modify | `packages/web/src/pages/BugSourcesPage.tsx` | Remover trello do SOURCE_TYPES; link para a página nova |
 | Create | `packages/web/src/pages/TrelloIntegrationsPage.tsx` | Wizard de criação + lista de integrações |
+| Modify | `packages/web/src/components/cards/CardDetail.tsx` | Seção de subtasks (cards filhos) + link ao pai |
 | Modify | `packages/web/src/api/client.ts` | Métodos trelloIntegrations |
 | Modify | `packages/web/src/App.tsx` | Rota /settings/trello |
 | Modify | `packages/web/src/components/*Card*` | Badge Trello quando card tem externalUrl |
@@ -152,7 +155,7 @@ export interface TrelloList {
 
 **Files:** Create `packages/api/src/services/trello-client.ts` + `packages/api/src/__tests__/trello-client.test.ts`
 
-- [ ] **Step 1: Testes primeiro** (fetch mockado via `vi.stubGlobal('fetch', ...)`): validateCredentials ok/401, getLists, getCards, createWebhook, deleteWebhook.
+- [ ] **Step 1: Testes primeiro** (fetch mockado via `vi.stubGlobal('fetch', ...)`): validateCredentials ok/401, getLists, getCards, getChecklists, getAttachments, createWebhook, deleteWebhook.
 - [ ] **Step 2: Implementar.** Base `https://api.trello.com/1`, autenticação por query `key` + `token`:
 
 ```typescript
@@ -164,12 +167,18 @@ export class TrelloClient {
   async getBoard(boardId: string): Promise<{ id: string; name: string }>  // GET /boards/{id}
   async getLists(boardId: string): Promise<TrelloList[]>   // GET /boards/{id}/lists
   async getCards(boardId: string): Promise<TrelloCardRaw[]> // GET /boards/{id}/cards (open) — inclui idList, name, desc, shortUrl, closed
+  async getChecklists(cardId: string): Promise<TrelloChecklist[]>  // GET /cards/{id}/checklists → { id, name, checkItems: [{ name, state }] }
+  async getAttachments(cardId: string): Promise<TrelloAttachment[]> // GET /cards/{id}/attachments → detectar type 'card' para power-up subtasks
   async createWebhook(callbackURL: string, idModel: string): Promise<string>  // POST /webhooks → retorna webhook id
   async deleteWebhook(webhookId: string): Promise<void>    // DELETE /webhooks/{id}
 }
 ```
 
 Notas: o `createWebhook` do Trello dispara um `HEAD` na callbackURL na hora do registro — a rota pública (Task 6) precisa existir antes de qualquer teste real. Rate limit do Trello: 300 req/10s por key — um `GET /boards/{id}/cards` único já traz todos os cards abertos, sem paginação manual.
+
+**Subtasks — dois mecanismos:**
+- **Checklists nativas:** `GET /cards/{id}/checklists` retorna `checkItems[].name` e `checkItems[].state` ('complete'/'incomplete'). Cada item vira card filho.
+- **Power-up Subtasks:** cria cards reais no mesmo board e vincula via attachment do tipo `card` (campo `url` contém o shortUrl do card filho). `GET /cards/{id}/attachments` com filtro `attachment.url` que match `trello.com/c/` detecta esses vínculos.
 
 - [ ] **Step 3:** Testes verdes + commit.
 
@@ -189,6 +198,8 @@ Serviço com banco injetado no construtor (testável com `createTestDb()` — he
   - `handleWebhookEvent` updateCard rename/desc → atualiza campos.
   - `handleWebhookEvent` updateCard com `data.card.closed = true` → card permanece, comentário "Archived on Trello".
   - `backfill` → importa todos os cards abertos das listas mapeadas/capturadas, idempotente (rodar 2x não duplica).
+  - `importChecklists` → card com 2 checklists (3 items cada) → cria 6 cards filhos com `parent_card_id`; item com state='complete' → card filho na última coluna do board; rodar 2x não duplica (dedup por `external_id` = `checklist:{checkItemId}`).
+  - `importSubtaskLinks` → card com attachment tipo card apontando para outro card do mesmo board → seta `parent_card_id` no card filho já importado; attachment apontando para card de outro board → ignorado.
 
 - [ ] **Step 2: Implementar:**
 
@@ -202,8 +213,14 @@ export class TrelloImportService {
   // Despacha eventos do webhook: createCard, updateCard (move/rename/archive)
   handleWebhookEvent(integration: TrelloIntegrationRow, payload: unknown): ImportResult
 
-  // Importa todos os cards abertos do board (chama TrelloClient.getCards)
-  async backfill(integration: TrelloIntegrationRow, client: TrelloClient): Promise<{ created: number; updated: number; ignored: number }>
+  // Importa checklists de um card como cards filhos
+  async importChecklists(integration: TrelloIntegrationRow, parentCardId: string, trelloCardId: string, client: TrelloClient): Promise<{ created: number; updated: number }>
+
+  // Detecta power-up subtask links (attachments tipo card) e seta parent_card_id
+  async linkSubtasks(integration: TrelloIntegrationRow, trelloCardId: string, localCardId: string, client: TrelloClient): Promise<number>
+
+  // Importa todos os cards abertos do board (chama TrelloClient.getCards) + checklists + subtask links
+  async backfill(integration: TrelloIntegrationRow, client: TrelloClient): Promise<{ created: number; updated: number; ignored: number; subtasksLinked: number }>
 }
 ```
 
@@ -211,6 +228,8 @@ Regras:
 - **Dedup SEMPRE via `cards(integration_id, external_id)`** — para ambos os targets. ATENÇÃO (target bugs): `bug_reports.source_id` tem FK para `bug_sources`, NÃO para `trello_integrations` — não usar `bug_reports(source_id, external_id)` para dedup nem tentar gravar o id da integração em `source_id` (violaria a FK). O fluxo correto: card criado em Triage: New carrega `integration_id`/`external_id`/`external_url`; o bug_report é criado com `source = 'trello'`, `source_id = NULL`, `external_id`/`external_url` preenchidos (campos informativos) e linkado via `card_id`. No reimport/backfill: buscar card por `(integration_id, external_id)` → se existe, atualizar descrição do bug_report via `card_id` e retornar 'updated'.
 - **Target dev:** coluna destino = `configJson.listMapping[idList]`; sem mapeamento → `ignored`. Card criado com `type='task'`, posição = MAX(position)+1 na coluna.
 - **Target bugs:** lista em `configJson.captureListIds` → cria via fluxo de bug report (replicar o que `intake.ts` faz: conversation + card Triage New + bug_report com external_id). Reusar/extrair função compartilhada se trivial; senão duplicar consciente (são ~20 linhas).
+- **Checklists → cards filhos:** após importar um card, chamar `importChecklists`. Cada checkItem vira um card filho: `title` = item name, `type` = 'task', `parent_card_id` = card local pai, `external_id` = `checklist:{checkItemId}` (para dedup). Item com `state='complete'` → card criado na última coluna do board (Done/equivalente); `state='incomplete'` → mesma coluna do pai.
+- **Power-up Subtask links:** após importar TODOS os cards do board, chamar `linkSubtasks` para cada card. Busca attachments do tipo card (URL match `trello.com/c/`); extrai o shortId do card filho; busca o card local com `external_id` correspondente; se encontrado e no mesmo integration_id → seta `parent_card_id`. Ordem: backfill primeiro importa todos os cards flat, depois resolve os links pai→filho numa segunda passada.
 - **Move (dev):** comentário automático `author_type='system'`: "Moved on Trello: <listBefore> → <listAfter>". `broadcast('card:moved', ...)`.
 - Import-only: nenhuma chamada de escrita ao Trello aqui.
 
@@ -279,10 +298,23 @@ Regras:
 
 ---
 
-### Task 10: Verificação integrada
+### Task 10: UI de subtasks no CardDetail
+
+**Files:** Modify `packages/web/src/components/cards/CardDetail.tsx`
+
+O backend já suporta `parent_card_id` e `children: Card[]` em `CardWithDetails` — falta a UI.
+
+- [ ] **Step 1:** No CardDetail, quando `card.parentCardId` existir, exibir link clicável ao card pai no topo (abaixo do título): "↑ Subtask of: {parentCard.title}".
+- [ ] **Step 2:** Quando `card.children.length > 0`, exibir seção "Subtasks" com lista dos filhos: título (link), coluna atual, badge de status. Estilo: lista compacta similar à seção de dependências.
+- [ ] **Step 3:** No kanban, cards que têm filhos exibem badge discreto com contagem: "(3 subtasks)".
+- [ ] **Step 4:** Typecheck + commit.
+
+---
+
+### Task 11: Verificação integrada
 
 - [ ] **Step 1:** `pnpm -r typecheck` e `pnpm -r test` — tudo verde (ressalva conhecida: providers.test.ts é flaky sob carga; rerodar isolado).
-- [ ] **Step 2:** Smoke local sem Trello real: inserir integração fake target dev no banco, POST no webhook com payload `createCard` de exemplo → card aparece no Dev: coluna mapeada; repetir POST → não duplica; payload `updateCard` com listAfter → card move + comentário.
+- [ ] **Step 2:** Smoke local sem Trello real: inserir integração fake target dev no banco, POST no webhook com payload `createCard` de exemplo → card aparece no Dev: coluna mapeada; repetir POST → não duplica; payload `updateCard` com listAfter → card move + comentário. Verificar que cards filhos (de checklists) aparecem como subtasks no CardDetail.
 - [ ] **Step 3:** Smoke com Trello real (manual, requer credenciais de Felipe): criar integração apontando para um board de teste, conferir backfill, criar card no Trello → aparece no orquestrador, mover no Trello → move aqui. **Atenção:** callback URL precisa ser acessível pela internet (PUBLIC_BASE_URL via túnel — cloudflared/ngrok — se rodando local).
 - [ ] **Step 4:** Commit final de ajustes.
 
@@ -292,4 +324,5 @@ Regras:
 
 - Two-way sync (mover card aqui → mover no Trello) — exige lock anti-eco de eventos.
 - Importar membros do Trello → assigned_agent/usuário; anexos; due dates; comentários.
+- Sync contínuo de checklists via webhook (addChecklistToCard, updateCheckItem events) — atualmente só no backfill.
 - Polling de reconciliação periódica (webhook perdido = card dessincronizado até o próximo evento).
