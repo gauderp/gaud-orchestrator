@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Link } from 'react-router-dom'
 import type { Card, CardTag } from '@gaud/shared'
+import { ExternalLink } from 'lucide-react'
 import { CardTypeIcon } from './CardTypeIcon'
 import { Badge } from '@/components/ui/Badge'
 
@@ -60,6 +61,18 @@ export function KanbanCard({ card, agentName }: KanbanCardProps) {
       <div className="mt-1.5 flex items-center gap-1 pl-[20px] flex-wrap">
         <Badge variant="neutral">{card.type}</Badge>
         {agentName && <Badge variant="info">{agentName}</Badge>}
+        {card.externalUrl && (
+          <a
+            href={card.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            title="Imported from Trello"
+            className="inline-flex items-center gap-0.5 text-[10px] text-blue-500 hover:text-blue-600"
+          >
+            <ExternalLink className="w-3 h-3" /> Trello
+          </a>
+        )}
       </div>
     </Link>
   )

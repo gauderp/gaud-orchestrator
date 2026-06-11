@@ -4,7 +4,7 @@ import type { CardWithDetails } from '@gaud/shared'
 import { CardTypeIcon } from '@/components/kanban/CardTypeIcon'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Paperclip, MessageSquare, Plus, Calendar, GitBranch, Link2 } from 'lucide-react'
+import { Paperclip, MessageSquare, Plus, Calendar, GitBranch, Link2, ExternalLink } from 'lucide-react'
 import { CardRepos } from './CardRepos'
 import { CardTags } from './CardTags'
 import { CardComments } from './CardComments'
@@ -50,6 +50,17 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
             <CardTypeIcon type={card.type} size={20} />
           </span>
           <h2 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{card.title}</h2>
+          {card.externalUrl && (
+            <a
+              href={card.externalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Imported from Trello"
+              className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 shrink-0"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> Trello
+            </a>
+          )}
         </div>
 
         {/* Description — click to edit */}
