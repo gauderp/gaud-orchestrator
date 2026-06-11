@@ -9,7 +9,6 @@ import { ProviderConfigPage } from '@/pages/ProviderConfigPage'
 import { BoardListPage } from '@/pages/BoardListPage'
 import { BoardViewPage } from '@/pages/BoardViewPage'
 import { GanttViewPage } from '@/pages/GanttViewPage'
-import { BoardSettingsPage } from '@/pages/BoardSettingsPage'
 import { CardDetailPage } from '@/pages/CardDetailPage'
 import { ConversationPage } from '@/pages/ConversationPage'
 import { AgentMemoryPage } from '@/pages/AgentMemoryPage'
@@ -128,7 +127,6 @@ export function AppRoutes() {
         <Route path="/boards" element={<BoardListPage />} />
         <Route path="/boards/:id" element={<BoardViewPage />} />
         <Route path="/boards/:id/gantt" element={<GanttViewPage />} />
-        <Route path="/boards/:id/settings" element={<BoardSettingsPage />} />
         <Route path="/cards/:id" element={<CardDetailPage />} />
         <Route path="/conversations/:id" element={<ConversationPage />} />
         <Route path="/agents/:id/memory" element={<AgentMemoryPage />} />
