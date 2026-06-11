@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
 import { broadcast } from '../ws/broadcast.js'
 import { requireRole } from '../middleware/auth.js'
+import { BOARD_IDS, SPEC_COLUMNS, DEV_COLUMNS } from '@gaud/shared'
 
 export async function cardRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
@@ -100,16 +101,6 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
     const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id)
     const result = toCamelCase(card as any)
     broadcast('card:moved', result)
-
-    const column = db.prepare('SELECT * FROM columns WHERE id = ?').get(columnId) as any
-    if (column?.agent_action_prompt) {
-      import('../services/column-action.js').then(({ executeColumnAction }) => {
-        const registry = (app as any).providerRegistry ?? null
-        executeColumnAction(db, req.params.id, column, registry).catch((err: any) => {
-          console.error('Column action failed:', err)
-        })
-      })
-    }
 
     return reply.send(result)
   })
@@ -239,6 +230,33 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send({ conversationId: convId, cardId: req.params.id, agentId })
   })
 
+  // Move card to a different board
+  app.post<{ Params: { id: string } }>('/api/cards/:id/move-to-board', { preHandler: [editorPlus] }, async (req, reply) => {
+    const { boardId, columnId } = req.body as { boardId: string; columnId: string }
+    if (!boardId || !columnId) return reply.status(400).send({ error: 'boardId and columnId are required' })
+
+    const existing = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any
+    if (!existing) return reply.status(404).send({ error: 'Card not found' })
+
+    const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(boardId) as any
+    if (!board) return reply.status(404).send({ error: 'Target board not found' })
+
+    const column = db.prepare('SELECT * FROM columns WHERE id = ? AND board_id = ?').get(columnId, boardId) as any
+    if (!column) return reply.status(404).send({ error: 'Target column not found in board' })
+
+    const now = new Date().toISOString()
+    const maxPos = db.prepare('SELECT MAX(position) as mp FROM cards WHERE column_id = ?').get(columnId) as any
+    const position = (maxPos?.mp ?? -1) + 1
+
+    db.prepare('UPDATE cards SET board_id = ?, column_id = ?, position = ?, updated_at = ? WHERE id = ?')
+      .run(boardId, columnId, position, now, req.params.id)
+
+    const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id)
+    const result = toCamelCase(card as any)
+    broadcast('card:moved', result)
+    return reply.send(result)
+  })
+
   app.post<{ Params: { id: string } }>('/api/cards/:id/estimate', async (req, reply) => {
     const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any
     if (!card) return reply.status(404).send({ error: 'Card not found' })
@@ -271,5 +289,63 @@ export async function cardRoutes(app: FastifyInstance): Promise<void> {
       estimatedCostUsd,
       details: `Based on description (${descLength} chars), ${repos.length} repo(s)${codebaseInfo}`,
     })
+  })
+
+  // Send card from Triage → Dev: To Do
+  app.post<{ Params: { id: string } }>('/api/cards/:id/send-to-dev', { preHandler: [editorPlus] }, async (req, reply) => {
+    const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any
+    if (!card) return reply.status(404).send({ error: 'Card not found' })
+
+    const now = new Date().toISOString()
+    db.prepare('UPDATE cards SET board_id = ?, column_id = ?, updated_at = ? WHERE id = ?')
+      .run(BOARD_IDS.DEV, DEV_COLUMNS.TODO, now, card.id)
+
+    db.prepare(
+      'INSERT INTO card_comments (id, card_id, author_type, author_id, content, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(randomUUID(), card.id, 'system', 'system', 'Sent to Development from Triage', now)
+
+    const updated = toCamelCase(db.prepare('SELECT * FROM cards WHERE id = ?').get(card.id) as any)
+    broadcast('card:moved', updated)
+    return reply.send(updated)
+  })
+
+  // Send card from Triage → Spec: Ideas (bug becomes feature request)
+  app.post<{ Params: { id: string } }>('/api/cards/:id/send-to-spec', { preHandler: [editorPlus] }, async (req, reply) => {
+    const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any
+    if (!card) return reply.status(404).send({ error: 'Card not found' })
+
+    const now = new Date().toISOString()
+    db.prepare('UPDATE cards SET board_id = ?, column_id = ?, type = ?, updated_at = ? WHERE id = ?')
+      .run(BOARD_IDS.SPEC, SPEC_COLUMNS.IDEAS, 'task', now, card.id)
+
+    db.prepare(
+      'INSERT INTO card_comments (id, card_id, author_type, author_id, content, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(randomUUID(), card.id, 'system', 'system', 'Converted to feature request — sent to Spec', now)
+
+    const updated = toCamelCase(db.prepare('SELECT * FROM cards WHERE id = ?').get(card.id) as any)
+    broadcast('card:moved', updated)
+    return reply.send(updated)
+  })
+
+  // Reopen card: Dev Done → Dev To Do
+  app.post<{ Params: { id: string } }>('/api/cards/:id/reopen', { preHandler: [editorPlus] }, async (req, reply) => {
+    const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id) as any
+    if (!card) return reply.status(404).send({ error: 'Card not found' })
+    if (card.column_id !== DEV_COLUMNS.DONE) {
+      return reply.status(400).send({ error: 'Only cards in Done can be reopened' })
+    }
+
+    const now = new Date().toISOString()
+    db.prepare('UPDATE cards SET column_id = ?, completed_at = NULL, updated_at = ? WHERE id = ?')
+      .run(DEV_COLUMNS.TODO, now, card.id)
+
+    const reason = (req.body as any)?.reason || 'Reopened'
+    db.prepare(
+      'INSERT INTO card_comments (id, card_id, author_type, author_id, content, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(randomUUID(), card.id, 'system', 'system', `Reopened: ${reason}`, now)
+
+    const updated = toCamelCase(db.prepare('SELECT * FROM cards WHERE id = ?').get(card.id) as any)
+    broadcast('card:moved', updated)
+    return reply.send(updated)
   })
 }
