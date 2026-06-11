@@ -4,5 +4,8 @@ dist/
 .env.*
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
+*.bak
 .ruflo/
 .DS_Store
