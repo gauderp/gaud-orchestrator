@@ -216,6 +216,20 @@ export const api = {
     delete: (id: string) => request<void>(`/bug-reports/${id}`, { method: 'DELETE' }),
   },
 
+  trelloIntegrations: {
+    list: () => request<any[]>('/trello-integrations'),
+    create: (data: { name: string; target: string; trelloBoardId: string; apiKey: string; apiToken: string; apiSecret?: string; configJson?: string }) =>
+      request<any>('/trello-integrations', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: { enabled?: boolean; configJson?: string }) =>
+      request<any>(`/trello-integrations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) =>
+      request<void>(`/trello-integrations/${id}`, { method: 'DELETE' }),
+    backfill: (id: string) =>
+      request<{ created: number; updated: number; ignored: number; subtasksLinked: number }>(`/trello-integrations/${id}/backfill`, { method: 'POST' }),
+    getLists: (params: { apiKey: string; apiToken: string; boardId: string }) =>
+      request<Array<{ id: string; name: string }>>(`/trello-integrations/lists?apiKey=${encodeURIComponent(params.apiKey)}&apiToken=${encodeURIComponent(params.apiToken)}&boardId=${encodeURIComponent(params.boardId)}`),
+  },
+
   bugSources: {
     list: () => request<BugSource[]>('/bug-sources'),
     create: (data: { name: string; type: string; configJson?: string }) =>

@@ -23,6 +23,7 @@ import { BugReportPage } from '@/pages/BugReportPage'
 import { BugReportDetailPage } from '@/pages/BugReportDetailPage'
 import { BackupPage } from '@/pages/BackupPage'
 import BugSourcesPage from '@/pages/BugSourcesPage'
+import TrelloIntegrationsPage from '@/pages/TrelloIntegrationsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { SetupPage } from '@/pages/SetupPage'
 import { UsersPage } from '@/pages/UsersPage'
@@ -142,6 +143,7 @@ export function AppRoutes() {
         <Route path="/settings/backup" element={<BackupPage />} />
         <Route path="/settings/users" element={<UsersPage />} />
         <Route path="/settings/bug-sources" element={<BugSourcesPage />} />
+        <Route path="/settings/trello" element={<TrelloIntegrationsPage />} />
         <Route path="/settings" element={<Navigate to="/settings/providers" replace />} />
       </Route>
     </Routes>
