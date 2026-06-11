@@ -3,6 +3,7 @@ import { BugTriageService } from '../services/bug-triage.js'
 import { LocalFileStorage } from '../services/file-storage.js'
 import { randomUUID } from 'crypto'
 import { requireRole } from '../middleware/auth.js'
+import { BOARD_IDS, TRIAGE_COLUMNS } from '@gaud/shared'
 
 export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
@@ -12,9 +13,9 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
   const attachmentsDir = process.env['ATTACHMENTS_DIR'] ?? 'data/attachments'
   const storage = new LocalFileStorage(attachmentsDir)
 
-  // List bug reports (optional status filter)
-  app.get<{ Querystring: { status?: string } }>('/api/bug-reports', async (req, reply) => {
-    const reports = triage.listReports(req.query.status)
+  // List bug reports
+  app.get('/api/bug-reports', async (req, reply) => {
+    const reports = triage.listReports()
     return reply.send(reports)
   })
 
@@ -72,13 +73,12 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
     ;(report as any).conversationId = convId
 
     // Auto-create card on Bug Triage board → "New" column
-    const { BUG_BOARD_ID, BUG_COLUMNS } = await import('@gaud/shared')
     const reportId = report['id'] as string
     const cardId = randomUUID()
-    const maxPos = db.prepare('SELECT MAX(position) as mp FROM cards WHERE column_id = ?').get(BUG_COLUMNS.NEW) as any
+    const maxPos = db.prepare('SELECT MAX(position) as mp FROM cards WHERE column_id = ?').get(TRIAGE_COLUMNS.NEW) as any
     const position = (maxPos?.mp ?? -1) + 1
     db.prepare('INSERT INTO cards (id, board_id, column_id, type, title, description, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(cardId, BUG_BOARD_ID, BUG_COLUMNS.NEW, 'bug', fields['title'], fields['description'], position, now, now)
+      .run(cardId, BOARD_IDS.TRIAGE, TRIAGE_COLUMNS.NEW, 'bug', fields['title'], fields['description'], position, now, now)
     db.prepare('UPDATE bug_reports SET card_id = ? WHERE id = ?').run(cardId, reportId)
     ;(report as any).cardId = cardId
 
@@ -98,7 +98,7 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
       console.error('Triage error:', err)
     })
 
-    return reply.send({ status: 'triaging', id: req.params.id })
+    return reply.send({ id: req.params.id })
   })
 
   // Respond to agent's questions (for needs_info reports)
@@ -126,36 +126,26 @@ export async function bugReportRoutes(app: FastifyInstance): Promise<void> {
 
       if (response.includes('[TRIAGED]')) {
         const severityMatch = response.match(/Severity:\s*(critical|high|medium|low)/i)
-        db.prepare(`
-          UPDATE bug_reports SET status = 'triaged', severity = ?, triage_summary = ?, updated_at = datetime('now')
-          WHERE id = ?
-        `).run(severityMatch?.[1]?.toLowerCase() ?? 'medium', response, req.params.id)
+        db.prepare(`UPDATE bug_reports SET severity = ?, triage_summary = ?, updated_at = datetime('now') WHERE id = ?`)
+          .run(severityMatch?.[1]?.toLowerCase() ?? 'medium', response, req.params.id)
+        if (report.card_id) {
+          db.prepare("UPDATE cards SET column_id = ?, updated_at = datetime('now') WHERE id = ?")
+            .run(TRIAGE_COLUMNS.TRIAGED, report.card_id)
+        }
       } else if (response.includes('[REJECTED]')) {
-        db.prepare("UPDATE bug_reports SET status = 'rejected', triage_summary = ?, updated_at = datetime('now') WHERE id = ?")
+        db.prepare("UPDATE bug_reports SET triage_summary = ?, updated_at = datetime('now') WHERE id = ?")
           .run(response, req.params.id)
-      } else {
-        // Agent asked another question — keep needs_info status
-        db.prepare("UPDATE bug_reports SET status = 'needs_info', updated_at = datetime('now') WHERE id = ?")
-          .run(req.params.id)
+        if (report.card_id) {
+          db.prepare("UPDATE cards SET column_id = ?, updated_at = datetime('now') WHERE id = ?")
+            .run(TRIAGE_COLUMNS.REJECTED, report.card_id)
+        }
       }
+      // else: agent asked another question — card stays in INTERVIEWING
     } catch (err) {
       console.error('Respond triage failed:', err)
     }
 
     return reply.send({ status: 'ok' })
-  })
-
-  // Create bug card from triaged report
-  app.post<{ Params: { id: string } }>('/api/bug-reports/:id/create-card', { preHandler: [editorPlus] }, async (req, reply) => {
-    const { boardId, columnId } = req.body as { boardId: string; columnId: string }
-    if (!boardId || !columnId) return reply.status(400).send({ error: 'boardId and columnId are required' })
-
-    try {
-      const card = triage.createBugCard(req.params.id, boardId, columnId)
-      return reply.status(201).send(card)
-    } catch (err: any) {
-      return reply.status(404).send({ error: err.message })
-    }
   })
 
   // Delete bug report
