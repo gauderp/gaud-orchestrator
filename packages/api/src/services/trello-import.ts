@@ -150,6 +150,56 @@ export class TrelloImportService {
     return linked
   }
 
+  async backfill(
+    integration: IntegrationRow,
+    client: import('./trello-client.js').TrelloClient
+  ): Promise<{ created: number; updated: number; ignored: number; subtasksLinked: number }> {
+    const cards = await client.getCards(integration.trello_board_id)
+    let created = 0, updated = 0, ignored = 0, subtasksLinked = 0
+
+    // Pass 1: import all cards flat
+    const importedCards: Array<{ trelloId: string; localId: string }> = []
+    for (const trelloCard of cards) {
+      const result = this.importCard(integration, trelloCard)
+      if (result === 'created') created++
+      else if (result === 'updated') updated++
+      else ignored++
+
+      if (result !== 'ignored') {
+        const local = this.db.prepare(
+          'SELECT id FROM cards WHERE integration_id = ? AND external_id = ?'
+        ).get(integration.id, trelloCard.id) as any
+        if (local) importedCards.push({ trelloId: trelloCard.id, localId: local.id })
+      }
+    }
+
+    // Pass 2: import checklists as child cards
+    for (const { trelloId, localId } of importedCards) {
+      try {
+        const checklists = await client.getChecklists(trelloId)
+        if (checklists.length > 0) {
+          const clResult = this.importChecklists(integration, localId, checklists)
+          created += clResult.created
+          updated += clResult.updated
+        }
+      } catch {
+        // Non-fatal: skip checklists for this card
+      }
+    }
+
+    // Pass 3: resolve power-up subtask links
+    for (const { trelloId, localId } of importedCards) {
+      try {
+        const attachments = await client.getAttachments(trelloId)
+        subtasksLinked += this.linkSubtasks(integration, localId, attachments)
+      } catch {
+        // Non-fatal: skip subtask linking for this card
+      }
+    }
+
+    return { created, updated, ignored, subtasksLinked }
+  }
+
   // --- Private helpers ---
 
   private importDevCard(integration: IntegrationRow, trelloCard: TrelloCardRaw, config: ListMapping): ImportResult {

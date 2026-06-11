@@ -72,7 +72,7 @@ describe('TrelloClient', () => {
       fetchMock.mockReturnValue(mockResponse(cards))
       const result = await client.getCards('board1')
       expect(result).toHaveLength(2)
-      expect(result[0].name).toBe('Fix bug')
+      expect(result[0]!.name).toBe('Fix bug')
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining('/1/boards/board1/cards')
       )
@@ -94,7 +94,7 @@ describe('TrelloClient', () => {
       fetchMock.mockReturnValue(mockResponse(checklists))
       const result = await client.getChecklists('c1')
       expect(result).toHaveLength(1)
-      expect(result[0].checkItems).toHaveLength(2)
+      expect(result[0]!.checkItems).toHaveLength(2)
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining('/1/cards/c1/checklists')
       )
