@@ -1,9 +1,14 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useExecutionStore } from '@/store/executions'
-import { ExecutionStatus } from '@/components/executions/ExecutionStatus'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Plus, Play as PlayIcon } from 'lucide-react'
+
+const outcomeVariant: Record<string, 'success' | 'error' | 'neutral'> = {
+  success: 'success',
+  failed: 'error',
+}
 
 export function ExecutionListPage() {
   const { executions, loading, fetchExecutions } = useExecutionStore()
@@ -61,14 +66,15 @@ export function ExecutionListPage() {
                   Execution {exec.id.slice(0, 8)}
                 </span>
                 <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-                  {exec.cardId && `Card: ${exec.cardId.slice(0, 8)}`}
-                  {exec.specId && ` | Spec: ${exec.specId.slice(0, 8)}`}
+                  Card: {exec.cardId.slice(0, 8)}
                 </span>
               </div>
               <div className="flex items-center gap-4">
-                <ExecutionStatus status={exec.status} />
+                <Badge variant={exec.outcome ? (outcomeVariant[exec.outcome] ?? 'neutral') : 'neutral'}>
+                  {exec.outcome ?? 'running'}
+                </Badge>
                 <span className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
-                  {new Date(exec.createdAt).toLocaleDateString()}
+                  {new Date(exec.startedAt).toLocaleDateString()}
                 </span>
               </div>
             </Link>

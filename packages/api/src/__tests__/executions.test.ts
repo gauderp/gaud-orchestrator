@@ -25,7 +25,22 @@ describe('Executions API', () => {
     db.prepare("INSERT INTO boards (id, name) VALUES ('b1', 'Board')").run()
     db.prepare("INSERT INTO columns (id, board_id, name, position) VALUES ('col1', 'b1', 'Backlog', 0)").run()
     db.prepare("INSERT INTO cards (id, board_id, column_id, type, title) VALUES ('c1', 'b1', 'col1', 'task', 'Task')").run()
-    db.prepare("INSERT INTO specs (id, title, content, status, created_by_type) VALUES ('s1', 'Spec', '# Spec', 'approved', 'user')").run()
+
+    // Create simplified executions table matching migration 011
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS executions_simple (
+        id TEXT PRIMARY KEY,
+        card_id TEXT NOT NULL REFERENCES cards(id),
+        started_at TEXT NOT NULL DEFAULT (datetime('now')),
+        finished_at TEXT,
+        outcome TEXT CHECK (outcome IN ('success', 'failed')),
+        pr_url TEXT,
+        branch TEXT
+      )
+    `)
+    // Drop old executions and rename
+    db.exec('DROP TABLE IF EXISTS executions')
+    db.exec('ALTER TABLE executions_simple RENAME TO executions')
 
     ;(app as any).db = db
     await setupTestAuth(app)
@@ -38,11 +53,12 @@ describe('Executions API', () => {
   it('POST /api/executions creates an execution', async () => {
     const res = await app.inject({
       method: 'POST', url: '/api/executions',
-      payload: { cardId: 'c1', specId: 's1' },
+      payload: { cardId: 'c1', branch: 'feat/test' },
     })
     expect(res.statusCode).toBe(201)
     const body = JSON.parse(res.payload)
-    expect(body.status).toBe('planning')
+    expect(body.cardId).toBe('c1')
+    expect(body.branch).toBe('feat/test')
     execId = body.id
   })
 
@@ -51,28 +67,21 @@ describe('Executions API', () => {
     expect(JSON.parse(res.payload).length).toBe(1)
   })
 
-  it('GET /api/executions/:id returns with tasks and gaps', async () => {
-    // Add a task manually
-    db.prepare("INSERT INTO execution_tasks (id, execution_id, title, status) VALUES ('et1', ?, 'Build API', 'pending')").run(execId)
+  it('GET /api/executions/:id returns an execution', async () => {
     const res = await app.inject({ method: 'GET', url: `/api/executions/${execId}` })
     const body = JSON.parse(res.payload)
-    expect(body.tasks).toHaveLength(1)
-    expect(body.gaps).toBeDefined()
+    expect(body.cardId).toBe('c1')
+    expect(body.outcome).toBeNull()
   })
 
-  it('POST /api/executions/:id/gaps/:gapId/resolve resolves a gap', async () => {
-    db.prepare("INSERT INTO execution_gaps (id, execution_id, question, status) VALUES ('g1', ?, 'Which lib?', 'pending')").run(execId)
+  it('POST /api/executions/:id/complete completes an execution', async () => {
     const res = await app.inject({
-      method: 'POST', url: `/api/executions/${execId}/gaps/g1/resolve`,
-      payload: { response: 'Use jose' },
+      method: 'POST', url: `/api/executions/${execId}/complete`,
+      payload: { outcome: 'success', prUrl: 'https://github.com/pr/1' },
     })
-    expect(res.statusCode).toBe(200)
-  })
-
-  it('POST /api/executions/:id/cancel cancels', async () => {
-    const res = await app.inject({ method: 'POST', url: `/api/executions/${execId}/cancel` })
     const body = JSON.parse(res.payload)
-    if (res.statusCode !== 200) throw new Error(`Cancel failed with ${res.statusCode}: ${JSON.stringify(body)}`)
-    expect(body.status).toBe('failed')
+    expect(body.outcome).toBe('success')
+    expect(body.prUrl).toBe('https://github.com/pr/1')
+    expect(body.finishedAt).toBeTruthy()
   })
 })

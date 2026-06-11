@@ -80,7 +80,7 @@ export function CommandPalette() {
 
     // Specs
     for (const s of specs) {
-      results.push({ id: `spec:${s.id}`, label: s.title, breadcrumb: `v${s.version} · ${s.status}`, icon: FileText, href: `/specs/${s.id}`, group: 'Specs' })
+      results.push({ id: `spec:${s.id}`, label: s.title, breadcrumb: `v${s.version}`, icon: FileText, href: `/specs/${s.id}`, group: 'Specs' })
     }
 
     // Skills

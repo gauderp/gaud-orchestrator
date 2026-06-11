@@ -232,15 +232,14 @@ export const api = {
   executions: {
     list: () => request<Execution[]>('/executions'),
     get: (id: string) => request<Execution>(`/executions/${id}`),
-    create: (data: { cardId?: string; specId?: string }) => request<Execution>('/executions', { method: 'POST', body: JSON.stringify(data) }),
-    execute: (id: string) => request<Execution>(`/executions/${id}/execute`, { method: 'POST' }),
-    cancel: (id: string) => request<Execution>(`/executions/${id}/cancel`, { method: 'POST' }),
+    create: (data: { cardId: string; branch?: string }) => request<Execution>('/executions', { method: 'POST', body: JSON.stringify(data) }),
+    complete: (id: string, data: { outcome: string; prUrl?: string }) => request<Execution>(`/executions/${id}/complete`, { method: 'POST', body: JSON.stringify(data) }),
   },
 
   specs: {
-    list: (status?: string) => request<Spec[]>(`/specs${status ? `?status=${status}` : ''}`),
+    list: () => request<Spec[]>('/specs'),
     get: (id: string) => request<Spec & { reviews: SpecReview[]; repos: SpecRepo[] }>(`/specs/${id}`),
-    create: (data: { title: string; content: string; sourceCardId?: string; createdByType?: string }) =>
+    create: (data: { title: string; content: string; createdByType?: string }) =>
       request<Spec>('/specs', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: { title?: string; content?: string }) =>
       request<Spec>(`/specs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

@@ -3,7 +3,6 @@ import { randomUUID } from 'crypto'
 import { getAgentCostSummary } from '../services/cost-tracker.js'
 import { HierarchyService } from '../services/hierarchy.js'
 import { toCamelCase, toCamelCaseArray } from '../utils/case.js'
-import { broadcast } from '../ws/broadcast.js'
 import { requireRole } from '../middleware/auth.js'
 
 export async function agentRoutes(app: FastifyInstance): Promise<void> {
@@ -131,15 +130,6 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
     const { status, comment } = req.body as { status: 'approved' | 'rejected' | 'changes_requested'; comment?: string }
     const hierarchy = new HierarchyService(db)
     hierarchy.resolveReview(req.params.reviewId, status, comment)
-
-    // If approved and linked to execution task, resume task
-    const review = db.prepare('SELECT * FROM agent_reviews WHERE id = ?').get(req.params.reviewId) as any
-    if (status === 'approved' && review?.execution_task_id) {
-      db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('done', review.execution_task_id)
-      broadcast('execution:updated', { taskId: review.execution_task_id, status: 'done' })
-    } else if (status === 'rejected' && review?.execution_task_id) {
-      db.prepare('UPDATE execution_tasks SET status = ? WHERE id = ?').run('failed', review.execution_task_id)
-    }
 
     return reply.send(toCamelCase(db.prepare('SELECT * FROM agent_reviews WHERE id = ?').get(req.params.reviewId) as any))
   })

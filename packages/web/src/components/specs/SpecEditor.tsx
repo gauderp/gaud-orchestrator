@@ -12,12 +12,12 @@ interface SpecEditorProps {
 export function SpecEditor({ spec }: SpecEditorProps) {
   const updateSpec = useSpecStore((s) => s.updateSpec)
   const [title, setTitle] = useState(spec.title)
-  const [content, setContent] = useState(spec.content)
+  const [content, setContent] = useState(spec.content ?? '')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     setTitle(spec.title)
-    setContent(spec.content)
+    setContent(spec.content ?? '')
   }, [spec.id, spec.title, spec.content])
 
   const dirty = title !== spec.title || content !== spec.content

@@ -6,16 +6,14 @@ interface SpecState {
   specs: Spec[]
   selectedSpec: (Spec & { reviews: SpecReview[]; repos: SpecRepo[] }) | null
   loading: boolean
-  statusFilter: string | null
 
-  fetchSpecs: (status?: string) => Promise<void>
+  fetchSpecs: () => Promise<void>
   fetchSpec: (id: string) => Promise<void>
-  createSpec: (data: { title: string; content: string; sourceCardId?: string }) => Promise<Spec>
+  createSpec: (data: { title: string; content: string }) => Promise<Spec>
   updateSpec: (id: string, data: { title?: string; content?: string }) => Promise<void>
   reviewSpec: (id: string, data: { reviewerType: string; verdict: string; comment?: string }) => Promise<void>
   generateSpec: (data: { title: string; description: string; repos?: string[]; agentIds: string[]; cardId?: string }) => Promise<{ spec: Spec; conversationId: string }>
   decomposeSpec: (id: string, data: { boardId: string; columnId: string }) => Promise<any>
-  setStatusFilter: (status: string | null) => void
 
   onSpecUpdated: (spec: Spec) => void
 }
@@ -24,11 +22,10 @@ export const useSpecStore = create<SpecState>((set, get) => ({
   specs: [],
   selectedSpec: null,
   loading: false,
-  statusFilter: null,
 
-  fetchSpecs: async (status) => {
+  fetchSpecs: async () => {
     set({ loading: true })
-    const specs = await api.specs.list(status ?? get().statusFilter ?? undefined)
+    const specs = await api.specs.list()
     set({ specs, loading: false })
   },
 
@@ -53,7 +50,6 @@ export const useSpecStore = create<SpecState>((set, get) => ({
 
   reviewSpec: async (id, data) => {
     await api.specs.review(id, data)
-    // Refresh spec to get updated status and reviews
     await get().fetchSpec(id)
     await get().fetchSpecs()
   },
@@ -67,8 +63,6 @@ export const useSpecStore = create<SpecState>((set, get) => ({
   decomposeSpec: async (id, data) => {
     return api.specs.decompose(id, data)
   },
-
-  setStatusFilter: (status) => set({ statusFilter: status }),
 
   onSpecUpdated: (spec) => {
     set((s) => ({

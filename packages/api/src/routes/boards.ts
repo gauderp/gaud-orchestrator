@@ -1,5 +1,5 @@
-import { FastifyInstance } from 'fastify'
-import { getDb } from '../db/connection'
+import type { FastifyInstance } from 'fastify'
+import { getDb } from '../db/connection.js'
 
 export function boardRoutes(app: FastifyInstance) {
   // List all boards
