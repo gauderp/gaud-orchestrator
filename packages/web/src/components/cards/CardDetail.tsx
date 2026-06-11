@@ -4,7 +4,7 @@ import type { CardWithDetails } from '@gaud/shared'
 import { CardTypeIcon } from '@/components/kanban/CardTypeIcon'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Paperclip, MessageSquare, Plus, Calendar, GitBranch, Link2, ExternalLink } from 'lucide-react'
+import { Paperclip, MessageSquare, Plus, Calendar, GitBranch, Link2, ExternalLink, CornerLeftUp, ListTree } from 'lucide-react'
 import { CardRepos } from './CardRepos'
 import { CardTags } from './CardTags'
 import { CardComments } from './CardComments'
@@ -62,6 +62,17 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
             </a>
           )}
         </div>
+
+        {/* Parent link */}
+        {card.parentCardId && (
+          <Link
+            to={`/cards/${card.parentCardId}`}
+            className="flex items-center gap-1.5 text-sm text-[var(--color-muted)] hover:text-[var(--color-primary)] dark:text-[var(--color-muted-dark)]"
+          >
+            <CornerLeftUp size={14} />
+            Subtask of parent card
+          </Link>
+        )}
 
         {/* Description — click to edit */}
         <div>
@@ -265,6 +276,25 @@ export function CardDetail({ card, columnName, onUpdate }: CardDetailProps) {
                   <Link2 size={12} />
                   {dep.dependsOnCardId.slice(0, 8)}
                 </span>
+              ))}
+            </div>
+          </MetaField>
+        )}
+
+        {/* Subtasks / Children */}
+        {card.children && card.children.length > 0 && (
+          <MetaField label={`Subtasks (${card.children.length})`}>
+            <div className="flex flex-col gap-1">
+              {card.children.map((child) => (
+                <Link
+                  key={child.id}
+                  to={`/cards/${child.id}`}
+                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1 text-sm hover:bg-[var(--color-surface)] dark:hover:bg-[var(--color-surface-dark)]"
+                >
+                  <ListTree size={12} className="text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] shrink-0" />
+                  <span className="text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] truncate">{child.title}</span>
+                  <Badge variant="neutral">{child.type}</Badge>
+                </Link>
               ))}
             </div>
           </MetaField>
