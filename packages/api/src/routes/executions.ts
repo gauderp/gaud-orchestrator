@@ -8,75 +8,49 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
   const db = (app as any).db ?? (await import('../db/connection.js')).getDb()
   const editorPlus = requireRole('editor')
 
-  // List executions
-  app.get('/api/executions', async (_req, reply) => {
-    const execs = db.prepare('SELECT * FROM executions ORDER BY created_at DESC').all()
-    return reply.send(toCamelCaseArray(execs as any[]))
-  })
-
-  // Get execution with tasks, gaps, logs
-  app.get<{ Params: { id: string } }>('/api/executions/:id', async (req, reply) => {
-    const exec = db.prepare('SELECT * FROM executions WHERE id = ?').get(req.params.id) as any
-    if (!exec) return reply.status(404).send({ error: 'Execution not found' })
-    const tasks = db.prepare('SELECT * FROM execution_tasks WHERE execution_id = ? ORDER BY created_at').all(req.params.id)
-    const gaps = db.prepare('SELECT * FROM execution_gaps WHERE execution_id = ?').all(req.params.id)
-
-    // Get logs for each task (last 50 per task)
-    const tasksWithLogs = (tasks as any[]).map(t => {
-      const logs = db.prepare('SELECT * FROM execution_logs WHERE execution_task_id = ? ORDER BY created_at DESC LIMIT 50').all(t.id)
-      return { ...toCamelCase<Record<string, unknown>>(t as Record<string, unknown>), logs: toCamelCaseArray(logs as any[]) }
-    })
-
-    return reply.send({
-      ...toCamelCase<Record<string, unknown>>(exec as Record<string, unknown>),
-      tasks: tasksWithLogs,
-      gaps: toCamelCaseArray(gaps as any[]),
-    })
-  })
-
-  // Create execution
-  app.post('/api/executions', { preHandler: [editorPlus] }, async (req, reply) => {
-    const { cardId, specId } = req.body as any
-    const id = randomUUID()
-    const now = new Date().toISOString()
-    db.prepare('INSERT INTO executions (id, card_id, spec_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-      .run(id, cardId ?? null, specId ?? null, now, now)
-    const exec = toCamelCase(db.prepare('SELECT * FROM executions WHERE id = ?').get(id) as any)
-    broadcast('execution:updated', exec)
-    return reply.status(201).send(exec)
-  })
-
-  // Start execution (triggers engine)
-  app.post<{ Params: { id: string } }>('/api/executions/:id/execute', { preHandler: [editorPlus] }, async (req, reply) => {
-    try {
-      const { ExecutionEngine } = await import('../services/execution-engine.js')
-      const registry = (app as any).providerRegistry
-      const engine = new ExecutionEngine(db, registry)
-      await engine.startExecution(req.params.id)
-      const exec = toCamelCase(db.prepare('SELECT * FROM executions WHERE id = ?').get(req.params.id) as any)
-      return reply.send(exec)
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message })
+  // List executions (run log) — optionally filter by card
+  app.get<{ Querystring: { cardId?: string } }>('/api/executions', async (req, reply) => {
+    const { cardId } = req.query as any
+    if (cardId) {
+      const runs = db.prepare('SELECT * FROM executions WHERE card_id = ? ORDER BY started_at DESC').all(cardId)
+      return reply.send(toCamelCaseArray(runs as any[]))
     }
+    const runs = db.prepare('SELECT * FROM executions ORDER BY started_at DESC LIMIT 50').all()
+    return reply.send(toCamelCaseArray(runs as any[]))
   })
 
-  // Cancel execution
-  app.post<{ Params: { id: string } }>('/api/executions/:id/cancel', { preHandler: [editorPlus] }, async (req, reply) => {
-    db.prepare("UPDATE executions SET status = ?, updated_at = datetime('now') WHERE id = ?")
-      .run('failed', req.params.id)
-    const exec = toCamelCase(db.prepare('SELECT * FROM executions WHERE id = ?').get(req.params.id) as any)
-    broadcast('execution:updated', exec)
-    return reply.send(exec)
+  // Get single execution
+  app.get<{ Params: { id: string } }>('/api/executions/:id', async (req, reply) => {
+    const execution = db.prepare('SELECT * FROM executions WHERE id = ?').get(req.params.id)
+    if (!execution) return reply.status(404).send({ error: 'Execution not found' })
+    return reply.send(toCamelCase(execution as any))
   })
 
-  // Resolve gap
-  app.post<{ Params: { id: string; gapId: string } }>('/api/executions/:id/gaps/:gapId/resolve', async (req, reply) => {
-    const { response } = req.body as { response: string }
-    db.prepare('UPDATE execution_gaps SET response = ?, status = ? WHERE id = ?')
-      .run(response, 'resolved', req.params.gapId)
+  // Create a new execution run for a card
+  app.post('/api/executions', { preHandler: [editorPlus] }, async (req, reply) => {
+    const { cardId, branch } = req.body as any
+    if (!cardId) return reply.status(400).send({ error: 'cardId is required' })
+    const id = randomUUID()
+    db.prepare(
+      "INSERT INTO executions (id, card_id, branch, started_at) VALUES (?, ?, ?, datetime('now'))"
+    ).run(id, cardId, branch ?? null)
+    const execution = toCamelCase(db.prepare('SELECT * FROM executions WHERE id = ?').get(id) as any)
+    broadcast('execution:updated', execution)
+    return reply.status(201).send(execution)
+  })
 
-    const exec = toCamelCase(db.prepare('SELECT * FROM executions WHERE id = ?').get(req.params.id) as any)
-    broadcast('execution:updated', exec)
-    return reply.send(exec)
+  // Complete an execution
+  app.post<{ Params: { id: string } }>('/api/executions/:id/complete', { preHandler: [editorPlus] }, async (req, reply) => {
+    const { outcome, prUrl } = req.body as any
+    const execution = db.prepare('SELECT * FROM executions WHERE id = ?').get(req.params.id) as any
+    if (!execution) return reply.status(404).send({ error: 'Execution not found' })
+
+    db.prepare(
+      "UPDATE executions SET finished_at = datetime('now'), outcome = ?, pr_url = ? WHERE id = ?"
+    ).run(outcome, prUrl ?? null, req.params.id)
+
+    const updated = toCamelCase(db.prepare('SELECT * FROM executions WHERE id = ?').get(req.params.id) as any)
+    broadcast('execution:updated', updated)
+    return reply.send(updated)
   })
 }
