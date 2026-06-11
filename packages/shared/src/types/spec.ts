@@ -1,11 +1,8 @@
-export type SpecStatus = 'draft' | 'review' | 'approved' | 'rejected'
-
 export interface Spec {
   id: string
   title: string
-  content: string
-  status: SpecStatus
-  sourceCardId: string | null
+  content: string | null
+  cardId: string
   version: number
   createdByType: 'user' | 'agent'
   createdById: string | null
