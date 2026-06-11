@@ -138,10 +138,9 @@ INSERT OR IGNORE INTO cards (id, board_id, column_id, type, title, description, 
 
 -- ============================================================
 -- 7. Recreate bug_reports WITHOUT status column, source as free TEXT
+--    bug_report_attachments is preserved untouched: with foreign_keys OFF,
+--    its FK resolves by name again after the RENAME below.
 -- ============================================================
--- First drop bug_report_attachments (FK to bug_reports)
-DROP TABLE IF EXISTS bug_report_attachments;
-
 CREATE TABLE bug_reports_new (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -164,18 +163,7 @@ INSERT INTO bug_reports_new (id, title, description, reporter_name, reporter_ema
 DROP TABLE bug_reports;
 ALTER TABLE bug_reports_new RENAME TO bug_reports;
 
--- Recreate bug_report_attachments
-CREATE TABLE bug_report_attachments (
-  id TEXT PRIMARY KEY,
-  bug_report_id TEXT NOT NULL REFERENCES bug_reports(id) ON DELETE CASCADE,
-  filename TEXT NOT NULL,
-  path TEXT NOT NULL,
-  file_type TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
 CREATE INDEX idx_bug_reports_card ON bug_reports(card_id);
-CREATE INDEX idx_bug_report_attachments ON bug_report_attachments(bug_report_id);
 
 -- ============================================================
 -- 8. Recreate specs WITHOUT status, with card_id NOT NULL
