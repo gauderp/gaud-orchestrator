@@ -32,6 +32,7 @@ import { intakeRoutes } from './routes/intake.js'
 import { bugSourceRoutes } from './routes/bug-sources.js'
 import { backupRoutes } from './routes/backup.js'
 import multipart from '@fastify/multipart'
+import rawBody from 'fastify-raw-body'
 
 const dbPath = process.env['DATABASE_PATH'] ?? 'data/orchestrator.db'
 mkdirSync(dirname(dbPath), { recursive: true })
@@ -61,6 +62,9 @@ const server = Fastify({
   logger: {
     level: process.env['LOG_LEVEL'] ?? 'info',
   },
+  // Behind a reverse proxy, req.protocol/hostname must reflect the original
+  // request — Trello webhook HMAC verification rebuilds the callback URL
+  trustProxy: true,
 })
 
 // Make provider registry available to all routes
@@ -73,6 +77,8 @@ await server.register(cors, {
 
 await server.register(websocket)
 await server.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } })
+// Raw body for webhook signature verification (opt-in per route via config.rawBody)
+await server.register(rawBody, { field: 'rawBody', global: false, encoding: 'utf8', runFirst: true })
 
 server.register(async (app) => {
   app.get('/ws', { websocket: true }, (socket, req) => {

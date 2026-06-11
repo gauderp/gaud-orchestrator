@@ -22,6 +22,7 @@ export function intakeRoutes(app: FastifyInstance) {
   // Main webhook endpoint — public, no JWT
   app.post<{ Params: { sourceId: string }; Querystring: { token?: string } }>(
     '/api/intake/bugs/:sourceId',
+    { config: { rawBody: true } },
     async (req, reply) => {
       const { sourceId } = req.params
       const token = (req.query as any).token as string
