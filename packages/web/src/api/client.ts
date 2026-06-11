@@ -1,4 +1,4 @@
-import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, CardTag, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, SpecRepo, Execution, ExecutionTask, ExecutionGap, ExecutionLog, Repository, BugReport, BugReportWithAttachments } from '@gaud/shared'
+import type { Agent, AgentWithChildren, Skill, ProviderConfig, Board, BoardWithColumns, Card, CardWithDetails, CardComment, CardRepo, CardDependency, CardEstimate, AskAgentResponse, CardTag, Conversation, ConversationWithMessages, Message, AgentMemoryEntry, MemoryStats, Spec, SpecReview, SpecRepo, Execution, Repository, BugReport, BugReportWithAttachments } from '@gaud/shared'
 import { useAuthStore } from '@/store/auth'
 
 const API_BASE = '/api'
@@ -130,13 +130,6 @@ export const api = {
   boards: {
     list: () => request<Board[]>('/boards'),
     get: (id: string) => request<BoardWithColumns>(`/boards/${id}`),
-    create: (data: { name: string }) => request<Board>('/boards', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: { name: string }) => request<Board>(`/boards/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id: string) => request<void>(`/boards/${id}`, { method: 'DELETE' }),
-    createColumn: (boardId: string, data: any) => request(`/boards/${boardId}/columns`, { method: 'POST', body: JSON.stringify(data) }),
-    updateColumn: (colId: string, data: any) => request(`/columns/${colId}`, { method: 'PUT', body: JSON.stringify(data) }),
-    deleteColumn: (colId: string) => request<void>(`/columns/${colId}`, { method: 'DELETE' }),
-    reorderColumns: (boardId: string, columnIds: string[]) => request(`/boards/${boardId}/columns/reorder`, { method: 'PUT', body: JSON.stringify({ columnIds }) }),
     gantt: (boardId: string) => request<{ cards: Card[]; dependencies: CardDependency[]; columns: any[] }>(`/boards/${boardId}/gantt`),
   },
 
@@ -159,6 +152,14 @@ export const api = {
       request<CardTag>(`/cards/${cardId}/tags`, { method: 'POST', body: JSON.stringify(data) }),
     removeTag: (cardId: string, tagId: string) =>
       request<void>(`/cards/${cardId}/tags/${tagId}`, { method: 'DELETE' }),
+    moveToBoard: (cardId: string, data: { boardId: string; columnId: string }) =>
+      request<Card>(`/cards/${cardId}/move-to-board`, { method: 'POST', body: JSON.stringify(data) }),
+    sendToDev: (cardId: string) =>
+      request(`/cards/${cardId}/send-to-dev`, { method: 'POST' }),
+    sendToSpec: (cardId: string) =>
+      request(`/cards/${cardId}/send-to-spec`, { method: 'POST' }),
+    reopen: (cardId: string, reason?: string) =>
+      request(`/cards/${cardId}/reopen`, { method: 'POST', body: JSON.stringify({ reason }) }),
   },
 
   conversations: {
@@ -212,7 +213,6 @@ export const api = {
     }),
     triage: (id: string, agentId: string) => request(`/bug-reports/${id}/triage`, { method: 'POST', body: JSON.stringify({ agentId }) }),
     respond: (id: string, content: string) => request(`/bug-reports/${id}/respond`, { method: 'POST', body: JSON.stringify({ content }) }),
-    createCard: (id: string, boardId: string, columnId: string) => request(`/bug-reports/${id}/create-card`, { method: 'POST', body: JSON.stringify({ boardId, columnId }) }),
     delete: (id: string) => request<void>(`/bug-reports/${id}`, { method: 'DELETE' }),
   },
 
@@ -231,12 +231,10 @@ export const api = {
 
   executions: {
     list: () => request<Execution[]>('/executions'),
-    get: (id: string) => request<Execution & { tasks: (ExecutionTask & { logs: ExecutionLog[] })[]; gaps: ExecutionGap[] }>(`/executions/${id}`),
+    get: (id: string) => request<Execution>(`/executions/${id}`),
     create: (data: { cardId?: string; specId?: string }) => request<Execution>('/executions', { method: 'POST', body: JSON.stringify(data) }),
     execute: (id: string) => request<Execution>(`/executions/${id}/execute`, { method: 'POST' }),
     cancel: (id: string) => request<Execution>(`/executions/${id}/cancel`, { method: 'POST' }),
-    resolveGap: (execId: string, gapId: string, response: string) =>
-      request<Execution>(`/executions/${execId}/gaps/${gapId}/resolve`, { method: 'POST', body: JSON.stringify({ response }) }),
   },
 
   specs: {
