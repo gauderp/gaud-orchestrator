@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { genericAdapter } from '../intake/adapters/generic.js'
-import { trelloAdapter } from '../intake/adapters/trello.js'
 import { bugsnagAdapter } from '../intake/adapters/bugsnag.js'
 import type { BugSourceRow } from '../intake/types.js'
 import crypto from 'crypto'
@@ -38,55 +37,6 @@ describe('genericAdapter', () => {
 
   it('verify always returns true', () => {
     expect(genericAdapter.verify({} as any, mockSource)).toBe(true)
-  })
-})
-
-describe('trelloAdapter', () => {
-  const source: BugSourceRow = {
-    id: 'src-3', name: 'Trello Support', type: 'trello',
-    config_json: JSON.stringify({ listId: 'list-bugs' }),
-    webhook_secret: 'trello-api-secret', enabled: 1,
-  }
-
-  it('normalizes a createCard action on configured list', () => {
-    const payload = {
-      action: {
-        type: 'createCard',
-        data: {
-          card: { id: 'card-t1', name: 'Login 500 error', desc: 'Users report 500', shortUrl: 'https://trello.com/c/abc' },
-          list: { id: 'list-bugs' },
-        },
-      },
-    }
-    const result = trelloAdapter.normalize(payload, source)
-    expect(result).not.toBeNull()
-    expect(result!.title).toBe('Login 500 error')
-    expect(result!.externalId).toBe('card-t1')
-  })
-
-  it('returns null for non-configured lists', () => {
-    const payload = {
-      action: { type: 'createCard', data: { card: { id: 'x', name: 'Y', desc: '' }, list: { id: 'list-other' } } },
-    }
-    expect(trelloAdapter.normalize(payload, source)).toBeNull()
-  })
-
-  it('returns null for non-card actions', () => {
-    expect(trelloAdapter.normalize({ action: { type: 'addMemberToBoard', data: {} } }, source)).toBeNull()
-  })
-
-  it('verify checks HMAC-SHA1', () => {
-    const body = JSON.stringify({ action: { type: 'createCard' } })
-    const url = 'https://example.com/api/intake/bugs/src-3?token=trello-api-secret'
-    const hash = crypto.createHmac('sha1', source.webhook_secret).update(body + url).digest('base64')
-    const req = {
-      headers: { 'x-trello-webhook': hash },
-      rawBody: body,
-      url: '/api/intake/bugs/src-3?token=trello-api-secret',
-      hostname: 'example.com',
-      protocol: 'https',
-    } as any
-    expect(trelloAdapter.verify(req, source)).toBe(true)
   })
 })
 

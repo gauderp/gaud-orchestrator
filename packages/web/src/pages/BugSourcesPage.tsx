@@ -10,7 +10,6 @@ import type { BugSource } from '@gaud/shared'
 const SOURCE_TYPES = [
   { value: 'generic', label: 'Generic (JSON)', description: 'Accepts NormalizedBugIntake JSON — for curl or custom integrations' },
   { value: 'bugsnag', label: 'Bugsnag', description: 'Receives Bugsnag error webhooks (firstException, reopened)' },
-  { value: 'trello', label: 'Trello', description: 'Receives Trello card webhooks with HMAC-SHA1 verification' },
 ]
 
 export default function BugSourcesPage() {
@@ -139,13 +138,6 @@ export default function BugSourcesPage() {
                 {SOURCE_TYPES.find(t => t.value === type)?.description}
               </p>
             </div>
-            {type === 'trello' && (
-              <div>
-                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">Config JSON</label>
-                <Input value={configJson} onChange={e => setConfigJson(e.target.value)} placeholder='{"listId": "..."}' />
-                <p className="text-xs text-[var(--color-text-secondary)] mt-1">Set listId to only capture cards from a specific Trello list.</p>
-              </div>
-            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
               <Button onClick={handleCreate} disabled={!name.trim()}>Create</Button>
