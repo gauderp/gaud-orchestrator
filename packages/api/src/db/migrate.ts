@@ -1,6 +1,6 @@
 import { getDb } from './connection.js'
-import { readFileSync, readdirSync, existsSync, copyFileSync } from 'fs'
-import { join, dirname } from 'path'
+import { readFileSync, readdirSync, existsSync, copyFileSync, unlinkSync } from 'fs'
+import { join, dirname, basename } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -50,4 +50,14 @@ function backupDatabase(db: ReturnType<typeof getDb>): void {
   const backupPath = `${dbPath}.${stamp}.bak`
   copyFileSync(dbPath, backupPath)
   console.log(`Database backed up to: ${backupPath}`)
+
+  // Retention: keep only the backup just created — delete older ones.
+  // Deletion happens AFTER the new copy succeeds, so there is always at least one backup.
+  const dir = dirname(dbPath)
+  const prefix = `${basename(dbPath)}.`
+  for (const file of readdirSync(dir)) {
+    if (file.startsWith(prefix) && file.endsWith('.bak') && join(dir, file) !== backupPath) {
+      try { unlinkSync(join(dir, file)) } catch { /* locked file is not worth failing the boot */ }
+    }
+  }
 }
