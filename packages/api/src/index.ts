@@ -32,6 +32,7 @@ import { intakeRoutes } from './routes/intake.js'
 import { bugSourceRoutes } from './routes/bug-sources.js'
 import { backupRoutes } from './routes/backup.js'
 import { trelloIntegrationRoutes } from './routes/trello-integrations.js'
+import { trelloWebhookRoutes } from './routes/trello-webhook.js'
 import multipart from '@fastify/multipart'
 import rawBody from 'fastify-raw-body'
 
@@ -120,6 +121,7 @@ await server.register(slackWebhookRoutes)
 await server.register(intakeRoutes)
 await server.register(bugSourceRoutes)
 await server.register(trelloIntegrationRoutes)
+await server.register(trelloWebhookRoutes)
 await server.register(backupRoutes)
 
 // Serve frontend in production

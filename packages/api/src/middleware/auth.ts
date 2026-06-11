@@ -24,6 +24,9 @@ const PUBLIC_ROUTES = [
   'POST /api/intake/bugs/',
   'HEAD /api/intake/bugs/',
   'GET /api/intake/bugs/',
+  'POST /api/intake/trello/',
+  'HEAD /api/intake/trello/',
+  'GET /api/intake/trello/',
 ]
 
 export function signAccessToken(payload: JwtPayload): string {
