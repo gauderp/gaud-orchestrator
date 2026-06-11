@@ -11,6 +11,9 @@ export interface Card {
   assignedAgentId: string | null
   estimatedTokens: number | null
   estimatedCostUsd: number | null
+  integrationId: string | null
+  externalId: string | null
+  externalUrl: string | null
   position: number
   startDate: string | null
   dueDate: string | null
