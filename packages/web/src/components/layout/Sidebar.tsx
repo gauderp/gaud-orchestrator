@@ -21,7 +21,7 @@ const mainNav: NavItem[] = [
   { label: 'Boards', to: '/boards', icon: Kanban },
   { label: 'Specs', to: '/specs', icon: FileText },
   { label: 'Executions', to: '/executions', icon: Play },
-  { label: 'Bug Reports', to: '/bugs', icon: Bug },
+  { label: 'Bug Reports', to: '/boards/triage-board', icon: Bug },
 ]
 
 const configNav: NavItem[] = [

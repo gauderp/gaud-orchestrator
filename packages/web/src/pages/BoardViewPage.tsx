@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { BarChart3, Plus } from 'lucide-react'
+import { BarChart3, Bug, Plus } from 'lucide-react'
+import { BOARD_IDS } from '@gaud/shared'
 import { useBoardStore } from '@/store/boards'
 import { useAgentStore } from '@/store/agents'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 import { CardForm } from '@/components/cards/CardForm'
+import { BugReportForm } from '@/components/bugs/BugReportForm'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 
@@ -14,6 +16,9 @@ export function BoardViewPage() {
   const { agents, fetchAgents } = useAgentStore()
   const [showNewCard, setShowNewCard] = useState(false)
   const [creating, setCreating] = useState(false)
+  // On the Triage board, manual bugs must enter through the bug report flow
+  // (report + conversation + card), not as bare cards
+  const isTriage = id === BOARD_IDS.TRIAGE
 
   useEffect(() => {
     if (!id) return
@@ -43,6 +48,11 @@ export function BoardViewPage() {
 
   const handleInlineAdd = async (columnId: string, title: string) => {
     if (!id) return
+    if (isTriage) {
+      // Inline add bypasses the bug report flow — open the report form instead
+      setShowNewCard(true)
+      return
+    }
     await createCard({
       title,
       description: '',
@@ -54,6 +64,11 @@ export function BoardViewPage() {
       columnId,
       position: cards.filter((c) => c.columnId === columnId).length,
     })
+  }
+
+  const handleBugReported = () => {
+    setShowNewCard(false)
+    if (id) fetchCards(id)
   }
 
   if (!activeBoard) {
@@ -91,10 +106,17 @@ export function BoardViewPage() {
             <BarChart3 size={16} />
             Gantt
           </Link>
-<Button onClick={() => setShowNewCard(true)}>
-            <Plus size={16} className="mr-1.5" />
-            New Card
-          </Button>
+{isTriage ? (
+            <Button variant="destructive" onClick={() => setShowNewCard(true)}>
+              <Bug size={16} className="mr-1.5" />
+              Report Bug
+            </Button>
+          ) : (
+            <Button onClick={() => setShowNewCard(true)}>
+              <Plus size={16} className="mr-1.5" />
+              New Card
+            </Button>
+          )}
         </div>
       </div>
 
@@ -109,8 +131,12 @@ export function BoardViewPage() {
 
       </div>
 
-      <Modal open={showNewCard} onClose={() => setShowNewCard(false)} title="New Card" width="lg">
-        <CardForm onSubmit={handleCreateCard} loading={creating} />
+      <Modal open={showNewCard} onClose={() => setShowNewCard(false)} title={isTriage ? 'New Bug Report' : 'New Card'} width="lg">
+        {isTriage ? (
+          <BugReportForm onSuccess={handleBugReported} onCancel={() => setShowNewCard(false)} />
+        ) : (
+          <CardForm onSubmit={handleCreateCard} loading={creating} />
+        )}
       </Modal>
     </div>
   )
