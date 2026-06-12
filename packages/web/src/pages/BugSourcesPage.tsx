@@ -12,6 +12,8 @@ const SOURCE_TYPES = [
   { value: 'bugsnag', label: 'Bugsnag', description: 'Receives Bugsnag error webhooks (firstException, reopened)' },
 ]
 
+const selectCls = 'h-9 w-full box-border rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]'
+
 export default function BugSourcesPage() {
   const [sources, setSources] = useState<BugSource[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,35 +67,35 @@ export default function BugSourcesPage() {
     <div className="p-6 max-w-4xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Webhook className="w-6 h-6 text-[var(--color-text-secondary)]" />
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Bug Sources</h1>
+          <Webhook className="w-6 h-6 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]" />
+          <h1 className="text-lg font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Bug Sources</h1>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-2" /> Add Source
         </Button>
       </div>
 
-      <p className="text-sm text-[var(--color-text-secondary)] mb-6">
+      <p className="text-sm text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] mb-6">
         External tools send bugs via webhooks. Each source gets a unique URL with an auth token.
         Internal sources (UI, Slack, MCP) work as before.
       </p>
 
       {loading ? (
         <div className="animate-pulse space-y-3">
-          {[1, 2].map(i => <div key={i} className="h-24 rounded-lg bg-[var(--color-bg-tertiary)]" />)}
+          {[1, 2].map(i => <div key={i} className="h-24 rounded-[var(--radius-lg)] bg-[var(--color-surface-elevated)] dark:bg-[var(--color-surface-elevated-dark)]" />)}
         </div>
       ) : sources.length === 0 ? (
-        <div className="text-center py-12 text-[var(--color-text-secondary)]">
-          <Webhook className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>No external bug sources configured yet.</p>
+        <div className="flex flex-col items-center gap-3 py-12 text-[var(--color-muted)] dark:text-[var(--color-muted-dark)]">
+          <Webhook className="w-12 h-12 opacity-40" />
+          <p className="text-sm">No external bug sources configured yet.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {sources.map(source => (
-            <div key={source.id} className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+            <div key={source.id} className="p-4 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)]">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-semibold text-[var(--color-text-primary)]">{source.name}</h3>
+                  <h3 className="font-semibold text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">{source.name}</h3>
                   <Badge variant={source.enabled ? 'success' : 'neutral'}>{source.type}</Badge>
                   {!source.enabled && <Badge variant="warning">Disabled</Badge>}
                 </div>
@@ -102,16 +104,16 @@ export default function BugSourcesPage() {
                     {source.enabled ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => handleDelete(source.id)}>
-                    <Trash2 className="w-4 h-4 text-red-500" />
+                    <Trash2 className="w-4 h-4 text-[var(--color-destructive)]" />
                   </Button>
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-3">
-                <code className="flex-1 text-xs p-2 rounded bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] overflow-hidden text-ellipsis whitespace-nowrap">
+                <code className="flex-1 text-xs p-2 rounded-[var(--radius-md)] bg-[var(--color-surface)] dark:bg-[var(--color-surface-elevated-dark)] text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] overflow-hidden text-ellipsis whitespace-nowrap">
                   {getWebhookUrl(source)}
                 </code>
                 <Button variant="ghost" size="sm" onClick={() => copyUrl(source)}>
-                  {copied === source.id ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  {copied === source.id ? <Check className="w-4 h-4 text-[var(--color-accent)]" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
@@ -119,32 +121,27 @@ export default function BugSourcesPage() {
         </div>
       )}
 
-      {showCreate && (
-        <Modal open={showCreate} title="Add Bug Source" onClose={() => setShowCreate(false)}>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">Name</label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Bugsnag Production" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">Type</label>
-              <select
-                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-primary)] p-2 text-sm"
-                value={type} onChange={e => setType(e.target.value)}
-              >
-                {SOURCE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-              <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-                {SOURCE_TYPES.find(t => t.value === type)?.description}
-              </p>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={!name.trim()}>Create</Button>
-            </div>
+      <Modal open={showCreate} title="Add Bug Source" onClose={() => { setShowCreate(false); setName(''); setType('generic') }}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] mb-1">Name</label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Bugsnag Production" />
           </div>
-        </Modal>
-      )}
+          <div>
+            <label className="block text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)] mb-1">Type</label>
+            <select className={selectCls} value={type} onChange={e => setType(e.target.value)}>
+              {SOURCE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+            <p className="text-xs text-[var(--color-muted)] dark:text-[var(--color-muted-dark)] mt-1">
+              {SOURCE_TYPES.find(t => t.value === type)?.description}
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={!name.trim()}>Create</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

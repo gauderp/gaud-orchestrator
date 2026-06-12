@@ -313,20 +313,15 @@ export function AgentListPage() {
               ))}
             </select>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 12, fontWeight: 500 }}>Provider</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Provider</label>
             <select
               value={formProvider}
               onChange={(e) => {
                 setFormProvider(e.target.value)
                 setFormModel('')
               }}
-              style={{
-                height: 36, width: '100%', boxSizing: 'border-box',
-                borderRadius: 6, border: '1px solid #e2e8f0',
-                paddingLeft: 12, paddingRight: 12, fontSize: 14,
-                backgroundColor: '#fff',
-              }}
+              className="h-9 w-full box-border rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
             >
               <option value="">No provider</option>
               {providers.map((p) => (
@@ -335,17 +330,12 @@ export function AgentListPage() {
             </select>
           </div>
           {formProvider && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: 12, fontWeight: 500 }}>Model</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-[var(--color-ink)] dark:text-[var(--color-ink-dark)]">Model</label>
               <select
                 value={formModel}
                 onChange={(e) => setFormModel(e.target.value)}
-                style={{
-                  height: 36, width: '100%', boxSizing: 'border-box',
-                  borderRadius: 6, border: '1px solid #e2e8f0',
-                  paddingLeft: 12, paddingRight: 12, fontSize: 14,
-                  backgroundColor: '#fff',
-                }}
+                className="h-9 w-full box-border rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] dark:border-[var(--color-border-dark)] dark:bg-[var(--color-surface-dark)] dark:text-[var(--color-ink-dark)]"
               >
                 <option value="">Default model</option>
                 {getModelsForProvider(formProvider).map((m) => (
