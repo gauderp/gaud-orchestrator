@@ -10,7 +10,7 @@ interface ModalProps {
   width?: 'sm' | 'md' | 'lg'
 }
 
-const maxWidths: Record<string, string> = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' }
+const maxWidths: Record<string, string> = { sm: 'max-w-[28rem]', md: 'max-w-[32rem]', lg: 'max-w-[42rem]' }
 
 export function Modal({ open, onClose, title, children, width = 'md' }: ModalProps) {
   useEffect(() => {

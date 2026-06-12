@@ -31,14 +31,14 @@ export function SpecStudioPage() {
     setError(null)
     setSubmitting(true)
     try {
-      const result = await generateSpec({
+      await generateSpec({
         title,
         description,
         repos: selectedRepos.map(id => clonedRepos.find(r => r.id === id)?.githubUrl).filter(Boolean) as string[],
         agentIds: agentStr.split(',').map((s) => s.trim()).filter(Boolean),
         cardId: cardId || undefined,
       })
-      navigate(`/specs/${result.spec.id}`)
+      navigate('/boards/spec-board')
     } catch (err: any) {
       setError(err?.message ?? 'Failed to generate spec')
     } finally {

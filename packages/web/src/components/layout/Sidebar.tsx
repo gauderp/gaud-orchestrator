@@ -3,7 +3,7 @@ import { useAppStore } from '@/store/app'
 import { useAuthStore } from '@/store/auth'
 import {
   LayoutDashboard, Bot, Zap, Plug,
-  Kanban, FileText, Play, Bug, Pencil,
+  Kanban, FileText, Play, Bug,
   ChevronsLeft, ChevronsRight,
   Search, GitBranch, FolderGit2, HardDrive, Users,
 } from 'lucide-react'
@@ -20,7 +20,6 @@ const mainNav: NavItem[] = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard },
   { label: 'Dev Board', to: '/boards/dev-board', icon: Kanban },
   { label: 'Specs', to: '/boards/spec-board', icon: FileText },
-  { label: 'Spec Studio', to: '/specs/studio', icon: Pencil },
   { label: 'Executions', to: '/executions', icon: Play },
   { label: 'Bug Reports', to: '/boards/triage-board', icon: Bug },
 ]

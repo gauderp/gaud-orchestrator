@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { BarChart3, Bug, Plus } from 'lucide-react'
+import { BarChart3, Bug, Plus, Pencil } from 'lucide-react'
 import { BOARD_IDS } from '@gaud/shared'
 import { useBoardStore } from '@/store/boards'
 import { useAgentStore } from '@/store/agents'
@@ -19,6 +19,7 @@ export function BoardViewPage() {
   // On the Triage board, manual bugs must enter through the bug report flow
   // (report + conversation + card), not as bare cards
   const isTriage = id === BOARD_IDS.TRIAGE
+  const isSpec = id === BOARD_IDS.SPEC
 
   useEffect(() => {
     if (!id) return
@@ -111,6 +112,13 @@ export function BoardViewPage() {
               <Bug size={16} className="mr-1.5" />
               Report Bug
             </Button>
+          ) : isSpec ? (
+            <Link to="/specs/studio">
+              <Button>
+                <Pencil size={16} className="mr-1.5" />
+                Spec Studio
+              </Button>
+            </Link>
           ) : (
             <Button onClick={() => setShowNewCard(true)}>
               <Plus size={16} className="mr-1.5" />
